@@ -30,8 +30,8 @@ from pathlib import Path
 DATA_DIR = Path(__file__).resolve().parent
 
 DB_PATH = DATA_DIR / "cards.sqlite"
-ORACLE_BULK = DATA_DIR / "oracle-cards.json"
-RULINGS_BULK = DATA_DIR / "rulings.json"
+ORACLE_BULK = DATA_DIR / "oracle-cards.jsonl.gz"
+RULINGS_BULK = DATA_DIR / "rulings.jsonl.gz"
 
 BULK_DATA_ENDPOINT = "https://api.scryfall.com/bulk-data"
 USER_AGENT = "MTGAIResearchPipeline/0.1 (personal research project)"
@@ -61,7 +61,10 @@ def fetch_bulk_data():
         ("rulings", RULINGS_BULK),
     ]:
         entry = entries[type_key]
-        url = entry.get("download_uri") or entry["jsonl_download_uri"]
+        # jsonl_download_uri serves gzipped line-delimited JSON (~24 MB for
+        # oracle cards); download_uri serves the uncompressed array, which is
+        # many times larger. Prefer the small one, fall back if it vanishes.
+        url = entry.get("jsonl_download_uri") or entry["download_uri"]
         print(f"Downloading {type_key} from {url} ...")
         with _urlopen(url, timeout=120) as r:
             # Content-Length lets us show progress; these files are large
@@ -123,10 +126,11 @@ def _open_maybe_gzip(path: Path):
 def _iter_bulk(path: Path):
     """Yield records from a Scryfall bulk file.
 
-    Scryfall serves these as a single JSON array; some endpoints serve
-    line-delimited JSON instead. Sniff rather than assume, so the loader
-    survives either. For the very large sets (default_cards, all_cards)
-    prefer ijson for true streaming -- this reads the array into memory.
+    The jsonl_download_uri endpoint serves gzip-compressed line-delimited
+    JSON; download_uri serves a single uncompressed JSON array. Sniff both
+    axes rather than assume, so either source loads. The line-delimited
+    path streams record by record; the array path reads it all into memory,
+    which matters for the very large sets (default_cards, all_cards).
     """
     with _open_maybe_gzip(path) as f:
         head = f.read(1)

@@ -1,7 +1,7 @@
 # Scryfall bulk data + derived store (downloaded into the repo root by
 # mtg_card_pipeline.py; hundreds of MB, regenerate with `fetch`/`load`)
-oracle-cards.json
-rulings.json
+/oracle-cards.*
+/rulings.*
 cards.sqlite
 
 __pycache__/
