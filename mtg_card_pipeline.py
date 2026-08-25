@@ -7,7 +7,7 @@ see how much of the card pool collapses into a small number of recognizable
 structural patterns (this operationalizes the roadmap's Level 0-6 ladder).
 
 Run this LOCALLY (not in a sandboxed environment without internet access to
-data.scryfall.io). Requires: requests (pip install requests)
+data.scryfall.io). Standard library only -- no third-party packages needed.
 
 Usage:
     python mtg_card_pipeline.py fetch      # download bulk data + rulings
@@ -21,18 +21,17 @@ import json
 import re
 import sqlite3
 import sys
+import urllib.request
 from collections import Counter
 from pathlib import Path
-
-import requests
 
 # Bulk data and the SQLite store live in the repository root, next to this
 # script, so paths hold regardless of the working directory you invoke from.
 DATA_DIR = Path(__file__).resolve().parent
 
 DB_PATH = DATA_DIR / "cards.sqlite"
-ORACLE_JSONL = DATA_DIR / "oracle-cards.jsonl.gz"
-RULINGS_JSONL = DATA_DIR / "rulings.jsonl.gz"
+ORACLE_BULK = DATA_DIR / "oracle-cards.json"
+RULINGS_BULK = DATA_DIR / "rulings.json"
 
 BULK_DATA_ENDPOINT = "https://api.scryfall.com/bulk-data"
 USER_AGENT = "MTGAIResearchPipeline/0.1 (personal research project)"
@@ -42,26 +41,41 @@ USER_AGENT = "MTGAIResearchPipeline/0.1 (personal research project)"
 # Step 1: Fetch
 # ---------------------------------------------------------------------------
 
+def _urlopen(url: str, timeout: int, accept: str | None = None):
+    """GET a URL with our User-Agent. Raises HTTPError on non-2xx."""
+    headers = {"User-Agent": USER_AGENT}
+    if accept:
+        headers["Accept"] = accept
+    return urllib.request.urlopen(
+        urllib.request.Request(url, headers=headers), timeout=timeout
+    )
+
+
 def fetch_bulk_data():
     """Look up current bulk-data download URLs, then stream both files to disk."""
-    headers = {"User-Agent": USER_AGENT, "Accept": "application/json"}
-    resp = requests.get(BULK_DATA_ENDPOINT, headers=headers, timeout=30)
-    resp.raise_for_status()
-    entries = {e["type"]: e for e in resp.json()["data"]}
+    with _urlopen(BULK_DATA_ENDPOINT, timeout=30, accept="application/json") as resp:
+        entries = {e["type"]: e for e in json.load(resp)["data"]}
 
     for type_key, target_path in [
-        ("oracle_cards", ORACLE_JSONL),
-        ("rulings", RULINGS_JSONL),
+        ("oracle_cards", ORACLE_BULK),
+        ("rulings", RULINGS_BULK),
     ]:
-        url = entries[type_key]["jsonl_download_uri"]
-        # Scryfall's jsonl_download_uri is gzip-compressed despite the name;
-        # this is standard for their bulk data pipeline.
+        entry = entries[type_key]
+        url = entry.get("download_uri") or entry["jsonl_download_uri"]
         print(f"Downloading {type_key} from {url} ...")
-        with requests.get(url, headers={"User-Agent": USER_AGENT}, stream=True, timeout=120) as r:
-            r.raise_for_status()
+        with _urlopen(url, timeout=120) as r:
+            # Content-Length lets us show progress; these files are large
+            # enough that a silent download looks like a hang on a phone.
+            total = int(r.headers.get("Content-Length") or 0)
+            done = 0
             with open(target_path, "wb") as f:
-                for chunk in r.iter_content(chunk_size=1 << 20):
+                while chunk := r.read(1 << 20):
                     f.write(chunk)
+                    done += len(chunk)
+                    if total:
+                        print(f"\r  {100 * done / total:5.1f}%", end="", flush=True)
+            if total:
+                print()
         print(f"  saved to {target_path} ({target_path.stat().st_size / 1e6:.1f} MB)")
 
 
@@ -97,19 +111,41 @@ CREATE INDEX IF NOT EXISTS idx_rulings_oracle_id ON rulings(oracle_id);
 """
 
 
-def _iter_jsonl_gz(path: Path):
-    with gzip.open(path, "rt", encoding="utf-8") as f:
-        # Scryfall's bulk files are a single JSON array, not true JSONL,
-        # despite the filename. json.load handles this; for very large
-        # files (default_cards, all_cards) prefer ijson for streaming.
-        data = json.load(f)
-    yield from data
+def _open_maybe_gzip(path: Path):
+    """Open a bulk file whether or not it landed on disk gzip-compressed."""
+    with open(path, "rb") as probe:
+        is_gzip = probe.read(2) == b"\x1f\x8b"
+    if is_gzip:
+        return gzip.open(path, "rt", encoding="utf-8")
+    return open(path, "rt", encoding="utf-8")
+
+
+def _iter_bulk(path: Path):
+    """Yield records from a Scryfall bulk file.
+
+    Scryfall serves these as a single JSON array; some endpoints serve
+    line-delimited JSON instead. Sniff rather than assume, so the loader
+    survives either. For the very large sets (default_cards, all_cards)
+    prefer ijson for true streaming -- this reads the array into memory.
+    """
+    with _open_maybe_gzip(path) as f:
+        head = f.read(1)
+        while head and head.isspace():
+            head = f.read(1)
+        f.seek(0)
+        if head == "[":
+            yield from json.load(f)
+        else:
+            for line in f:
+                line = line.strip().rstrip(",")
+                if line and line not in ("[", "]"):
+                    yield json.loads(line)
 
 
 def load_cards(conn: sqlite3.Connection):
     cur = conn.cursor()
     n = 0
-    for card in _iter_jsonl_gz(ORACLE_JSONL):
+    for card in _iter_bulk(ORACLE_BULK):
         # Double-faced / split cards store text per-face in card_faces
         # instead of at the top level.
         is_dfc = 0
@@ -155,7 +191,7 @@ def load_rulings(conn: sqlite3.Connection):
     cur = conn.cursor()
     cur.execute("DELETE FROM rulings")
     n = 0
-    for ruling in _iter_jsonl_gz(RULINGS_JSONL):
+    for ruling in _iter_bulk(RULINGS_BULK):
         cur.execute(
             "INSERT INTO rulings (oracle_id, published_at, comment) VALUES (?,?,?)",
             (ruling.get("oracle_id"), ruling.get("published_at"), ruling.get("comment")),
