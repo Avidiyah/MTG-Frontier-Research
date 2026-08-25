@@ -9,11 +9,16 @@ wondering "wait, what does that card actually say?"
 Standard library only. Run `python mtg_card_pipeline.py all` first to build
 the database.
 
+Run it with no search term for an interactive prompt -- type a name, press
+Enter, repeat. A blank line quits. Multi-word names need no quoting.
+
 Usage:
+    python mtg_search.py                      # prompt for searches
     python mtg_search.py bolt                 # substring match, case-insensitive
-    python mtg_search.py "lightning bolt" -e  # exact name only
+    python mtg_search.py lightning bolt       # multiple words, no quotes needed
+    python mtg_search.py lightning bolt -e    # exact name only
     python mtg_search.py jace -n 5            # cap the number of results
-    python mtg_search.py "black lotus" -r     # include Oracle rulings
+    python mtg_search.py black lotus -r       # include Oracle rulings
     python mtg_search.py bolt -q              # names only, one per line
 """
 
@@ -104,11 +109,52 @@ def format_card(row, width: int, conn=None) -> str:
     return "\n".join(out)
 
 
+def run_query(conn: sqlite3.Connection, term: str, args) -> bool:
+    """Search and print. Returns whether anything matched."""
+    rows = search(conn, term, args.exact, args.limit)
+
+    if not rows:
+        print(f"No cards matching {term!r}.", file=sys.stderr)
+        return False
+
+    if args.quiet:
+        for row in rows:
+            print(row[1])
+        return True
+
+    width = max(40, min(shutil.get_terminal_size((80, 24)).columns, 100))
+    for i, row in enumerate(rows):
+        if i:
+            print("-" * width)
+        print(format_card(row, width, conn if args.rulings else None))
+
+    if len(rows) == args.limit:
+        print(f"\n(stopped at {args.limit}; raise it with -n)", file=sys.stderr)
+    return True
+
+
+def interactive(conn: sqlite3.Connection, args) -> int:
+    """Prompt for search terms until a blank line or EOF."""
+    if sys.stdin.isatty():
+        print("Search cards by name. Blank line or Ctrl-D to quit.")
+    while True:
+        try:
+            term = input("\nSearch: ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            return 0
+        if not term:
+            return 0
+        run_query(conn, term, args)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Search the local MTG card store by name."
     )
-    parser.add_argument("term", help="name or fragment of a name to search for")
+    parser.add_argument("term", nargs="*",
+                        help="name or fragment to search for; multiple words are "
+                             "joined, so quoting is optional. Omit to be prompted.")
     parser.add_argument("-e", "--exact", action="store_true",
                         help="match the full name instead of a substring")
     parser.add_argument("-n", "--limit", type=int, default=10,
@@ -129,26 +175,10 @@ def main() -> int:
     # Read-only: searching should never be able to modify the store.
     conn = sqlite3.connect(f"file:{args.db}?mode=ro", uri=True)
     try:
-        rows = search(conn, args.term, args.exact, args.limit)
-
-        if not rows:
-            print(f"No cards matching {args.term!r}.", file=sys.stderr)
-            return 1
-
-        if args.quiet:
-            for row in rows:
-                print(row[1])
-            return 0
-
-        width = max(40, min(shutil.get_terminal_size((80, 24)).columns, 100))
-        for i, row in enumerate(rows):
-            if i:
-                print("-" * width)
-            print(format_card(row, width, conn if args.rulings else None))
-
-        if len(rows) == args.limit:
-            print(f"\n(stopped at {args.limit}; raise it with -n)", file=sys.stderr)
-        return 0
+        term = " ".join(args.term).strip()
+        if not term:
+            return interactive(conn, args)
+        return 0 if run_query(conn, term, args) else 1
     finally:
         conn.close()
 
