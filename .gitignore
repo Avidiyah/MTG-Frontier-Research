@@ -2,7 +2,8 @@
 # mtg_card_pipeline.py; hundreds of MB, regenerate with `fetch`/`load`)
 /oracle-cards.*
 /rulings.*
-cards.sqlite
-
+/cards.sqlite*
 __pycache__/
 *.py[cod]
+/target/
+.claude/

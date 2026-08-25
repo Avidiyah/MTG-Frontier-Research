@@ -19,6 +19,7 @@ also means it runs in constrained environments like Termux on Android.
 |---|---|
 | `mtg_card_pipeline.py` | Fetch Scryfall bulk data → load into SQLite → template frequency report |
 | `mtg_search.py` | Look up individual cards by name in the built database |
+| `mtg-discover` | Rust CLI for agent-driven corpus and rules research |
 | `.gitignore` | Keeps the bulk downloads and the SQLite store out of version control |
 
 ## Quick start
@@ -27,6 +28,61 @@ also means it runs in constrained environments like Termux on Android.
 python mtg_card_pipeline.py all     # fetch, load, and analyze
 python mtg_search.py                # interactive card lookup
 ```
+
+## Rust discovery CLI
+
+`mtg-discover` provides deterministic, structured research tools for terminal
+agents. Every successful command writes one JSON document to standard output;
+errors go to standard error with a nonzero exit status. Paths default to
+`cards.sqlite` and `Magic-Comprehensive_Rules.md` in the repository root and
+can be overridden globally with `--db` and `--rules`.
+
+Build it once:
+
+```powershell
+cargo build --release
+$mtg = ".\target\release\mtg-discover.exe"
+```
+
+Available discovery operations:
+
+```powershell
+& $mtg info
+& $mtg cards "draw a card" --field text --limit 20
+& $mtg cards "Phyrexian" --field type --limit 20
+& $mtg card "Lightning Bolt" --rulings
+& $mtg rules search "trigger condition" --limit 20
+& $mtg rules show 603.1
+& $mtg segment --card "Cryptic Command"
+& $mtg segment --name "Example" --text "When Example enters, draw a card."
+& $mtg templates --limit 100 --min-count 2
+```
+
+`cards` performs literal case-insensitive matching, so `%` and `_` are not
+treated as SQL wildcards. It searches names, Oracle text, and type lines by
+default; `--field` narrows that scope. `card` requires an exact name or Oracle
+ID and can join official rulings. `rules search` searches both numbered rules
+and glossary entries, while `rules show` returns a rule and all descendants.
+
+`segment` is intentionally an observable baseline rather than a claim of full
+parsing. It separates card faces and Oracle-text lines, classifies modal,
+triggered, activated, keyword, and other text, and includes a normalized
+template. `templates` applies that same segmentation over the complete corpus,
+excludes face separators, and reports a ranked coverage curve.
+
+### Suggested agent research loop
+
+1. Run `info` to record the corpus and rules versions used by an experiment.
+2. Form a narrow, falsifiable hypothesis about Oracle wording.
+3. Use `cards` to locate examples and counterexamples.
+4. Use `card --rulings` and `rules search/show` to inspect authoritative
+   semantics rather than infer them from card text alone.
+5. Use `segment` to test how the current structural baseline represents each
+   example.
+6. Run `templates` when changing normalization or segmentation and compare its
+   total units, distinct templates, and coverage checkpoints.
+7. Record both supporting and contradicting examples. Do not treat frequency
+   as proof of semantic equivalence.
 
 `all` takes a while on first run — it downloads roughly 30 MB and then walks
 every card in the pool. The three stages can also be run individually
