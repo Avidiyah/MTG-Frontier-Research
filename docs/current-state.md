@@ -165,21 +165,19 @@ integers to `N`, strips `•`, and replaces a quoted ability with
 
 | Measurement | Value |
 |---|---:|
-| Printed structural units | 71,682 |
+| Printed structural units | 71,563 |
 | Rules-supplied units (reminder-only lines, counted separately) | 970 |
-| Distinct normalized templates | 37,344 |
-| Top 10 template coverage | 14.15% |
-| Top 100 template coverage | 26.85% |
-| Top 1,000 template coverage | 42.15% |
-| Top 5,000 template coverage | 54.88% |
-| Kinds | static/spell 21,521 · triggered 17,503 · keyword 17,630 · activated 12,000 · replacement 2,208 · additional cost 317 · CDA 245 · prevention 181 · cast restriction 68 · ante 9 |
-| Roles | ability 67,075 · mode 2,121 · granted 1,504 · delayed trigger 982 |
+| Distinct normalized templates | 37,299 |
+| Top 10 template coverage | 14.17% |
+| Top 100 template coverage | 26.90% |
+| Top 1,000 template coverage | 42.18% |
+| Top 5,000 template coverage | 54.87% |
+| Kinds | static/spell 19,519 · triggered 19,214 · keyword 17,840 · activated 11,998 · replacement 2,174 · additional cost 319 · CDA 255 · prevention 166 · cast restriction 69 · ante 9 |
+| Roles | ability 67,045 · mode 2,121 · granted 1,506 · delayed trigger 891 |
 
-**This table predates P-ATQ-1 and P-ATQ-2** (decision log below) and has not
-been regenerated since; do not treat the `prevention 181` kind count or the
-`delayed trigger 982` role count as the current segmenter's output.
-
-The most frequent normalized unit is `Flying` with 3,526 occurrences (4.92%).
+The delayed-trigger role contains 861 nested children and 30 top-level
+spell-created delayed triggers. The most frequent normalized unit is `Flying`
+with 3,526 occurrences (4.93%).
 
 Historical baseline (line = unit, raw-text classification, 2026-08-25 to
 2026-08-26): 67,738 units, 37,912 templates, top-10/100/1,000/5,000 coverage
@@ -342,19 +340,19 @@ hit is not proof that the rule completely determines a card's behavior.
   (under 1, over 1), kind 123 / 123, unit novelty 96 / 125 and template
   novelty 95 / 114 against the three earlier sets. The `over` rows are
   condition-only parents produced by the single-sentence split rule (c),
-  rejected in review (P-ATQ-1). These are development and regression sets,
+  rejected in review (P-ATQ-1). P-ATQ-1..4 are now implemented, so these
+  annotation metrics describe the pre-change export and await research-lead
+  re-annotation. Fresh exports contain 415 Alpha units, 110 Arabian Nights
+  units, and 124 Antiquities units. These are development and regression sets,
   not gold sets and not evidence about the corpus.
-- Corpus-wide S11 checks of the P-ARN rules are scripted
+- Corpus-wide S11 checks of the P-ARN and P-ATQ rules are scripted
   (`scripts/python/corpus_checks/`, reports in `docs/audits/corpus-checks/`):
-  delayed-trigger splits 982 (sentence-level 861 sound; 121 comma/colon
-  fragments and 3 in-quote splits defective); `prevention_effect` 181
-  (144 / 161 top-level correct; 9 `can't be prevented`, 8 ability-word /
-  chapter-prefixed misfires); instant/sorcery faces carry 0 lexical
-  replacement/prevention labels but 30 spell-only delayed triggers are
-  labelled top-level triggers. **This 982 figure predates P-ATQ-1, and the
-  30-unit spell-only-delayed-trigger figure predates P-ATQ-4** (below) and
-  neither has been regenerated since; do not treat either as the current
-  segmenter's output.
+  after P-ATQ-1, all 861 nested delayed-trigger children are sentence-level and
+  no comma/colon fragments remain; after P-ATQ-2, no `can't be prevented`
+  prohibition is labelled `prevention_effect`; P-ATQ-3 reduces the 8 recorded
+  prefix-related prevention candidates to 3, which still require lead
+  adjudication; P-ATQ-4 assigns `role = delayed_trigger` to exactly 30
+  qualifying top-level instant/sorcery units.
 - A held-out pool is frozen (protocol §6.3: `oracle_id` prefix `f`,
   non-fallback, excluding `lea`/`leb`/`arn`; 2,096 cards) but not yet sampled
   or annotated.
@@ -420,8 +418,10 @@ Unless new evidence changes priorities:
    2026-08-26 (`docs/gates/gate-0-evidence.md`). Arabian Nights (`arn`) and
    Beta (`leb`) are audited (`docs/findings/arn-structural-audit.md`);
    P-ARN-1..4 are implemented and reviewed (rule (c) rejected). Antiquities
-   is audited and adjudicated (`docs/findings/atq-structural-audit.md`)
-   with proposals P-ATQ-1..4 awaiting Codex. Legends (`leg`, 310 cards,
+   is audited and adjudicated (`docs/findings/atq-structural-audit.md`).
+   P-ATQ-1..4 are implemented and corpus-measured, pending research-lead
+   re-annotation and acceptance; P-ATQ-3 has 3 residual prefix-related
+   prevention candidates requiring adjudication. Legends (`leg`, 310 cards,
    290 with text — the last set below the 400-card exhaustive threshold
    before Ice Age) is next.
 2. **Normalization ablations:** measure one reversible transformation at a time
@@ -820,3 +820,10 @@ When updating this document:
   validation for the same reason; that work remains open exactly as
   recorded in their own disposition entries above, unchanged by this
   session.
+- Re-ran the full local corpus after merging P-ATQ-1..4: 71,563 printed units,
+  37,299 templates, 861 sentence-level delayed-trigger children, 30 top-level
+  spell-created delayed triggers, 0 comma/colon delayed splits, 166
+  `prevention_effect` units, and 0 `can't be prevented` prohibition misfires.
+  P-ATQ-3 reduced the 8 recorded prefix-related prevention candidates to 3;
+  these remain for research-lead adjudication. All four implementations remain
+  pending the protocol-required re-annotation and acceptance decision.

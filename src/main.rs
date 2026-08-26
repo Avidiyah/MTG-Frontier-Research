@@ -1475,7 +1475,7 @@ fn command_templates(db_path: &Path, args: TemplateArgs) -> Result<Value> {
             "keyword_lists": "split on , and ; into one keyword unit each",
             "mode_marker": "• removed; role = mode under the parent ability",
             "granted_ability": "quoted ability replaced by \"[ability]\" and counted as a child unit",
-            "delayed_trigger": "supported `next`/`at end of combat`/scoped `When` forms split off as children of the creating unit",
+            "delayed_trigger": "supported sentence-level `next`/`at end of combat` and scoped `When` forms split off as children; qualifying spell-created delayed triggers remain top-level with role delayed_trigger",
             "type_line_context": "per-face type line keeps instant/sorcery spell text out of replacement/prevention ability kinds except recognized static exceptions",
             "prevention_effect": "static CR 615 prevention text is reported separately from replacement_effect",
             "face_separator": "excluded"

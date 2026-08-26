@@ -109,8 +109,9 @@ instruction, or residual spell/static text), `role` (`ability`, `mode`,
 `delayed_trigger`, or `granted`), and `source` (`printed`, or
 `rules_supplied` for reminder-only lines such as basic lands, with a CR
 citation when inferable). Keyword lists (`Flying, trample`) become one unit
-per keyword; `•` modes nest under their header; a `At the beginning of ...
-next ...` delayed trigger nests under the unit that creates it; quoted
+per keyword; `•` modes nest under their header; an `At the beginning of ...
+next ...` delayed-trigger sentence nests under the unit that creates it.
+Single-sentence delayed-trigger phrases remain in their containing unit. Quoted
 abilities nest under the granting unit and are replaced by `"[ability]"` in
 the parent's template. `text` is the unit's printed text with reminder text
 removed and `line` points back to the source line. `templates` applies that

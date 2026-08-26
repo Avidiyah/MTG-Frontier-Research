@@ -97,7 +97,7 @@ Wall of Spears and Yawgmoth Demon carry keywords on separate Oracle lines
 ### V6. Novelty against `lea`+`leb`+`arn` (N1)
 
 Unit novelty **96 / 125 (0.768)**, template novelty **95 / 114 (0.833)**,
-earlier distinct templates 295. **N1 is falsified at this step**: novelty
+earlier distinct templates 374. **N1 is falsified at this step**: novelty
 rose from 0.706 to 0.768 even though the earlier pool grew. Antiquities is
 an artifact-themed expansion whose units are mostly activated abilities with
 non-mana costs (sacrifice/discard/counter-removal), a cost form nearly absent
@@ -707,6 +707,23 @@ deferred research question (D19), not part of this disposition.
 (Tawnos's Coffin, Animate Dead) — needs its own S8 search separating it
 from D14's independent triggers (D19).
 
+### Local corpus-validation follow-up (2026-08-26)
+
+After PRs #1–#4 were merged, the full local corpus and S11 scripts were run
+against the combined implementation. The current output has 71,563 printed
+units and 37,299 templates. P-ATQ-1 leaves 861 delayed-trigger children, all
+sentence-level, with no comma/colon children. P-ATQ-2 leaves no
+`can't be prevented` prohibition classified as `prevention_effect`. P-ATQ-4
+marks exactly 30 qualifying top-level units `role = delayed_trigger`, distinct
+from the 861 nested children.
+
+P-ATQ-3 reduced the 8 recorded prefix-related prevention candidates to 3
+(Urza's Science Fair Project, Khârn the Betrayer, and Diamond Weapon). This
+measurement does not adjudicate whether those three are remaining defects or
+correct post-prefix classifications. P-ATQ-3 therefore remains pending lead
+review, as do the protocol-required re-annotation and acceptance decisions for
+all four implementations.
+
 ## 9. Measurements (protocol §4.5; `docs/audits/atq/metrics.json`)
 
 | Field | `atq` |
@@ -719,7 +736,7 @@ from D14's independent triggers (D19).
 | Dispositions | accept 123 · defect 2 |
 | Context | none 101 · CR 22 · type line 2 · game state 0 · card-specific 0 |
 | Unit / template novelty vs `lea`+`leb`+`arn` | 96 / 125 (0.768) · 95 / 114 (0.833) |
-| Multi-sentence units (automatic) | 27 / 125 |
+| Multi-sentence units (automatic) | 29 / 125 |
 | Inter-annotator agreement (pass 1 vs pass 2, all judgement fields) | 125 / 125 |
 | Drift vs fresh export | 0 |
 
