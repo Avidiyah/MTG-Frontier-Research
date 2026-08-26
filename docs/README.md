@@ -82,7 +82,7 @@ Available discovery operations:
 & $mtg cards "Regenerate" --field text --set lea
 & $mtg audit export lea                        # flattened structural units for one set
 & $mtg audit summary lea                       # set-level audit measurements
-& $mtg audit novelty arn                       # compare a set to earlier first-printing sets
+& $mtg audit novelty arn --earlier lea,leb     # compare to earlier audited sets
 & $mtg audit signals lea                       # surface-form audit candidates
 ```
 
@@ -124,9 +124,11 @@ rules as `templates` and reports cards, cards with text, printed units,
 rules-supplied units, distinct and singleton templates, kind/role/source
 histograms, multi-sentence units, residual spell/static units, and uncited
 rules-supplied units. `audit novelty <set>` compares printed templates in the
-selected set with printed templates from strictly earlier `first_released_at`
-sets; same-date ties and missing dates are not earlier, so Alpha is 100% novel
-when no earlier eligible set exists. `audit signals <set>` lists observable
+selected set with the audited set codes supplied through `--earlier`. If
+`--earlier` is omitted, it uses all eligible chronologically earlier
+first-printing sets as an exploratory baseline. Fallback first-printing records,
+same-date ties, and missing dates are excluded from the comparison corpus, so
+Alpha is 100% novel. `audit signals <set>` lists observable
 audit candidates such as residual multi-sentence units, uncited rules-supplied
 units, unextracted quoted text, embedded activation restrictions, unattached
 delayed-trigger phrases, conditional CDA candidates, and payment restrictions.

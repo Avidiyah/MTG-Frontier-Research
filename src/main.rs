@@ -154,7 +154,7 @@ enum AuditCommand {
     /// Summarize structural-unit counts for cards first printed in a set.
     Summary(SetAuditArgs),
     /// Compare a set's printed templates to chronologically earlier sets.
-    Novelty(SetAuditArgs),
+    Novelty(NoveltyAuditArgs),
     /// List observable suspicious candidates for manual audit triage.
     Signals(SetAuditArgs),
 }
@@ -163,6 +163,16 @@ enum AuditCommand {
 struct SetAuditArgs {
     /// First-printing set code to audit, such as lea.
     set: String,
+}
+
+#[derive(Args, Clone)]
+struct NoveltyAuditArgs {
+    /// First-printing set code to audit, such as arn.
+    set: String,
+
+    /// Earlier audited set codes to use as the comparison corpus.
+    #[arg(long, value_delimiter = ',')]
+    earlier: Vec<String>,
 }
 
 #[derive(Serialize)]
@@ -1177,18 +1187,40 @@ fn command_audit_summary(db_path: &Path, args: SetAuditArgs) -> Result<Value> {
     }))
 }
 
-fn command_audit_novelty(db_path: &Path, args: SetAuditArgs) -> Result<Value> {
+fn command_audit_novelty(db_path: &Path, args: NoveltyAuditArgs) -> Result<Value> {
     let conn = open_db(db_path)?;
     let set = args.set.to_lowercase();
     let selected = load_audit_cards(&conn, &set)?;
     let selected_release = selected_set_release(&selected);
-    let earlier = load_earlier_audit_cards(&conn, selected_release.as_deref())?;
+    let mut earlier_set_codes: Vec<String> =
+        args.earlier.iter().map(|set| set.to_lowercase()).collect();
+    earlier_set_codes.sort();
+    earlier_set_codes.dedup();
+    let earlier_sets: HashSet<String> = earlier_set_codes.iter().cloned().collect();
+    let earlier = load_earlier_audit_cards(
+        &conn,
+        selected_release.as_deref(),
+        if earlier_sets.is_empty() {
+            None
+        } else {
+            Some(&earlier_sets)
+        },
+    )?;
     let novelty = novelty_report(&selected, &earlier);
     Ok(json!({
         "set": set,
         "selected_released_at": selected_release,
-        "earlier_sets_policy": "Only records with first_released_at strictly earlier than the selected set are earlier; same-date ties and missing dates are not earlier.",
-        "first_printing_policy": "Uses the repository first_set derivation, including fallback first-printing records flagged by first_is_fallback.",
+        "earlier_sets": if earlier_sets.is_empty() {
+            Value::Null
+        } else {
+            json!(earlier_set_codes)
+        },
+        "earlier_sets_policy": if earlier_sets.is_empty() {
+            "All eligible sets with first_released_at strictly earlier than the selected set; same-date ties and missing dates are not earlier."
+        } else {
+            "Only the explicitly supplied audited sets, further restricted to first_released_at strictly earlier than the selected set."
+        },
+        "first_printing_policy": "Fallback first-printing records are excluded from the earlier comparison corpus.",
         "earlier_cards_with_text": earlier.iter().filter(|card| card.oracle_text.as_ref().is_some_and(|text| !text.is_empty())).count(),
         "total_printed_units": novelty["total_printed_units"],
         "units_seen_earlier": novelty["units_seen_earlier"],
@@ -1244,6 +1276,7 @@ fn load_audit_cards(conn: &Connection, set: &str) -> Result<Vec<AuditCard>> {
 fn load_earlier_audit_cards(
     conn: &Connection,
     selected_release: Option<&str>,
+    earlier_sets: Option<&HashSet<String>>,
 ) -> Result<Vec<AuditCard>> {
     let Some(selected_release) = selected_release else {
         return Ok(Vec::new());
@@ -1252,11 +1285,16 @@ fn load_earlier_audit_cards(
         "SELECT oracle_id, name, first_set, first_released_at, first_is_fallback, oracle_text \
          FROM cards WHERE first_set IS NOT NULL AND first_released_at IS NOT NULL \
          AND first_released_at < ?1 AND oracle_text IS NOT NULL AND oracle_text != '' \
+         AND first_is_fallback = 0 \
          ORDER BY first_released_at, lower(first_set), lower(name), name, oracle_id",
     )?;
-    Ok(statement
+    let mut cards = statement
         .query_map([selected_release], audit_card_from_row)?
-        .collect::<rusqlite::Result<Vec<_>>>()?)
+        .collect::<rusqlite::Result<Vec<_>>>()?;
+    if let Some(earlier_sets) = earlier_sets {
+        cards.retain(|card| earlier_sets.contains(&card.first_set.to_lowercase()));
+    }
+    Ok(cards)
 }
 
 fn audit_card_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<AuditCard> {

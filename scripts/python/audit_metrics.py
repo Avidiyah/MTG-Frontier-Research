@@ -95,9 +95,49 @@ def main():
             "template_novelty": ratio(len(novel_templates), len(templates)),
         }
     if args.export:
-        current = {(r["oracle_id"], r["index"]): r["text"] for r in read_tsv(args.export)}
-        drift = [f"{r['name']}#{r['index']}" for r in rows if current.get((r["oracle_id"], r["index"])) != r["text"]]
-        out["drift"] = {"export": args.export, "changed_or_missing_units": len(drift), "examples": drift[:20]}
+        exported = read_tsv(args.export)
+        key_fields = ("oracle_id", "face", "index")
+        structural_fields = (
+            "set", "oracle_id", "name", "type_line", "index", "parent_index",
+            "depth", "face", "line", "kind", "role", "source", "rule", "text",
+            "normalized",
+        )
+
+        def keyed(rs):
+            result = {}
+            for row in rs:
+                key = tuple(row[field] for field in key_fields)
+                if key in result:
+                    raise ValueError(f"duplicate unit key in audit data: {key}")
+                result[key] = row
+            return result
+
+        annotated_by_key = keyed(rows)
+        exported_by_key = keyed(exported)
+        drift = []
+        for key in sorted(set(annotated_by_key) | set(exported_by_key)):
+            annotated_row = annotated_by_key.get(key)
+            exported_row = exported_by_key.get(key)
+            if annotated_row is None:
+                drift.append(f"added:{exported_row['name']}#{exported_row['face']}:{exported_row['index']}")
+                continue
+            if exported_row is None:
+                drift.append(f"missing:{annotated_row['name']}#{annotated_row['face']}:{annotated_row['index']}")
+                continue
+            changed = [
+                field for field in structural_fields
+                if annotated_row.get(field, "") != exported_row.get(field, "")
+            ]
+            if changed:
+                drift.append(
+                    f"changed:{annotated_row['name']}#{annotated_row['face']}:{annotated_row['index']}"
+                    f"[{','.join(changed)}]"
+                )
+        out["drift"] = {
+            "export": args.export,
+            "changed_or_missing_units": len(drift),
+            "examples": drift[:20],
+        }
 
     json.dump(out, sys.stdout, indent=2)
     sys.stdout.write("\n")

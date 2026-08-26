@@ -63,8 +63,9 @@ identifier, and they must be copied into the findings document.
 
 Execute the steps in order. Do not invent methodology mid-audit; if a step is
 inadequate for the set, record the gap in the findings document and continue
-with the step as written. Steps marked **[Codex]** need tooling that does not
-exist yet; until it does, use the interim script named in the step.
+with the step as written. Steps marked **[Codex]** identify tooling requirements;
+use the documented interim path until the complete acceptance condition in
+section 8 is met.
 
 ### S1 — Preconditions
 
@@ -97,8 +98,10 @@ python scripts/python/export_units.py <code> > docs/audits/<code>/units-export.t
 
 The export is committed. It is the frozen object the annotation refers to;
 `audit_metrics.py --export` detects drift if the segmenter changes later.
-**[Codex]** T2 replaces this script with a native `export` command; the
-column contract in section 4.1 must be preserved.
+The native `audit export <code>` command provides the deterministic JSON
+inventory used for exploration and agrees with Alpha's frozen TSV on all shared
+fields. The script remains the annotation path until native TSV output satisfies
+the complete T2 column contract in section 4.1.
 
 ### S4 — Review scope
 
@@ -432,12 +435,19 @@ record · exact evidence that would change the decision.
 Ordered by how early the protocol needs them. Each is a requirement, not an
 implementation; the research lead does not implement them.
 
+The native `audit` command now partially satisfies T2 (deterministic JSON
+export), T3 (summary denominators), T4 (novelty, including an explicit
+`--earlier` audited-set comparison), and T5 (declared suspicious signals).
+T2 remains open for contract-compatible TSV and the complete section 4.1
+columns; the table records the full acceptance conditions rather than partial
+implementation status.
+
 | Id | Requirement | Serves | Acceptance |
 |---|---|---|---|
 | T1 | Record bulk-snapshot identity (file name, size, mtime or Scryfall `updated_at`, sha256) in `cards.sqlite` and print it from `info` | §2 | `info` output identifies the snapshot without prose |
 | T2 | `export --set <code>` emitting every unit of the set with the 4.1 columns, deterministic order, JSON and TSV; stable unit key = `(oracle_id, face, index)` | S3, S5 | byte-identical output on repeated runs; matches `segment` per card |
 | T3 | `templates --set` reporting singleton count and full template list beyond 5,000 (or `--all`) | S2 | denominators computable without scripts |
-| T4 | Novelty against earlier sets: `templates --set arn --earlier lea,leb` reporting unit and template novelty with the 4.3 denominators | S14 | agrees with `audit_metrics.py --earlier` |
+| T4 | Novelty against earlier sets: `audit novelty arn --earlier lea,leb` reporting unit and template novelty with the 4.3 denominators | S14 | agrees with `audit_metrics.py --earlier` |
 | T5 | Residual and suspicious-case inventory: units matching a declared surface pattern but not split/classified (e.g. `at the beginning of the next` outside a split child; quoted strings not made children; `instead` in instants) as a listable report | S8, S11 | list is diffable across commits |
 | T6 | Rule-firing inventory: for each heuristic, the distinct corpus lines it fires on, with counts | S11 | reproduces the Alpha keyword-list check |
 | T7 | `--exclude-heldout` (pool definition of 6.3) on `cards`, `segment`, `export` | 6.3 | pool cards absent from output |
