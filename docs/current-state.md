@@ -1,6 +1,6 @@
 # Current State: MTG Frontier Research
 
-Last verified: 2026-08-25
+Last verified: 2026-08-26
 
 ## Purpose of this document
 
@@ -99,14 +99,18 @@ model already exists and therefore does not solve the active frontier.
 |---|---|
 | `src/main.rs` | Rust `mtg-discover` CLI for structured corpus and rules exploration |
 | `Cargo.toml`, `Cargo.lock` | Rust package and reproducible dependency resolution |
-| `scripts/python/mtg_card_pipeline.py` | Fetch Scryfall bulk data, load SQLite, and run the original template baseline |
+| `scripts/python/mtg_card_pipeline.py` | Fetch Scryfall bulk data (including all printings), load SQLite with first-printing columns, and run the original template baseline |
+| `docs/findings/` | One document per completed investigation; read the newest after this file |
 | `scripts/python/mtg_search.py` | Human-oriented interactive card lookup |
+| `.github/copilot-instructions.md`, `CLAUDE.md` | Agent onboarding, verified commands, architecture, and repository conventions |
 | `docs/README.md` | Setup, command reference, and older pipeline documentation |
 | `docs/RESEARCH_NOTES.md` | Literature findings and downstream architecture context |
 | `Magic-Comprehensive_Rules.md` | Local Comprehensive Rules source used by discovery tools |
 | `cards.sqlite` | Generated local card and ruling database |
 | `oracle-cards.jsonl.gz` | Generated Scryfall Oracle Cards bulk input |
 | `rulings.jsonl.gz` | Generated Scryfall rulings bulk input |
+| `default-cards.jsonl.gz` | Generated Scryfall all-printings bulk input (first-printing derivation only) |
+| `docs/mtg_ai_research_roadmap.md` | Long-term roadmap and literature map (Stages 1–7, success levels 0–6) |
 | `target/` | Generated Rust build output |
 
 The corpus files, SQLite database, and build output are regenerable local
@@ -115,8 +119,10 @@ artifacts and are not source code. Agents must not commit them.
 ## Verified data snapshot
 
 The following values were produced by the release build of `mtg-discover` on
-2026-08-25. Re-run the commands rather than copying these values into later
-analysis if the corpus or rules file may have changed.
+2026-08-26 from the Scryfall bulk snapshot of 2026-08-25 (oracle-cards,
+rulings, and default-cards all from that day). Re-run the commands rather
+than copying these values into later analysis if the corpus or rules file
+may have changed.
 
 ### Corpus and authority data
 
@@ -126,6 +132,8 @@ analysis if the corpus or rules file may have changed.
 | Cards with Oracle text | 37,916 |
 | Cards without Oracle text | 710 |
 | Multi-face cards | 3,212 |
+| Cards with a derived first printing | 38,626 (4,707 by fallback; 553 distinct sets) |
+| Cards first printed in Alpha (`lea`) | 290 (275 with Oracle text) |
 | Official ruling records | 78,949 |
 | Parsed numbered rule entries | 3,455 |
 | Parsed glossary entries | 752 |
@@ -185,9 +193,16 @@ $mtg = ".\target\release\mtg-discover.exe"
 | `& $mtg segment --card <name>` | Inspect current segmentation and normalization |
 | `& $mtg segment --text <text> --name <name>` | Probe synthetic or isolated text |
 | `& $mtg templates` | Recompute template ranks and coverage |
+| `& $mtg templates --set <code>` | Same, restricted to cards first printed in one set |
+| `& $mtg cards <query> --set <code>` | Search restricted to one first-printing set |
+| `& $mtg sets [--type <set_type>] [--until <date>]` | First-printing sets in release order with card counts |
+| `python scripts/python/mtg_search.py <name>` | Human-oriented name lookup using the repository-root database |
 
 Successful commands emit JSON to standard output. Errors use a nonzero exit
 status. Prefer these structured interfaces over scraping human-oriented output.
+The `rules` commands structurally extract numbered rules and glossary entries
+from the Markdown document for search and retrieval. They do not translate the
+Comprehensive Rules into semantic or executable game logic.
 
 ## Evidence hierarchy
 
@@ -213,16 +228,33 @@ hit is not proof that the rule completely determines a card's behavior.
 
 - Multi-face cards store joined face text, but the database does not preserve
   complete per-face characteristics.
+- First printing is derived (earliest paper, non-promo printing outside
+  promo/token/memorabilia/minigame/alchemy sets). Oracle text is *current*
+  wording, so ordering by first printing tracks when an effect entered the
+  game, not how it was worded then.
+- Oracle text is identical across all printings of a card (verified over
+  116,843 printings), so reminder text is canonical, not printing noise.
 - The corpus is a current Oracle snapshot, not a history of wording changes.
 - Cards without Oracle text remain in the corpus and need explicit treatment.
 - SQLite's default case-insensitive matching does not fully fold Unicode.
 
 ### Structural baseline
 
-- Line boundaries are only a first approximation of ability boundaries.
-- Modal headers, modes, ability words, keyword lists, nested instructions, and
+- Line boundaries are only a first approximation of ability boundaries. The
+  Alpha audit (`docs/findings/lea-segmentation-audit.md`) found both
+  directions of failure: keyword lists and embedded delayed triggers put
+  several abilities on one line; Siren's Call and modal spells spread one
+  ability over several lines.
+- The classifier runs on raw text while the normalizer strips reminder
+  text, so 34% of Alpha's keyword lines are labelled static text.
+- Reminder-only lines (basic and dual lands) normalize to nothing; their
+  ability is supplied by CR 305.6, not by text.
+- Replacement effects, casting restrictions, additional costs,
+  characteristic-defining abilities, ante text, and quoted (granted)
+  abilities are all present in Alpha and all collapse into
+  `spell_or_static_text` or are mislabelled.
+- Modal headers, modes, ability words, nested instructions, and
   paragraph-spanning structures need stronger segmentation.
-- The keyword classifier is heuristic and can misclassify short static text.
 - Reminder-text removal is lexical and does not model its semantic value.
 
 ### Normalization baseline
@@ -233,6 +265,9 @@ hit is not proof that the rule completely determines a card's behavior.
   quantity, power/toughness modification, and counter count.
 - Object descriptions, types, subtypes, zones, players, durations, and
   references are not typed.
+- Self-reference has two surface forms (card name; `this <type>`) and only
+  the name form is normalized. `named X` is a counterexample to blind name
+  replacement (Plague Rats).
 - Normalized-string equality is not semantic equivalence.
 
 ### Evaluation
@@ -285,10 +320,17 @@ These are research questions, not an implementation backlog:
 
 ## Near-term investigation sequence
 
+The corpus is walked **set by set in first-printing order** (Alpha →
+present) so that wording complexity grows over time; each set gets a
+findings document. Metric proposed for the walk: a set's *novelty rate*,
+the share of its units whose template did not appear in any earlier set.
+
 Unless new evidence changes priorities:
 
-1. **Segmentation audit:** sample and classify failures across card faces,
+1. **Segmentation audit:** per set, classify failures across card faces,
    paragraphs, modal spells, keyword lists, ability words, and nested text.
+   Alpha is done; Arabian Nights (`arn`) is next. Decide on the segmenter
+   changes proposed in the Alpha findings before or during that step.
 2. **Normalization ablations:** measure one reversible transformation at a time
    rather than applying increasingly lossy normalization as a bundle.
 3. **Typed-slot discovery:** test candidate roles for numbers, mana, objects,
@@ -326,3 +368,24 @@ When updating this document:
 - Established the first Rust discovery baseline: 67,738 structural units and
   37,912 normalized templates; the top 5,000 cover 51.41% under the current
   lossy normalization.
+
+### 2026-08-26
+
+- Stated the working hypothesis under test: because Magic is a formal
+  rules-based system, cards follow semantic patterns that an algorithm can
+  parse without hand-coding the vast majority of effects. No coverage target;
+  the goal is the upper bound of what is parseable.
+- Decided to walk the corpus set by set from Alpha, recording each step in
+  `docs/findings/`.
+- Added first-printing derivation (`default_cards` bulk file, `first_*`
+  columns) and `sets` / `--set` to the CLI. Baseline segmentation and
+  normalization are unchanged, so corpus-wide numbers above still hold.
+- Alpha audit: a line is not an ability (both directions); reminder text
+  breaks keyword classification on 34% of keyword lines; 14 Alpha cards have
+  rules-supplied abilities only; typed-slot ablations reduce Alpha's
+  singleton share only from 68% to 56%; 47% of Alpha templates never recur
+  in the corpus, half of those as parametric cycles. Verified that Oracle
+  text does not vary across printings.
+- Added repository-wide Copilot instructions aligned with this document and
+  `CLAUDE.md`; restored `mtg_search.py` database discovery relative to the
+  repository root so it works independently of the caller's working directory.

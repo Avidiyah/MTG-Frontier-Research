@@ -6,20 +6,20 @@ Query the local card store built by mtg_card_pipeline.py. Name search only --
 this is the lookup tool you reach for while reading template output and
 wondering "wait, what does that card actually say?"
 
-Standard library only. Run `python mtg_card_pipeline.py all` first to build
-the database.
+Standard library only. Run `python scripts/python/mtg_card_pipeline.py all`
+from the repository root first to build the database.
 
 Run it with no search term for an interactive prompt -- type a name, press
 Enter, repeat. A blank line quits. Multi-word names need no quoting.
 
 Usage:
-    python mtg_search.py                      # prompt for searches
-    python mtg_search.py bolt                 # substring match, case-insensitive
-    python mtg_search.py lightning bolt       # multiple words, no quotes needed
-    python mtg_search.py lightning bolt -e    # exact name only
-    python mtg_search.py jace -n 5            # cap the number of results
-    python mtg_search.py black lotus -r       # include Oracle rulings
-    python mtg_search.py bolt -q              # names only, one per line
+    python scripts/python/mtg_search.py                      # prompt for searches
+    python scripts/python/mtg_search.py bolt                 # substring match
+    python scripts/python/mtg_search.py lightning bolt       # quoting optional
+    python scripts/python/mtg_search.py lightning bolt -e    # exact name only
+    python scripts/python/mtg_search.py jace -n 5            # result limit
+    python scripts/python/mtg_search.py black lotus -r       # include rulings
+    python scripts/python/mtg_search.py bolt -q              # names only
 """
 
 import argparse
@@ -29,7 +29,9 @@ import sys
 import textwrap
 from pathlib import Path
 
-DB_PATH = Path(__file__).resolve().parent / "cards.sqlite"
+# Resolve generated data from the repository root regardless of the caller's
+# working directory.
+DB_PATH = Path(__file__).resolve().parent.parent.parent / "cards.sqlite"
 
 COLUMNS = "oracle_id, name, mana_cost, type_line, oracle_text, power, toughness, loyalty, is_dfc"
 
@@ -169,7 +171,8 @@ def main() -> int:
 
     if not args.db.exists():
         print(f"No card database at {args.db}\n"
-              f"Build it first:  python mtg_card_pipeline.py all", file=sys.stderr)
+              "Build it first:  python scripts/python/mtg_card_pipeline.py all",
+              file=sys.stderr)
         return 2
 
     # Read-only: searching should never be able to modify the store.

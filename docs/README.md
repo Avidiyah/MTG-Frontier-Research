@@ -56,6 +56,9 @@ Available discovery operations:
 & $mtg segment --card "Cryptic Command"
 & $mtg segment --name "Example" --text "When Example enters, draw a card."
 & $mtg templates --limit 100 --min-count 2
+& $mtg sets --until 1995-12-31                 # first-printing sets in release order
+& $mtg templates --set lea                     # restrict to one first-printing set
+& $mtg cards "Regenerate" --field text --set lea
 ```
 
 `cards` performs literal case-insensitive matching, so `%` and `_` are not
@@ -68,7 +71,10 @@ and glossary entries, while `rules show` returns a rule and all descendants.
 parsing. It separates card faces and Oracle-text lines, classifies modal,
 triggered, activated, keyword, and other text, and includes a normalized
 template. `templates` applies that same segmentation over the complete corpus,
-excludes face separators, and reports a ranked coverage curve.
+excludes face separators, and reports a ranked coverage curve. `sets` lists
+the sets in which cards were *first* printed, in release order, so the corpus
+can be walked era by era; `--set <code>` on `cards` and `templates` restricts
+them to cards first printed in that set.
 
 ### Suggested agent research loop
 
@@ -84,7 +90,7 @@ excludes face separators, and reports a ranked coverage curve.
 7. Record both supporting and contradicting examples. Do not treat frequency
    as proof of semantic equivalence.
 
-`all` takes a while on first run — it downloads roughly 30 MB and then walks
+`all` takes a while on first run — it downloads roughly 110 MB and then walks
 every card in the pool. The three stages can also be run individually
 (`fetch`, `load`, `analyze`), which matters if a stage fails: a completed
 download does not need repeating.
@@ -94,7 +100,7 @@ download does not need repeating.
 ### `fetch`
 
 Queries `https://api.scryfall.com/bulk-data` for the current download URLs,
-then streams two datasets to the repository root:
+then streams three datasets to the repository root:
 
 - **`oracle-cards.jsonl.gz`** (~24 MB) — one entry per distinct card, keyed by
   `oracle_id`. This is the deduplicated set: every printing of Lightning Bolt
@@ -102,6 +108,10 @@ then streams two datasets to the repository root:
   rather than print runs.
 - **`rulings.jsonl.gz`** (~5 MB) — official Oracle rulings, joined to cards by
   `oracle_id`.
+- **`default-cards.jsonl.gz`** (~78 MB) — every printing of every card. Used
+  only to derive each card's *first* printing: the `oracle_cards` record is
+  an arbitrary recent printing (Lightning Bolt's is a 2026 Commander deck),
+  so it cannot say which set introduced a card.
 
 Scryfall exposes each dataset at two URLs. This code prefers
 `jsonl_download_uri`, which serves gzipped line-delimited JSON, over
@@ -128,10 +138,19 @@ Schema:
 ```sql
 cards(oracle_id PRIMARY KEY, name, mana_cost, cmc, type_line, oracle_text,
       power, toughness, loyalty, keywords, colors, color_identity,
-      legalities, is_dfc)
+      legalities, is_dfc,
+      first_set, first_set_name, first_set_type, first_released_at,
+      first_is_fallback)                      -- indexed on first_set
 
 rulings(oracle_id, published_at, comment)   -- indexed on oracle_id
 ```
+
+`load` drops and recreates `cards` each run. The `first_*` columns hold the
+earliest paper, non-promo printing outside promo/token/memorabilia/minigame/
+alchemy sets; cards with no such printing (digital-only, promo-only, art
+series) fall back to their earliest printing of any kind with
+`first_is_fallback = 1` so analyses can exclude them. They are NULL only if
+`default-cards.jsonl.gz` is absent.
 
 `keywords`, `colors`, `color_identity`, and `legalities` are stored as JSON
 text. SQLite's JSON functions can query them in place, so they stay queryable

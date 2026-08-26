@@ -10,7 +10,7 @@ Run this LOCALLY (not in a sandboxed environment without internet access to
 data.scryfall.io). Standard library only -- no third-party packages needed.
 
 Usage:
-    python mtg_card_pipeline.py fetch      # download bulk data + rulings
+    python mtg_card_pipeline.py fetch      # download bulk data, rulings, all printings
     python mtg_card_pipeline.py load       # load into SQLite
     python mtg_card_pipeline.py analyze    # template frequency report
     python mtg_card_pipeline.py all        # do all three in sequence
@@ -25,13 +25,24 @@ import urllib.request
 from collections import Counter
 from pathlib import Path
 
-# Bulk data and the SQLite store live in the repository root, next to this
-# script, so paths hold regardless of the working directory you invoke from.
-DATA_DIR = Path(__file__).resolve().parent
+# Bulk data and the SQLite store live in the repository root (two levels above
+# scripts/python/), so paths hold regardless of the working directory you
+# invoke from and the .gitignore patterns for the artifacts stay valid.
+DATA_DIR = Path(__file__).resolve().parent.parent.parent
 
 DB_PATH = DATA_DIR / "cards.sqlite"
 ORACLE_BULK = DATA_DIR / "oracle-cards.jsonl.gz"
 RULINGS_BULK = DATA_DIR / "rulings.jsonl.gz"
+# Every printing of every card. Only used to derive each card's *first*
+# printing: oracle_cards holds one arbitrary (usually recent) printing per
+# card, so it cannot answer "which set introduced this card".
+DEFAULT_BULK = DATA_DIR / "default-cards.jsonl.gz"
+
+# Printings that do not count as a card's introduction to the game. Digital
+# and promo printings are excluded via their own flags; these set types cover
+# the remaining non-release products. Alchemy sets are digital and excluded
+# by the flag, but listed here so the rule is explicit.
+NON_RELEASE_SET_TYPES = {"promo", "token", "memorabilia", "minigame", "alchemy"}
 
 BULK_DATA_ENDPOINT = "https://api.scryfall.com/bulk-data"
 USER_AGENT = "MTGAIResearchPipeline/0.1 (personal research project)"
@@ -59,6 +70,7 @@ def fetch_bulk_data():
     for type_key, target_path in [
         ("oracle_cards", ORACLE_BULK),
         ("rulings", RULINGS_BULK),
+        ("default_cards", DEFAULT_BULK),
     ]:
         entry = entries[type_key]
         # jsonl_download_uri serves gzipped line-delimited JSON (~24 MB for
@@ -87,7 +99,8 @@ def fetch_bulk_data():
 # ---------------------------------------------------------------------------
 
 SCHEMA = """
-CREATE TABLE IF NOT EXISTS cards (
+DROP TABLE IF EXISTS cards;
+CREATE TABLE cards (
     oracle_id TEXT PRIMARY KEY,
     name TEXT,
     mana_cost TEXT,
@@ -101,8 +114,19 @@ CREATE TABLE IF NOT EXISTS cards (
     colors TEXT,         -- JSON array as text
     color_identity TEXT, -- JSON array as text
     legalities TEXT,     -- JSON object as text
-    is_dfc INTEGER DEFAULT 0
+    is_dfc INTEGER DEFAULT 0,
+    -- Earliest paper, non-promo printing (see first_printings()). NULL when
+    -- default_cards is unavailable or the card has no printing at all.
+    first_set TEXT,
+    first_set_name TEXT,
+    first_set_type TEXT,
+    first_released_at TEXT,
+    -- 1 when no paper non-promo printing exists and the earliest printing of
+    -- any kind was used instead.
+    first_is_fallback INTEGER DEFAULT 0
 );
+
+CREATE INDEX IF NOT EXISTS idx_cards_first_set ON cards(first_set);
 
 CREATE TABLE IF NOT EXISTS rulings (
     oracle_id TEXT,
@@ -146,9 +170,60 @@ def _iter_bulk(path: Path):
                     yield json.loads(line)
 
 
+def _record_oracle_id(card: dict) -> str | None:
+    """Some layouts (e.g. reversible cards) carry oracle_id only on faces."""
+    oracle_id = card.get("oracle_id")
+    if oracle_id is None and card.get("card_faces"):
+        oracle_id = card["card_faces"][0].get("oracle_id")
+    return oracle_id
+
+
+def first_printings() -> dict[str, tuple[str, str, str, str, int]]:
+    """Map oracle_id -> (set, set_name, set_type, released_at, is_fallback).
+
+    The first printing is the earliest-released printing that is paper
+    (digital == False), not a promo (promo == False), and not in a
+    NON_RELEASE_SET_TYPES set. Cards with no such printing (promo-only cards,
+    digital-only cards) fall back to their earliest printing of any kind and
+    are flagged so analyses can exclude them.
+    """
+    if not DEFAULT_BULK.exists():
+        print(f"{DEFAULT_BULK.name} not found; first-printing columns will be NULL.")
+        return {}
+    best: dict[str, tuple[str, str, str, str]] = {}
+    fallback: dict[str, tuple[str, str, str, str]] = {}
+    n = 0
+    for card in _iter_bulk(DEFAULT_BULK):
+        n += 1
+        oracle_id = _record_oracle_id(card)
+        released = card.get("released_at")
+        if not oracle_id or not released:
+            continue
+        entry = (card.get("set"), card.get("set_name"), card.get("set_type"), released)
+        eligible = (
+            not card.get("digital")
+            and not card.get("promo")
+            and card.get("set_type") not in NON_RELEASE_SET_TYPES
+        )
+        bucket = best if eligible else fallback
+        current = bucket.get(oracle_id)
+        # Tie-break on set code so the result is deterministic across runs.
+        if current is None or (released, entry[0]) < (current[3], current[0]):
+            bucket[oracle_id] = entry
+    result = {oid: (*entry, 0) for oid, entry in best.items()}
+    for oid, entry in fallback.items():
+        if oid not in result:
+            result[oid] = (*entry, 1)
+    print(f"Scanned {n} printings; first printing known for {len(result)} cards "
+          f"({len(result) - len(best)} fallback).")
+    return result
+
+
 def load_cards(conn: sqlite3.Connection):
     cur = conn.cursor()
+    firsts = first_printings()
     n = 0
+    missing = 0
     for card in _iter_bulk(ORACLE_BULK):
         # Double-faced / split cards store text per-face in card_faces
         # instead of at the top level.
@@ -163,14 +238,21 @@ def load_cards(conn: sqlite3.Connection):
             power = faces[0].get("power")
             toughness = faces[0].get("toughness")
 
+        oracle_id = _record_oracle_id(card)
+        first = firsts.get(oracle_id)
+        if first is None:
+            first = (None, None, None, None, 0)
+            if firsts:
+                missing += 1
         cur.execute(
             """INSERT OR REPLACE INTO cards
                (oracle_id, name, mana_cost, cmc, type_line, oracle_text,
                 power, toughness, loyalty, keywords, colors, color_identity,
-                legalities, is_dfc)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                legalities, is_dfc, first_set, first_set_name, first_set_type,
+                first_released_at, first_is_fallback)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
-                card.get("oracle_id"),
+                oracle_id,
                 card.get("name"),
                 card.get("mana_cost"),
                 card.get("cmc"),
@@ -184,11 +266,12 @@ def load_cards(conn: sqlite3.Connection):
                 json.dumps(card.get("color_identity", [])),
                 json.dumps(card.get("legalities", {})),
                 is_dfc,
+                *first,
             ),
         )
         n += 1
     conn.commit()
-    print(f"Loaded {n} cards.")
+    print(f"Loaded {n} cards ({missing} without a known first printing).")
 
 
 def load_rulings(conn: sqlite3.Connection):
