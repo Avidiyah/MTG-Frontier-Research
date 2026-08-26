@@ -1,0 +1,90 @@
+{
+  "annotated_file": "docs/audits/leb/units-annotated.tsv",
+  "cards": 2,
+  "units": {
+    "all": 2,
+    "printed": 1,
+    "rules_supplied": 1,
+    "printed_top_level": 1,
+    "printed_children": 0
+  },
+  "boundary": {
+    "precision": {
+      "numerator": 1,
+      "denominator": 1,
+      "value": 1.0
+    },
+    "recall": {
+      "numerator": 1,
+      "denominator": 1,
+      "value": 1.0
+    },
+    "by_value": {
+      "ok": 1
+    },
+    "missed_boundaries": 0,
+    "unsure": 0
+  },
+  "kind_accuracy": {
+    "numerator": 1,
+    "denominator": 1,
+    "value": 1.0
+  },
+  "kind_not_applicable_or_unsure": 0,
+  "role_accuracy": {
+    "numerator": 1,
+    "denominator": 1,
+    "value": 1.0
+  },
+  "source_accuracy": {
+    "numerator": 2,
+    "denominator": 2,
+    "value": 1.0
+  },
+  "dispositions": {
+    "accept": 2
+  },
+  "context_required": {
+    "none": 1,
+    "type_line": 1
+  },
+  "structure_tags": {
+    "cycle_member": 1,
+    "prevention_in_effect": 1,
+    "mana_ability": 1,
+    "rules_supplied": 1
+  },
+  "normalization_flags": {
+    "fragmentation:color_word": 1,
+    "collision:tap_as_mana": 1
+  },
+  "kind_expected_when_wrong": {},
+  "annotators": {
+    "fable-pass1": 2
+  },
+  "templates": {
+    "distinct": 1,
+    "singletons": 1
+  },
+  "novelty": {
+    "earlier_files": [
+      "docs/audits/lea/units-export.tsv"
+    ],
+    "earlier_distinct_templates": 291,
+    "unit_novelty": {
+      "numerator": 1,
+      "denominator": 1,
+      "value": 1.0
+    },
+    "template_novelty": {
+      "numerator": 1,
+      "denominator": 1,
+      "value": 1.0
+    }
+  },
+  "drift": {
+    "export": "docs/audits/leb/units-export.tsv",
+    "changed_or_missing_units": 0,
+    "examples": []
+  }
+}

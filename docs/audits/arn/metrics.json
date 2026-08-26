@@ -1,0 +1,138 @@
+{
+  "annotated_file": "docs/audits/arn/units-annotated.tsv",
+  "cards": 77,
+  "units": {
+    "all": 109,
+    "printed": 109,
+    "rules_supplied": 0,
+    "printed_top_level": 107,
+    "printed_children": 2
+  },
+  "boundary": {
+    "precision": {
+      "numerator": 106,
+      "denominator": 109,
+      "value": 0.9725
+    },
+    "recall": {
+      "numerator": 106,
+      "denominator": 109,
+      "value": 0.9725
+    },
+    "by_value": {
+      "ok": 106,
+      "under": 3
+    },
+    "missed_boundaries": 3,
+    "unsure": 0
+  },
+  "kind_accuracy": {
+    "numerator": 101,
+    "denominator": 104,
+    "value": 0.9712
+  },
+  "kind_not_applicable_or_unsure": 2,
+  "role_accuracy": {
+    "numerator": 106,
+    "denominator": 106,
+    "value": 1.0
+  },
+  "source_accuracy": {
+    "numerator": 109,
+    "denominator": 109,
+    "value": 1.0
+  },
+  "dispositions": {
+    "accept": 103,
+    "unsupported": 2,
+    "defect": 4
+  },
+  "context_required": {
+    "none": 87,
+    "cr": 21,
+    "type_line": 1
+  },
+  "structure_tags": {
+    "dies_trigger": 1,
+    "multi_sentence": 22,
+    "control_change": 3,
+    "duration_conditional": 2,
+    "activation_instruction": 4,
+    "instead_in_activated": 2,
+    "keyword": 16,
+    "coin_flip": 3,
+    "optional_payment": 4,
+    "conditional_static": 5,
+    "prevention_static": 2,
+    "one_off_candidate": 3,
+    "set_reference": 2,
+    "state_trigger": 7,
+    "play_restriction_others": 1,
+    "opponent_choice_target": 1,
+    "counter_upkeep": 2,
+    "tie_instruction": 1,
+    "prevention_in_effect": 2,
+    "intervening_if": 2,
+    "instead_in_spell": 1,
+    "self_reference_name": 2,
+    "ante": 2,
+    "enters_replacement": 1,
+    "remembered_choice": 3,
+    "counter_each": 1,
+    "mana_restriction": 1,
+    "delayed_trigger_inverted": 2,
+    "multi_clause": 1,
+    "optional_untap_static": 1,
+    "duration_until_leaves": 1,
+    "instruction_in_effect": 1,
+    "phasing": 1,
+    "modal_activated": 1,
+    "mode_header": 1,
+    "mode": 2,
+    "instead_in_mode": 1,
+    "outside_the_game": 1,
+    "delayed_trigger_when": 1,
+    "stated_duration": 1,
+    "subgame": 1,
+    "keyword_list_split": 1
+  },
+  "normalization_flags": {
+    "collision:tap_as_mana": 29,
+    "fragmentation:land_type": 11,
+    "fragmentation:object_type": 2,
+    "fragmentation:color_word": 5
+  },
+  "kind_expected_when_wrong": {
+    "gap:prevention": 2,
+    "spell_or_static_text": 1
+  },
+  "annotators": {
+    "fable-pass1": 109
+  },
+  "templates": {
+    "distinct": 92,
+    "singletons": 83
+  },
+  "novelty": {
+    "earlier_files": [
+      "docs/audits/lea/units-export.tsv",
+      "docs/audits/leb/units-export.tsv"
+    ],
+    "earlier_distinct_templates": 292,
+    "unit_novelty": {
+      "numerator": 77,
+      "denominator": 109,
+      "value": 0.7064
+    },
+    "template_novelty": {
+      "numerator": 76,
+      "denominator": 92,
+      "value": 0.8261
+    }
+  },
+  "drift": {
+    "export": "docs/audits/arn/units-export.tsv",
+    "changed_or_missing_units": 0,
+    "examples": []
+  }
+}
