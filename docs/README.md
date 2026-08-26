@@ -59,6 +59,10 @@ Available discovery operations:
 & $mtg sets --until 1995-12-31                 # first-printing sets in release order
 & $mtg templates --set lea                     # restrict to one first-printing set
 & $mtg cards "Regenerate" --field text --set lea
+& $mtg audit export lea                        # flattened structural units for one set
+& $mtg audit summary lea                       # set-level audit measurements
+& $mtg audit novelty arn                       # compare a set to earlier first-printing sets
+& $mtg audit signals lea                       # surface-form audit candidates
 ```
 
 `cards` performs literal case-insensitive matching, so `%` and `_` are not
@@ -87,6 +91,25 @@ separators, and reports a ranked coverage curve. `sets` lists
 the sets in which cards were *first* printed, in release order, so the corpus
 can be walked era by era; `--set <code>` on `cards` and `templates` restricts
 them to cards first printed in that set.
+
+`audit` provides the frozen set-audit interface for structural investigations.
+`audit export <set>` emits one flattened record per structural unit, including
+Oracle ID, card name, first set, release date, fallback flag, face, source
+line, pre-order unit index, parent index, depth, raw source line, unit text,
+normalized template, kind, role, source, optional CR citation, and any
+surface-form signals. Ordering is deterministic: card name, Oracle ID, face,
+then unit index. `audit summary <set>` uses the same printed-unit inclusion
+rules as `templates` and reports cards, cards with text, printed units,
+rules-supplied units, distinct and singleton templates, kind/role/source
+histograms, multi-sentence units, residual spell/static units, and uncited
+rules-supplied units. `audit novelty <set>` compares printed templates in the
+selected set with printed templates from strictly earlier `first_released_at`
+sets; same-date ties and missing dates are not earlier, so Alpha is 100% novel
+when no earlier eligible set exists. `audit signals <set>` lists observable
+audit candidates such as residual multi-sentence units, uncited rules-supplied
+units, unextracted quoted text, embedded activation restrictions, unattached
+delayed-trigger phrases, conditional CDA candidates, and payment restrictions.
+Signals are triage aids, not parser-error or correctness labels.
 
 ### Suggested agent research loop
 
