@@ -83,7 +83,7 @@ Scryfall oracle_cards + rulings + default_cards
   their identifiers and glossary entries by document layout. Search and rule
   retrieval make the rules addressable evidence; they do not produce
   executable game logic.
-- `segment_text`, `classify_segment`, and `normalize_text` are shared by the
+- `segment_text`, `build_unit`, `classify_kind`, and `normalize_text` are shared by the
   single-card `segment` command and corpus-wide `templates` analysis. A change
   to shared segmentation or normalization changes the measured baseline.
 

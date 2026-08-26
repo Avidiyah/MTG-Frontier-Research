@@ -145,22 +145,38 @@ Reproduce with:
 .\target\release\mtg-discover.exe info
 ```
 
-### Current normalization baseline
+### Current segmentation and normalization baseline
 
 The Rust baseline splits Oracle text on lines, excludes `//` face separators,
-classifies a small set of structural forms, removes reminder text, replaces
-self-references, and collapses mana symbols and integers.
+removes reminder text, and builds a tree of typed units per card. Each unit
+has a `kind` (heuristic CR category), a `role` (top-level ability, mode,
+delayed trigger, granted/quoted ability), and a `source` (printed text or
+rules-supplied semantics described only by reminder text). Keyword lists are
+split into one unit per keyword; modes, delayed triggers created by an
+effect, and quoted abilities nest under the unit they belong to.
+Normalization replaces card-name and `this <type>` self-references with `~`
+(preserving `named <name>` predicates), collapses mana symbols to `{M}` and
+integers to `N`, strips `•`, and replaces a quoted ability with
+`"[ability]"` in its parent.
 
 | Measurement | Value |
 |---|---:|
-| Structural text units | 67,738 |
-| Distinct normalized templates | 37,912 |
-| Top 10 template coverage | 12.07% |
-| Top 100 template coverage | 23.81% |
-| Top 1,000 template coverage | 38.77% |
-| Top 5,000 template coverage | 51.41% |
+| Printed structural units | 70,799 |
+| Rules-supplied units (reminder-only lines, counted separately) | 970 |
+| Distinct normalized templates | 36,944 |
+| Top 10 template coverage | 14.32% |
+| Top 100 template coverage | 27.14% |
+| Top 1,000 template coverage | 42.37% |
+| Top 5,000 template coverage | 54.88% |
+| Kinds | static/spell 21,281 · keyword 17,630 · triggered 16,620 · activated 11,999 · replacement 2,628 · additional cost 317 · CDA 247 · cast restriction 68 · ante 9 |
+| Roles | ability 67,078 · mode 2,121 · granted 1,506 · delayed trigger 94 |
 
-The most frequent normalized unit is `Flying` with 2,812 occurrences (4.15%).
+The most frequent normalized unit is `Flying` with 3,526 occurrences (4.98%).
+
+Historical baseline (line = unit, raw-text classification, 2026-08-25 to
+2026-08-26): 67,738 units, 37,912 templates, top-10/100/1,000/5,000 coverage
+12.07% / 23.81% / 38.77% / 51.41%, `Flying` 2,812 (4.15%). The change is
+analysed in `docs/findings/lea-segmentation-audit.md`.
 
 Reproduce with:
 
@@ -240,21 +256,23 @@ hit is not proof that the rule completely determines a card's behavior.
 
 ### Structural baseline
 
-- Line boundaries are only a first approximation of ability boundaries. The
-  Alpha audit (`docs/findings/lea-segmentation-audit.md`) found both
-  directions of failure: keyword lists and embedded delayed triggers put
-  several abilities on one line; Siren's Call and modal spells spread one
-  ability over several lines.
-- The classifier runs on raw text while the normalizer strips reminder
-  text, so 34% of Alpha's keyword lines are labelled static text.
-- Reminder-only lines (basic and dual lands) normalize to nothing; their
-  ability is supplied by CR 305.6, not by text.
-- Replacement effects, casting restrictions, additional costs,
-  characteristic-defining abilities, ante text, and quoted (granted)
-  abilities are all present in Alpha and all collapse into
-  `spell_or_static_text` or are mislabelled.
-- Modal headers, modes, ability words, nested instructions, and
-  paragraph-spanning structures need stronger segmentation.
+- Line boundaries are still the primary unit boundary. The segmenter now
+  handles the Alpha failure modes (keyword lists, modes, `At the beginning
+  of ... next ...` delayed triggers, quoted abilities, reminder-only lines),
+  but every rule is a surface-form heuristic: other delayed-trigger forms
+  (`When that creature dies this turn, ...`), `Activate only ...`
+  restrictions, ability words, and multi-sentence units remain unsplit.
+- `kind` labels are heuristic. Replacement detection is lexical
+  (`instead`/`skip`/enters-with/as/tapped); CDA detection covers the
+  `~'s power and toughness are each equal to` form but not conditional
+  forms (Gaea's Liege); payment restrictions (`Spend only black mana on X`)
+  are still residual static text; short static sentences without a period
+  are labelled keywords.
+- Rules-supplied units carry a CR citation only for the basic-land mana
+  ability form (305.6); the other 956 corpus reminder-only lines (Saga, Room,
+  Class, Siege, scheme, conspiracy reminder text) are flagged but uncited.
+- Quoted-ability detection (colon, trigger word, or ≥ 4 words) admits some
+  non-ability quotations on Un-set and text-alteration cards.
 - Reminder-text removal is lexical and does not model its semantic value.
 
 ### Normalization baseline
@@ -265,9 +283,13 @@ hit is not proof that the rule completely determines a card's behavior.
   quantity, power/toughness modification, and counter count.
 - Object descriptions, types, subtypes, zones, players, durations, and
   references are not typed.
-- Self-reference has two surface forms (card name; `this <type>`) and only
-  the name form is normalized. `named X` is a counterexample to blind name
-  replacement (Plague Rats).
+- Self-reference normalization (`~`) covers the card name and a fixed list
+  of `this <type>` words; `named <name>` is preserved. `this creature` inside
+  a quoted granted ability also becomes `~` (it refers to the object that
+  has the ability, not the granting card).
+- Split keyword items are sentence-cased in the template (`Flying, trample`
+  → `Flying`, `Trample`); `•` is stripped from modes, so a mode and a
+  standalone sentence with the same wording share a template.
 - Normalized-string equality is not semantic equivalence.
 
 ### Evaluation
@@ -329,8 +351,8 @@ Unless new evidence changes priorities:
 
 1. **Segmentation audit:** per set, classify failures across card faces,
    paragraphs, modal spells, keyword lists, ability words, and nested text.
-   Alpha is done; Arabian Nights (`arn`) is next. Decide on the segmenter
-   changes proposed in the Alpha findings before or during that step.
+   Alpha is done and its seven proposed segmenter changes are implemented
+   and measured; Arabian Nights (`arn`) is next, using the new baseline.
 2. **Normalization ablations:** measure one reversible transformation at a time
    rather than applying increasingly lossy normalization as a bundle.
 3. **Typed-slot discovery:** test candidate roles for numbers, mana, objects,
@@ -389,3 +411,11 @@ When updating this document:
 - Added repository-wide Copilot instructions aligned with this document and
   `CLAUDE.md`; restored `mtg_search.py` database discovery relative to the
   repository root so it works independently of the caller's working directory.
+- Implemented the seven Alpha segmenter changes: classification on
+  reminder-stripped text, keyword-list splitting, explicit rules-supplied
+  units, new kinds (replacement, cast restriction, additional cost, CDA,
+  ante), `this <type>` → `~` with `named X` preserved, and nested modes,
+  delayed triggers, and quoted abilities as typed children. New corpus
+  baseline: 70,799 printed units + 970 rules-supplied, 36,944 templates,
+  top-100 coverage 27.14% (was 67,738 / 37,912 / 23.81%). Alpha: 398 + 14
+  units, 291 templates, 265 singletons (66.6%).

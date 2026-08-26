@@ -68,10 +68,22 @@ ID and can join official rulings. `rules search` searches both numbered rules
 and glossary entries, while `rules show` returns a rule and all descendants.
 
 `segment` is intentionally an observable baseline rather than a claim of full
-parsing. It separates card faces and Oracle-text lines, classifies modal,
-triggered, activated, keyword, and other text, and includes a normalized
-template. `templates` applies that same segmentation over the complete corpus,
-excludes face separators, and reports a ranked coverage curve. `sets` lists
+parsing. It separates card faces and Oracle-text lines and emits a tree of
+units. Each unit carries three independent labels: `kind` (heuristic CR
+category: keyword, activated, triggered, replacement effect, cast
+restriction, additional cost, characteristic-defining ability, ante
+instruction, or residual spell/static text), `role` (`ability`, `mode`,
+`delayed_trigger`, or `granted`), and `source` (`printed`, or
+`rules_supplied` for reminder-only lines such as basic lands, with a CR
+citation when inferable). Keyword lists (`Flying, trample`) become one unit
+per keyword; `•` modes nest under their header; a `At the beginning of ...
+next ...` delayed trigger nests under the unit that creates it; quoted
+abilities nest under the granting unit and are replaced by `"[ability]"` in
+the parent's template. `text` is the unit's printed text with reminder text
+removed and `line` points back to the source line. `templates` applies that
+same segmentation over the complete corpus, counts printed units (reporting
+rules-supplied units separately, plus kind and role histograms), excludes face
+separators, and reports a ranked coverage curve. `sets` lists
 the sets in which cards were *first* printed, in release order, so the corpus
 can be walked era by era; `--set <code>` on `cards` and `templates` restricts
 them to cards first printed in that set.
