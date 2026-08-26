@@ -277,13 +277,18 @@ hit is not proof that the rule completely determines a card's behavior.
   sorcery spell text is classified with type-line context; static prevention
   text is a distinct `prevention_effect` kind, excluding the `can't`/`cannot
   be prevented` prohibition idiom (P-ATQ-2), which falls through to the
-  residual static kind instead; ability-word/Saga-chapter/named-mode
-  prefixed triggers can still hide the trigger word and misclassify as
-  `prevention_effect` (P-ATQ-3, not yet implemented); CDA detection covers
-  the `~'s power and toughness are each equal to` form but not conditional
-  forms (Gaea's Liege); payment restrictions (`Spend only black mana on X`)
-  are still residual static text; short static sentences without a period
-  are labelled keywords.
+  residual static kind instead; a leading `<prefix> — ` (ability word, Saga
+  chapter symbol, or named mode/label; em dash, no period, no colon, ≤ 45
+  characters) is detected and stripped before classification, and recorded
+  on a new `prefix` field, so it can no longer hide the trigger word (or
+  other classification evidence) that follows it (P-ATQ-3, implemented, not
+  yet corpus-validated); a Saga chapter symbol (pure Roman numerals on a
+  Saga type line) is classified `triggered_ability` per CR 714.2b regardless
+  of its effect text's leading verb, rather than by classifying the
+  stripped body; CDA detection covers the `~'s power and toughness are each
+  equal to` form but not conditional forms (Gaea's Liege); payment
+  restrictions (`Spend only black mana on X`) are still residual static
+  text; short static sentences without a period are labelled keywords.
 - Rules-supplied units carry a CR citation only for the basic-land mana
   ability form (305.6); the other 956 corpus reminder-only lines (Saga, Room,
   Class, Siege, scheme, conspiracy reminder text) are flagged but uncited.
@@ -592,3 +597,95 @@ When updating this document:
   (items 4–5); a later session with data access must rerun
   `check_kind_rules.py`, confirm the 9-misfire class is gone with no new
   false positives or negatives, and refresh the baseline numbers above.
+- Implemented P-ATQ-3: `build_unit` in `src/main.rs` now detects a leading
+  `<prefix> — ` structural marker on the fully normalized unit text (em
+  dash, prefix has no period or colon, prefix ≤ 45 characters, non-empty
+  body after the dash) via a new `extract_prefix` function, before
+  `classify_kind` runs. The detected prefix is recorded verbatim on a new
+  `prefix: Option<String>` field on `Segment` (only field added; no new
+  ontology of prefix categories); `text` and `normalized` are unchanged, so
+  the original Oracle text and the existing corpus-wide template baseline
+  are both preserved exactly. When no prefix is found, behavior is
+  byte-for-byte identical to before this change. When a prefix is found,
+  two cases: (1) a Saga chapter symbol — one or more comma-separated pure
+  Roman numerals (`is_saga_chapter_prefix`) *and* the unit's per-face type
+  line carries the Saga subtype (`is_saga`) — is classified
+  `triggered_ability` directly, per CR 714.2b's "is a keyword ability that
+  represents a triggered ability," without running the stripped body
+  through `classify_kind` at all (stripping and classifying the body would
+  reproduce the P-ATQ-3 failure as `prevention_effect` when the effect text
+  starts with "Prevent", which is exactly the corpus-observed case); (2)
+  every other prefix (ability word, CR 207.2c; named mode/label; a
+  non-Saga numeral label) is stripped and the remaining body is classified
+  by the existing, unmodified `classify_kind` with the same `type_line` and
+  `allow_spell_text_override` the whole unit would have received, so a
+  hidden `Whenever`/`At` trigger word is recovered and P-ARN-3's
+  instant/sorcery spell-text override, the CDA check, and every other
+  branch keep working unchanged on the shorter body. No card name, set
+  code, or ability-word vocabulary list appears in the implementation; the
+  rule is purely structural (delimiter, length, punctuation, and — for the
+  chapter case only — the CR-defined Roman-numeral/Saga-type gate).
+  Regression tests added in `src/main.rs` (16 new, all synthetic, none
+  naming an Antiquities card): an ability-word prefix over a `Whenever`
+  trigger and over an `At the beginning of` trigger (guards against a fix
+  that only handles one trigger word); a multi-chapter (`I, II —`) and a
+  single-chapter (`II —`) Saga marker, both asserting `triggered_ability`
+  even though the body starts with `Prevent`; a Roman-numeral prefix on a
+  *non*-Saga type line asserting it is **not** treated as a chapter symbol;
+  a named-mode prefix (`Run and Hide —`) inside an actual modal spell's `•`
+  child, asserting the mode `role` and the CR 615.1a `prevention_effect`
+  body kind are both unchanged from what the existing prevention machinery
+  already produces; an early-colon guard, an early-period guard, and an
+  overlong-prefix guard, each asserting `prefix` stays `None` and the unit
+  classifies exactly as it did before this change; a mode-header em dash
+  with no following body (`Choose one —`) asserting no prefix is recorded
+  over its own bullet children — the one "ordinary em-dash usage" case this
+  session could verify against a real, extremely common corpus pattern
+  without database access (see below); the P-ATQ-2 `can't be prevented`
+  exclusion and a prefix-free genuine-prevention case, both reconfirmed
+  unaffected; and two direct unit tests of `extract_prefix` and
+  `is_saga_chapter_prefix`. `cargo fmt -- --check`, `cargo test` (61
+  passed), `cargo clippy --all-targets -- -D warnings`, and `cargo build
+  --release` all pass.
+
+  **Not yet done:** this session's network egress policy again returns 403
+  for `api.scryfall.com` (re-confirmed this session) and no `cards.sqlite`
+  exists, the same blocker recorded against P-ATQ-1 and P-ATQ-2. The
+  protocol's S8 corpus counterexample search for the prefix rule (§18 of
+  the P-ATQ-3 task: searching specifically for short, punctuation-clean,
+  em-dash-joined constructions that are *not* an ability word, chapter
+  symbol, or named mode, where stripping would be semantically wrong) was
+  **not performed** against the corpus; it is informed only by the
+  Antiquities audit's own recorded evidence (the 8-unit prefix family in
+  `docs/audits/corpus-checks/2026-08-26-kind-rules-check.md` §A2), CR
+  207.2c/714.2, and this session's knowledge of Magic Oracle-text
+  conventions (planeswalker loyalty abilities use a colon, not an em dash,
+  so they cannot collide with this rule; no non-label short em-dash
+  construction under the 45-character/no-period/no-colon bound was
+  identified by inspection). The S11 corpus-wide over-segmentation check
+  (candidate units matched, prefixes extracted by length/role/kind/card
+  type/release year, false-positive rate) was **not run**, so the
+  before/after `prevention_effect` count, the corpus-wide kind/role
+  histograms, and whether all 8 historical Antiquities misfires actually
+  change kind under this rule are **not measured** in this session.
+  Reasoning through the 8 recorded misfires against this implementation
+  (not corpus-verified): 3 are ability words whose hidden trigger word is
+  now recovered (`Heroic`, `Constellation`, `Lieutenant` — Favored Hoplite,
+  Harvestguard Alseids, Loyal Unicorn in the audit's own wording), kind
+  changes from `prevention_effect` to `triggered_ability`; 2 are genuine
+  Saga chapter markers that now classify `triggered_ability` via the
+  chapter-symbol path rather than by the body's leading verb (`I, II —`,
+  `II —`); the remaining 3 (`2 —` on a non-Saga Un-set card, `Immune —`,
+  `The Betrayer —`) have bodies that already begin with `Prevent` or `If
+  ... would ... prevent`, a wording `classify_kind` already assigns
+  `prevention_effect` with or without the prefix present, so this rule is
+  not expected to change their kind — they were still evidence for the
+  general structural phenomenon, and now carry recorded prefix metadata,
+  but are not "misfires" this change resolves. This reasoning is stated as
+  a hypothesis from the audit's recorded wording, not a corpus
+  measurement. `docs/findings/atq-structural-audit.md` records the same
+  caveat. A later session with data access must run
+  `dump_corpus_units.py` and `check_kind_rules.py`, confirm the actual
+  before/after `prevention_effect` count and kind distribution, execute
+  the S8 counterexample search and S11 over-segmentation check this
+  session could not run, and only then treat P-ATQ-3 as accepted.

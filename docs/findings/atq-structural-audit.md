@@ -317,6 +317,178 @@ the text after the dash and record the prefix as a field. Fix rows: the 8
 prefixed triggers mislabelled prevention, and (to be measured) every other
 prefixed unit currently classified residual. Needs its own S8/S11 pass.
 
+### P-ATQ-3 implementation disposition (2026-08-26)
+
+**1. Original observation.** Check §7 A2 above: 8 role=ability
+`prevention_effect` units share a leading `<prefix> — ` construction
+(`Heroic — Whenever …`, `Constellation — Whenever …`, `Lieutenant — At the
+beginning …`, `2 — Prevent …`, `The Betrayer — If … prevent …`, `I, II —
+Prevent …`, `Immune — Prevent …`, `II — Prevent …`), described there as the
+prefix hiding the trigger word from the classifier.
+
+**2. Hypothesis.** As stated in the proposal above: an em-dash-delimited
+leading prefix of bounded length with no period or colon is structural
+material (an ability word, a Saga chapter symbol, or a named mode/label),
+not part of the classification-relevant text, and stripping it before
+`classify_kind` should recover the correct kind without a card- or
+set-specific exception list.
+
+**3. Implementation.** `build_unit` in `src/main.rs` gained a new
+`extract_prefix(normalized) -> Option<(String, &str)>` step, run on the
+already-`normalize_text`-processed unit text immediately before
+`classify_kind`. The pattern is `^([^.:]{1,45}?) — (\S.*)$`: anchored to
+the start of the unit (a leading prefix only), the delimiter is
+specifically an em dash (not any other dash or hyphen), the candidate
+prefix may contain no period or colon and is capped at 45 characters
+(matching the proposal's approximate bound), and the text after the dash
+must be non-empty (so a bare mode header like `Choose one —`, with nothing
+following on the same line, never matches). The detected prefix is
+recorded verbatim on a new `prefix: Option<String>` field added to
+`Segment` — the only new field; `text` (original Oracle text) and
+`normalized` (the existing corpus-wide template) are both left completely
+unchanged, so this is a classification/metadata change, not a
+normalization change, per the task's explicit separation of source text,
+prefix metadata, classification input, and normalized template. No
+separate `classification_text` field was added: it is deterministically
+`normalized` with `"<prefix> — "` removed from the front whenever `prefix`
+is `Some`, which the task's "smallest appropriate field" guidance argues
+against duplicating.
+
+Two prefix categories are distinguished, matching the task's requirement
+not to treat every prefix as semantically identical:
+
+- **Saga chapter symbol (CR 714.2).** `is_saga_chapter_prefix` recognizes
+  one or more comma-separated pure Roman numerals (`I`, `II`, `I, II`, …;
+  the character set is exactly `IVXLCDM`, so a normalized Arabic numeral
+  like `N` — from `2 —` — never matches). This is gated by `is_saga`, which
+  requires the unit's per-face type line to carry the Saga subtype (the
+  same per-face `type_line` already threaded through `build_unit` for
+  P-ARN-3's instant/sorcery override). When both hold, the unit's `kind` is
+  set to `triggered_ability` directly — `classify_kind` is never run on the
+  stripped body at all — because CR 714.2b defines a chapter symbol as
+  "a keyword ability that represents a triggered ability" regardless of
+  what the printed effect text says; running `classify_kind("Prevent …")`
+  on the stripped body would reproduce this exact failure one level down
+  (`prevention_effect` instead of `triggered_ability`), which is precisely
+  the literal "strip and classify body" interpretation section 5 of the
+  task warned against forcing.
+- **Everything else (ability word, CR 207.2c; named mode/label; a
+  non-Saga numeral label).** The stripped body is passed to the existing,
+  unmodified `classify_kind`, with the same `type_line` and
+  `allow_spell_text_override` the whole (unstripped) unit would have
+  received. This recovers a hidden `When`/`Whenever`/`At` trigger word
+  (the `starts_with` checks in `classify_kind` only succeed when the
+  trigger word is literally first) without touching the unanchored
+  `prevent`/`instead`/CDA regex branches, which already scan the full text
+  regardless of a leading prefix and so were never the source of the
+  hidden-trigger failure. A mode child (`role = mode`) goes through the
+  same `build_unit` call as any other unit, so a named-mode prefix (e.g.
+  `Run and Hide —` inside a modal spell's `•` list) is recorded and
+  stripped identically; role and the mode/ability distinction are
+  untouched by this change.
+
+No card name, set code, `oracle_id`, or ability-word/label vocabulary list
+appears in the implementation; the rule is purely structural (delimiter,
+length, punctuation, and, for the chapter case only, the CR-defined
+Roman-numeral-and-Saga-type gate). Normalization (`normalize_text`) and the
+`normalized` field were not touched, so the corpus-wide template baseline
+in `docs/current-state.md` is unaffected by this change on its own.
+
+**4. Tests.** 16 regression tests were added to `src/main.rs` (`cargo test`:
+61 passed, up from 47), all synthetic and none naming an Antiquities card
+in production code:
+
+- an ability-word prefix recovering a `Whenever` trigger, and a second over
+  an `At the beginning of` trigger (guards against a fix that only handles
+  one trigger word — task item B);
+- a multi-chapter (`I, II —`) and a single-chapter (`II —`) Saga marker on
+  an `Enchantment — Saga` type line, both asserting `triggered_ability`
+  even though the body starts with `Prevent` (task items C, D);
+- the same Roman-numeral prefix on a *non*-Saga type line, asserting it is
+  **not** treated as a chapter symbol and falls through to ordinary body
+  classification (a counterexample to the chapter rule, beyond what the
+  task listed by name);
+- a named-mode prefix (`Run and Hide —`) inside an actual modal spell's
+  `•` child, asserting the mode `role` survives and the body's
+  `prevention_effect` kind matches what the existing prevention machinery
+  already assigns to that wording once the label is out of the way (task
+  item E);
+- an early-colon guard, an early-period guard, and an overlong-prefix
+  guard, each asserting `prefix` stays `None` and classification is
+  unchanged from before this change (task items F, G, H);
+- a mode-header em dash with no following body (`Choose one —`), asserting
+  no prefix is recorded over its own bullet children — this is the one
+  "ordinary em-dash usage does not misfire" case (task item I) this
+  session could verify against a real, extremely common corpus pattern
+  (CR 700.2 modal spells) without database access; see uncertainty below
+  for what a full S8 search would still need to cover;
+- the P-ATQ-2 `can't be prevented` exclusion and a prefix-free genuine
+  `prevention_effect` case, both reconfirmed unaffected (task items J, K);
+- two direct unit tests of `extract_prefix` and `is_saga_chapter_prefix`.
+
+`cargo fmt -- --check`, `cargo test` (61 passed), `cargo clippy
+--all-targets -- -D warnings`, and `cargo build --release` all pass.
+
+**5. Corpus measurement.** **Not performed**, same blocker as P-ATQ-1 and
+P-ATQ-2: this session's network egress policy again returns 403 for
+`api.scryfall.com` (re-confirmed this session), so `cards.sqlite` does not
+exist and could not be regenerated, and neither `dump_corpus_units.py` nor
+`check_kind_rules.py`/`check_kind_rules_part2.py` could run. Consequently:
+
+- The protocol's S8 counterexample search (§18 of the task: searching
+  specifically for short, punctuation-clean, em-dash-joined constructions
+  that are *not* an ability word, chapter symbol, or named mode, where
+  stripping would be semantically wrong) was not performed against the
+  corpus. It is informed only by CR 207.2c/714.2, this audit's own §7 A2
+  evidence, and this session's knowledge of Magic Oracle-text conventions
+  (planeswalker loyalty abilities are colon-delimited, not em-dash, so
+  they cannot collide with this rule under any type line); no non-label
+  short em-dash construction under the 45-character/no-period/no-colon
+  bound was identified by inspection, but this is not a corpus search.
+- The S11 corpus-wide over-segmentation check (every distinct line the
+  rule fires on; false-positive rate; before/after `templates` and
+  `prevention_effect`/`triggered_ability` totals; role and card-type
+  breakdown) was not run.
+- Whether all 8 historical misfires in §7 A2 actually change kind under
+  this implementation is **reasoned, not measured**: 3 are ability words
+  whose hidden trigger word is recovered (`Heroic`, `Constellation`,
+  `Lieutenant` rows — Favored Hoplite, Harvestguard Alseids, Loyal
+  Unicorn), expected `prevention_effect` → `triggered_ability`; 2 are
+  genuine Saga chapter markers (`I, II —`, `II —` rows) expected to move
+  the same way via the chapter-symbol path; the remaining 3 (`2 —` on a
+  non-Saga Un-set card, `Immune —`, `The Betrayer —`) have bodies that
+  already begin with `Prevent` or `If … would … prevent`, wording
+  `classify_kind` already assigns `prevention_effect` to with or without
+  the prefix present, so this rule is not expected to change their kind —
+  they remain evidence for the general structural phenomenon and now carry
+  recorded prefix metadata, but this proposal does not claim to "fix" them
+  in the sense of changing their label.
+- Whether any additional prefix wording exists in the corpus beyond the
+  patterns evidenced in §7 A2 (for example, whether the 45-character bound
+  or the no-period/no-colon constraints are too strict or too loose
+  corpus-wide) is unknown.
+
+`docs/current-state.md` records this same caveat.
+
+**6. Remaining uncertainty.** All of section 5's gaps, plus: whether the
+`is_keyword_line` interaction (a stripped body that is itself keyword-shaped
+would now classify `keyword_ability` where the unstripped text could not,
+since `is_keyword_line` excludes any text containing an em dash) ever fires
+in the real corpus — no such case was found in the audited sets, but it was
+not searched for corpus-wide; and whether a `classification_text`-shaped
+audit signal (flagging a unit whose prefix was extracted, for reviewer
+triage) would be useful — deferred rather than added speculatively, per the
+task's instruction not to introduce a large prefix ontology at this stage.
+
+**7. Acceptance status.** **Implemented, not yet accepted under protocol
+S10/S11.** A later session with data access must run
+`dump_corpus_units.py` and `check_kind_rules.py`/`check_kind_rules_part2.py`,
+confirm the actual before/after `prevention_effect`/`triggered_ability`
+counts and role/kind histograms, execute the S8 counterexample search and
+S11 over-segmentation check this session could not run, re-run
+`audit_metrics.py` against `lea`/`leb`/`arn`/`atq` to confirm no new
+non-`accept` rows, and only then treat P-ATQ-3 as accepted.
+
 **P-ATQ-4 — spell-only delayed triggers.** On an instant/sorcery face, a
 top-level unit beginning `When/Whenever/At` with a stated duration (`this
 turn`, `this combat`, `next`) and no off-stack zone reference is spell text
