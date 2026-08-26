@@ -165,17 +165,17 @@ integers to `N`, strips `•`, and replaces a quoted ability with
 
 | Measurement | Value |
 |---|---:|
-| Printed structural units | 70,799 |
+| Printed structural units | 71,682 |
 | Rules-supplied units (reminder-only lines, counted separately) | 970 |
-| Distinct normalized templates | 36,944 |
-| Top 10 template coverage | 14.32% |
-| Top 100 template coverage | 27.14% |
-| Top 1,000 template coverage | 42.37% |
+| Distinct normalized templates | 37,344 |
+| Top 10 template coverage | 14.15% |
+| Top 100 template coverage | 26.85% |
+| Top 1,000 template coverage | 42.15% |
 | Top 5,000 template coverage | 54.88% |
-| Kinds | static/spell 21,281 · keyword 17,630 · triggered 16,620 · activated 11,999 · replacement 2,628 · additional cost 317 · CDA 247 · cast restriction 68 · ante 9 |
-| Roles | ability 67,078 · mode 2,121 · granted 1,506 · delayed trigger 94 |
+| Kinds | static/spell 21,521 · triggered 17,503 · keyword 17,630 · activated 12,000 · replacement 2,208 · additional cost 317 · CDA 245 · prevention 181 · cast restriction 68 · ante 9 |
+| Roles | ability 67,075 · mode 2,121 · granted 1,504 · delayed trigger 982 |
 
-The most frequent normalized unit is `Flying` with 3,526 occurrences (4.98%).
+The most frequent normalized unit is `Flying` with 3,526 occurrences (4.92%).
 
 Historical baseline (line = unit, raw-text classification, 2026-08-25 to
 2026-08-26): 67,738 units, 37,912 templates, top-10/100/1,000/5,000 coverage
@@ -261,13 +261,17 @@ hit is not proof that the rule completely determines a card's behavior.
 ### Structural baseline
 
 - Line boundaries are still the primary unit boundary. The segmenter now
-  handles the Alpha failure modes (keyword lists, modes, `At the beginning
-  of ... next ...` delayed triggers, quoted abilities, reminder-only lines),
-  but every rule is a surface-form heuristic: other delayed-trigger forms
-  (`When that creature dies this turn, ...`), `Activate only ...`
-  restrictions, ability words, and multi-sentence units remain unsplit.
+  handles the Alpha and Arabian Nights failure modes (keyword lists, modes,
+  supported `next` / `at end of combat` / scoped `When` delayed triggers,
+  quoted abilities, reminder-only lines), but every rule is a surface-form
+  heuristic: unmarked delayed triggers such as Animate Dead's final sentence,
+  independent sentence-initial `When` abilities sharing a paragraph (D14),
+  `Activate only ...` restrictions, ability words, and many multi-sentence
+  units remain unsplit.
 - `kind` labels are heuristic. Replacement detection is lexical
-  (`instead`/`skip`/enters-with/as/tapped); CDA detection covers the
+  (`instead`/`skip`/enters-with/as/tapped) except that top-level instant and
+  sorcery spell text is classified with type-line context; static prevention
+  text is a distinct `prevention_effect` kind; CDA detection covers the
   `~'s power and toughness are each equal to` form but not conditional
   forms (Gaea's Liege); payment restrictions (`Spend only black mana on X`)
   are still residual static text; short static sentences without a period
@@ -302,15 +306,15 @@ hit is not proof that the rule completely determines a card's behavior.
 
 ### Evaluation
 
-- Structural annotations exist for Alpha (`docs/audits/lea/`, 412 units),
+- Structural annotations exist for Alpha (`docs/audits/lea/`, 417 units),
   Beta's two new cards (`docs/audits/leb/`) and Arabian Nights
-  (`docs/audits/arn/`, 109 units): single annotator, CR citation per row,
-  unadjudicated except where noted. Alpha: boundary precision 390 / 397,
-  7 missed boundaries (all nested delayed triggers), kind accuracy
-  379 / 383. Arabian Nights: 106 / 109, 3 missed (same class), kind
-  101 / 104, unit novelty 77 / 109 and template novelty 76 / 92 against
-  Alpha + Beta. These are development and regression sets, not gold sets
-  and not evidence about the corpus.
+  (`docs/audits/arn/`, 112 units): single annotator, CR citation per row,
+  unadjudicated except where noted. After P-ARN-1 through P-ARN-4, Alpha:
+  boundary precision 400 / 402, 2 missed boundaries, kind accuracy
+  392 / 393. Arabian Nights: boundary precision, recall, kind, role, and
+  source accuracy all 1.0; unit novelty 80 / 112 and template novelty
+  79 / 95 against Alpha + Beta. These are development and regression sets,
+  not gold sets and not evidence about the corpus.
 - A held-out pool is frozen (protocol §6.3: `oracle_id` prefix `f`,
   non-fallback, excluding `lea`/`leb`/`arn`; 2,096 cards) but not yet sampled
   or annotated.
@@ -374,10 +378,10 @@ Unless new evidence changes priorities:
    Alpha is done: its seven segmenter changes are implemented, tested and
    measured, and its unit-level annotation is committed. Gate 0 passed on
    2026-08-26 (`docs/gates/gate-0-evidence.md`). Arabian Nights (`arn`) and
-   Beta (`leb`) are audited (`docs/findings/arn-structural-audit.md`) with
-   three generic segmenter proposals awaiting Codex (delayed-trigger
-   forms, type-line context for `instead`, prevention kind). Antiquities
-   (`atq`, 85 cards) is next.
+   Beta (`leb`) are audited (`docs/findings/arn-structural-audit.md`), and
+   P-ARN-1 through P-ARN-4 are implemented, tested, re-exported, and
+   measured with zero drift. Antiquities (`atq`, 85 cards) is cleared as
+   the next set for Fable to begin.
 2. **Normalization ablations:** measure one reversible transformation at a time
    rather than applying increasingly lossy normalization as a bundle.
 3. **Typed-slot discovery:** test candidate roles for numbers, mana, objects,
@@ -439,11 +443,9 @@ When updating this document:
 - Implemented the seven Alpha segmenter changes: classification on
   reminder-stripped text, keyword-list splitting, explicit rules-supplied
   units, new kinds (replacement, cast restriction, additional cost, CDA,
-  ante), `this <type>` → `~` with `named X` preserved, and nested modes,
-  delayed triggers, and quoted abilities as typed children. New corpus
-  baseline: 70,799 printed units + 970 rules-supplied, 36,944 templates,
-  top-100 coverage 27.14% (was 67,738 / 37,912 / 23.81%). Alpha: 398 + 14
-  units, 291 templates, 265 singletons (66.6%).
+  ante), `this <type>` -> `~` with `named X` preserved, and nested modes,
+  delayed triggers, and quoted abilities as typed children. This Alpha
+  baseline was later superseded by the P-ARN updates recorded below.
 - Gate 0 reviewed and passed with two recorded caveats (snapshot identity is
   prose-only; Alpha's B1/B2/V3 scratch measurements were not preserved and
   are downgraded to bounded observations). Froze the structural-investigation
@@ -464,3 +466,10 @@ When updating this document:
   *role* needs CR context (reflexive triggers, CR 603.12; vanishing-style
   triggers). Alpha's Cockatrice / Thicket Basilisk adjudicated to missed
   delayed triggers via the Gorgon Recluse ruling.
+- Implemented P-ARN-1 through P-ARN-4. The corpus baseline is now 71,682
+  printed units + 970 rules-supplied, 37,344 templates, top-100 coverage
+  26.85%, with 982 delayed-trigger children and 181 `prevention_effect`
+  units. Re-exported and regenerated metrics for `lea`, `leb`, and `arn`;
+  all three report zero drift. Arabian Nights now has 112 / 112 boundary,
+  role, and source accuracy and 110 / 110 kind accuracy. Antiquities is
+  cleared to begin, but Codex did not start that research.

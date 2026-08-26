@@ -43,8 +43,8 @@ Adjudicated: **no** (single annotator; two Alpha rows adjudicated, see §6)
 | `arn` | 77 | 77 | 109 | 0 | 92 | 83 | 24.77 / 38.53 / 61.47 % | activated 33 · triggered 31 · static 23 · keyword 16 · replacement 4 · additional cost 1 · ante 1 | ability 107 · mode 2 |
 | `leb` | 2 | 2 | 1 | 1 | 1 | 1 | — | activated 1 | ability 1 |
 
-Corpus-wide baseline unchanged from `docs/current-state.md` (70,799 + 970
-units, 36,944 templates).
+Pre-implementation corpus-wide baseline from the then-current state:
+70,799 printed + 970 rules-supplied units, 36,944 templates.
 
 ## Verified findings
 
@@ -166,10 +166,10 @@ templates with mana-only costs after normalization.
 
 | Unit | Disposition | Reason |
 |---|---|---|
-| Camel #1, Desert Nomads #1 | `unsupported` (`gap:prevention`) | CR 615 class absent from the kind vocabulary |
+| Camel #1, Desert Nomads #1 | resolved by P-ARN-4 | `prevention_effect` now represents CR 615 static prevention effects |
 | — | no `ambiguous` or `adjudicate` rows in `arn` | |
 
-## Proposed segmenter changes (S10 items 1–3; not implemented; for Codex via decision)
+## Accepted segmenter changes (implemented 2026-08-26)
 
 **P-ARN-1 — sentence-level delayed-trigger split (generic).** Within a
 printed unit, a sentence (outside quotes and reminder text) that contains
@@ -214,30 +214,119 @@ Counterexample search: V4 (77 hits, 20 inspected; the split between
 statics and cost/trigger abilities is clean because kind order tests
 activated/triggered first).
 
-Each proposal still needs S10 items 4–7 (corpus before/after totals,
-over-segmentation check, regression re-export of `lea`/`leb`/`arn`, tests)
-before acceptance; none names a card.
+All four proposals were accepted and implemented without card-name branches.
+The implementation is still a surface-form segmenter/classifier, not a
+semantic IR.
 
-## Measurements (protocol §4.5; `docs/audits/arn/metrics.json`)
+Implementation behavior:
+
+- **P-ARN-1.** A supported delayed-trigger sentence or clause becomes a
+  `delayed_trigger` child of the unit that creates it. Supported forms are
+  `at the beginning of the next ...`, `at the beginning of ... next ...`,
+  and `at end of combat`. Matching text in reminder text is stripped before
+  segmentation; matching text in a quoted ability is split within that quoted
+  ability's subtree. Conditional lead-ins and compound conditions remain in
+  the child. A trailing activation-instruction sentence remains on the
+  activated parent.
+- **P-ARN-2.** A following sentence-initial `When`/`Whenever` clause is split
+  as a `delayed_trigger` child only when it contains `this turn` or `this way`,
+  or when it is the reflexive `When you do` form. Unscoped sentence-initial
+  `When`/`Whenever` remains deferred under D14. Animate Dead's unmarked
+  delayed trigger remains a known defect.
+- **P-ARN-3.** Segmentation/classification receives the current per-face type
+  line. A top-level Instant or Sorcery unit is `spell_or_static_text` despite
+  lexical `instead`, `skip`, or `prevent` wording, unless an earlier static
+  exception applies (`cast_restriction`, `additional_cost`, or existing
+  cost/counterability text that remains residual static). Multi-face cards use
+  the face's type line when the stored card-wide type line is joined with
+  ` // `.
+- **P-ARN-4.** `prevention_effect` is a distinct kind for static abilities
+  that generate CR 615 prevention effects. Activated and triggered abilities
+  whose effects prevent damage keep their activated/triggered kind.
+
+Validation:
+
+- Regression tests were added for the Alpha and Arabian Nights positive
+  examples; quoted and reminder-text delayed-trigger counterexamples;
+  recurring upkeep and recurring end-of-combat triggers; independent unscoped
+  sentence-initial `When`; instant/sorcery static exceptions; multiface
+  type-line classification; and activated/triggered/spell prevention
+  counterexamples.
+- `cargo test`: 41 passed.
+- `cargo build --release`: passed.
+- Re-exported `lea`, `leb`, and `arn`; regenerated metrics with
+  `scripts/python/audit_metrics.py`; all three exports report zero drift.
+
+Corpus before/after:
+
+| Scope | Before | After |
+|---|---:|---:|
+| Corpus printed / rules-supplied units | 70,799 / 970 | 71,682 / 970 |
+| Corpus distinct templates | 36,944 | 37,344 |
+| Corpus top-10 / 100 / 1,000 / 5,000 coverage | 14.32 / 27.14 / 42.37 / 54.88 % | 14.15 / 26.85 / 42.15 / 54.88 % |
+| Corpus kinds | activated 11,999 · additional cost 317 · ante 9 · cast restriction 68 · CDA 247 · keyword 17,630 · replacement 2,628 · static/spell 21,281 · triggered 16,620 | activated 12,000 · additional cost 317 · ante 9 · cast restriction 68 · CDA 245 · keyword 17,630 · prevention 181 · replacement 2,208 · static/spell 21,521 · triggered 17,503 |
+| Corpus roles | ability 67,078 · delayed trigger 94 · granted 1,506 · mode 2,121 | ability 67,075 · delayed trigger 982 · granted 1,504 · mode 2,121 |
+| `lea` printed / templates | 398 / 291 | 403 / 294 |
+| `arn` printed / templates | 109 / 92 | 112 / 95 |
+
+The unit and template increases are expected: Alpha gains five delayed-trigger
+children and Arabian Nights gains three delayed-trigger children. `lea`
+template count also changes because the split delayed-trigger children become
+standalone templates and Rock Hydra's prevention static changes kind; `arn`
+adds three new child templates. Kind shifts are expected from moving
+instant/sorcery spell text out of `replacement_effect` and introducing
+`prevention_effect`.
+
+Over-segmentation checks:
+
+- `lea`, `leb`, and `arn` regenerated exports have zero drift after accepted
+  annotation updates.
+- The Clockwork Beast recurring `At end of combat` line is covered by a
+  negative test and remains a top-level triggered ability, not a delayed child.
+- Post-change audit signals: `lea` 39 (`activation_restriction_embedded_candidate`
+  8, `conditional_cda_candidate` 1, `delayed_trigger_unattached_candidate` 1,
+  `payment_restriction_embedded_candidate` 1, `quoted_text_not_extracted_candidate`
+  1, `residual_multi_sentence_unit` 28); `leb` 0; `arn` 5
+  (`activation_restriction_embedded_candidate` 2,
+  `residual_multi_sentence_unit` 3). The remaining `lea`
+  delayed-trigger signal is the retained Clockwork-style recurring trigger
+  candidate; `arn` has no delayed-trigger signal.
+- Aggregate corpus pattern counts, held-out cards not inspected: 595 cards
+  contain `at the beginning of the next`, 788 contain both `at the beginning
+  of` and `next`, 154 contain `at end of combat`, 798 contain `. When `,
+  554 contain `prevent`, and 442 Instant/Sorcery cards contain `instead`.
+
+Remaining known defects/deferred cases:
+
+- Animate Dead's unmarked delayed trigger remains a defect outside P-ARN-2.
+- D14 remains deferred: independent sentence-initial triggered abilities
+  sharing a paragraph are not split.
+- Alpha still has two missed boundaries outside these proposals and one
+  known kind defect for Animate Dead's quoted trailing-period Enchant keyword.
+
+Recommendation: Antiquities (`atq`) structural research is cleared to begin;
+Codex did not begin that research.
+
+## Measurements (protocol section 4.5; `docs/audits/arn/metrics.json`)
 
 | Field | `arn` | `leb` |
 |---|---|---|
-| Printed / rules-supplied units | 109 / 0 | 1 / 1 |
-| Boundary precision | 106 / 109 (0.9725) | 1 / 1 |
-| Missed boundaries · recall | 3 · 106 / 109 | 0 · 1 / 1 |
-| Kind accuracy | 101 / 104 (0.9712); 2 n/a (modes) | 1 / 1 |
-| Role accuracy · source accuracy | 106 / 106 · 109 / 109 | 1 / 1 · 2 / 2 |
-| Dispositions | accept 103 · defect 4 · unsupported 2 | accept 2 |
-| Context | none 87 · CR 21 · type line 1 · game state 0 · card-specific 0 | type line 1 · none 1 |
-| Suspected fragmentation | land type 11 · colour 5 · object type 2 | colour 1 |
+| Printed / rules-supplied units | 112 / 0 | 1 / 1 |
+| Boundary precision | 112 / 112 (1.0) | 1 / 1 |
+| Missed boundaries / recall | 0 / 112 / 112 | 0 / 1 / 1 |
+| Kind accuracy | 110 / 110 (1.0); 2 n/a (modes) | 1 / 1 |
+| Role accuracy / source accuracy | 112 / 112; 112 / 112 | 1 / 1; 2 / 2 |
+| Dispositions | accept 112 | accept 2 |
+| Context | none 87; CR 24; type line 1; game state 0; card-specific 0 | type line 1; none 1 |
+| Suspected fragmentation | land type 11; colour 5; object type 2 | colour 1 |
 | Tap-symbol collision | 29 | 1 |
-| Unit / template novelty vs earlier audited sets | 77 / 109 · 76 / 92 | 1 / 1 · 1 / 1 (vs `lea`) |
-| Multi-sentence units | 22 / 109 | 0 |
+| Unit / template novelty vs earlier audited sets | 80 / 112; 79 / 95 | 1 / 1; 1 / 1 (vs `lea`) |
+| Multi-sentence units | 21 / 112 | 0 |
 | Drift vs fresh export | 0 | 0 |
 
-Alpha after the two adjudications: boundary precision 390 / 397, missed 7,
-dispositions accept 398 · defect 10 · adjudicate 2 · ambiguous 1 ·
-unsupported 1 (`docs/audits/lea/metrics.json`).
+Alpha after accepted P-ARN updates: boundary precision 400 / 402, missed 2,
+kind accuracy 392 / 393, dispositions accept 411; defect 3; adjudicate 2;
+ambiguous 1 (`docs/audits/lea/metrics.json`).
 
 ## Reproduction
 

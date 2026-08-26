@@ -442,3 +442,22 @@ Hydra's prevention static), and one verified normalization collision:
 `{T}` and `{Q}` collapse to `{M}`, so `{T}: Add {G}.` and `{G}: Add {C}.`
 share a template (52 Alpha units affected). These are new findings, not part
 of the seven accepted changes, and have no tests or fixes yet.
+
+## Arabian Nights proposal backport (2026-08-26)
+
+P-ARN-1 through P-ARN-4 were implemented after the Arabian Nights audit and
+legitimately changed Alpha's frozen unit structure and kind taxonomy:
+
+- Dragon Whelp, Stone Giant, Nettling Imp, Cockatrice, and Thicket Basilisk
+  now emit delayed-trigger children; Animate Dead and Cyclopean Tomb remain
+  known missed delayed-trigger defects outside the accepted rules.
+- Disintegrate and Camouflage now classify as `spell_or_static_text` because
+  top-level Instant/Sorcery spell text is type-line-aware.
+- Rock Hydra's prevention static now classifies as `prevention_effect`; the
+  activated prevention ability remains `activated_ability`.
+
+Updated Alpha measurements: 417 total units (403 printed + 14 rules-supplied),
+294 distinct printed templates, 267 singletons, boundary precision 400 / 402,
+missed boundaries 2, kind accuracy 392 / 393, dispositions accept 411 ·
+defect 3 · adjudicate 2 · ambiguous 1. `docs/audits/lea/units-export.tsv` and
+`docs/audits/lea/metrics.json` were regenerated and report zero drift.

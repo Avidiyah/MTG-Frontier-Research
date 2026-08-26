@@ -120,6 +120,10 @@ struct SegmentArgs {
     /// Card name used to normalize self-references with --text.
     #[arg(long, requires = "text")]
     name: Option<String>,
+
+    /// Card or face type line used for type-aware classification with --text.
+    #[arg(long, requires = "text")]
+    type_line: Option<String>,
 }
 
 #[derive(Args)]
@@ -226,6 +230,8 @@ enum AbilityKind {
     Triggered,
     #[serde(rename = "replacement_effect")]
     Replacement,
+    #[serde(rename = "prevention_effect")]
+    Prevention,
     #[serde(rename = "cast_restriction")]
     CastRestriction,
     #[serde(rename = "additional_cost")]
@@ -285,6 +291,7 @@ struct Segment {
 struct AuditCard {
     oracle_id: String,
     name: String,
+    type_line: Option<String>,
     first_set: String,
     first_released_at: Option<String>,
     first_is_fallback: bool,
@@ -671,25 +678,32 @@ fn parse_rules(text: &str) -> Vec<RuleEntry> {
 }
 
 fn command_segment(db_path: &Path, args: SegmentArgs) -> Result<Value> {
-    let (name, text) = if let Some(card_name) = args.card {
+    let (name, text, type_line) = if let Some(card_name) = args.card {
         let conn = open_db(db_path)?;
         conn.query_row(
-            "SELECT name, oracle_text FROM cards WHERE lower(name) = lower(?1) LIMIT 1",
+            "SELECT name, oracle_text, type_line FROM cards WHERE lower(name) = lower(?1) LIMIT 1",
             [&card_name],
-            |row| Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?)),
+            |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, Option<String>>(1)?,
+                    row.get::<_, Option<String>>(2)?,
+                ))
+            },
         )
         .with_context(|| format!("card not found: {card_name:?}"))?
     } else {
-        (args.name.unwrap_or_default(), args.text)
+        (args.name.unwrap_or_default(), args.text, args.type_line)
     };
     let text = text.unwrap_or_default();
-    let segments = segment_text(&text, &name);
+    let segments = segment_text(&text, &name, type_line.as_deref());
     let mut total_units = 0;
     for segment in &segments {
         segment.walk(&mut |_| total_units += 1);
     }
     Ok(json!({
         "name": if name.is_empty() { Value::Null } else { Value::String(name) },
+        "type_line": type_line,
         "source_text": text,
         "count": segments.len(),
         "total_units": total_units,
@@ -703,7 +717,7 @@ fn command_segment(db_path: &Path, args: SegmentArgs) -> Result<Value> {
 /// unit per keyword, `•` lines attach to the preceding unit as modes, and a
 /// line that is a delayed trigger created by the preceding unit's effect
 /// attaches to that unit. Reminder-only lines become rules-supplied units.
-fn segment_text(text: &str, card_name: &str) -> Vec<Segment> {
+fn segment_text(text: &str, card_name: &str, type_line: Option<&str>) -> Vec<Segment> {
     let mut segments: Vec<Segment> = Vec::new();
     let mut face = 0;
     let mut face_start = 0;
@@ -717,20 +731,33 @@ fn segment_text(text: &str, card_name: &str) -> Vec<Segment> {
             face_start = segments.len();
             continue;
         }
-        for mut unit in segment_line(line, card_name) {
+        let face_type_line = type_line_for_face(type_line, face);
+        for mut unit in segment_line(line, card_name, face_type_line) {
             unit.set_origin(face, line_number + 1);
             let attach_to = match unit.role {
                 StructuralRole::Mode => segments[face_start..].last_mut(),
                 StructuralRole::DelayedTrigger => {
                     segments[face_start..].last_mut().filter(|parent| {
-                        parent.source == TextSource::Printed && parent.kind != AbilityKind::Keyword
+                        parent.source == TextSource::Printed
+                            && !matches!(
+                                parent.kind,
+                                AbilityKind::Keyword
+                                    | AbilityKind::Replacement
+                                    | AbilityKind::Prevention
+                                    | AbilityKind::CharacteristicDefining
+                            )
                     })
                 }
                 _ => None,
             };
             match attach_to {
                 Some(parent) => parent.children.push(unit),
-                None => segments.push(unit),
+                None => {
+                    if unit.role == StructuralRole::DelayedTrigger {
+                        unit.role = StructuralRole::Ability;
+                    }
+                    segments.push(unit);
+                }
             }
         }
     }
@@ -743,7 +770,7 @@ fn segment_text(text: &str, card_name: &str) -> Vec<Segment> {
 
 /// Units derived from one printed line. Roles other than `Ability` are
 /// requests to the caller to attach the unit to the preceding unit.
-fn segment_line(line: &str, card_name: &str) -> Vec<Segment> {
+fn segment_line(line: &str, card_name: &str, type_line: Option<&str>) -> Vec<Segment> {
     let stripped = collapse_whitespace(&strip_reminder_text(line));
     if stripped.is_empty() {
         let inner = line
@@ -752,21 +779,21 @@ fn segment_line(line: &str, card_name: &str) -> Vec<Segment> {
             .trim_end_matches(')')
             .trim();
         let normalized = normalize_text(inner, card_name);
-        let mut unit = build_unit(inner, card_name);
+        let mut unit = build_unit(inner, card_name, type_line, true, true);
         unit.source = TextSource::RulesSupplied;
         unit.rule = rules_supplied_rule(&normalized);
         unit.text = line.to_owned();
         return vec![unit];
     }
     if let Some(inner) = stripped.strip_prefix('•') {
-        let mut unit = build_unit(inner.trim(), card_name);
+        let mut unit = build_unit(inner.trim(), card_name, type_line, false, true);
         unit.role = StructuralRole::Mode;
         return vec![unit];
     }
-    if let Some(keywords) = split_keyword_list(&stripped, card_name) {
+    if let Some(keywords) = split_keyword_list(&stripped, card_name, type_line) {
         return keywords;
     }
-    let mut unit = build_unit(&stripped, card_name);
+    let mut unit = build_unit(&stripped, card_name, type_line, true, true);
     if unit.kind == AbilityKind::Triggered
         && unit.role == StructuralRole::Ability
         && delayed_trigger_start().is_match(&unit.normalized)
@@ -779,22 +806,43 @@ fn segment_line(line: &str, card_name: &str) -> Vec<Segment> {
 /// Build a unit from reminder-stripped text, recursing into a trailing
 /// delayed trigger (child role `DelayedTrigger`) and quoted abilities
 /// (child role `Granted`).
-fn build_unit(text: &str, card_name: &str) -> Segment {
+fn build_unit(
+    text: &str,
+    card_name: &str,
+    type_line: Option<&str>,
+    allow_spell_text_override: bool,
+    allow_delayed_split: bool,
+) -> Segment {
     let text = text.trim();
-    if let Some(split) = delayed_trigger_split(text) {
-        let mut parent = build_unit(&text[..split], card_name);
-        let mut child = build_unit(&text[split..], card_name);
+    if allow_delayed_split && let Some(split) = delayed_trigger_split(text) {
+        let mut parent_text = text[..split].trim_end().to_owned();
+        let mut child_text = text[split..].trim_start();
+        if let Some(instruction) = activation_instruction_sentence_split(child_text) {
+            let trailing_instruction = child_text[instruction..].trim_start();
+            child_text = child_text[..instruction].trim_end();
+            parent_text.push(' ');
+            parent_text.push_str(trailing_instruction);
+        }
+        let mut parent = build_unit(
+            parent_text.trim(),
+            card_name,
+            type_line,
+            allow_spell_text_override,
+            false,
+        );
+        let mut child = build_unit(child_text, card_name, type_line, false, false);
         child.role = StructuralRole::DelayedTrigger;
+        child.kind = AbilityKind::Triggered;
         parent.children.push(child);
         return parent;
     }
     let (dequoted, quoted) = extract_quoted_abilities(text);
     let normalized = normalize_text(&dequoted, card_name);
-    let kind = classify_kind(&normalized);
+    let kind = classify_kind(&normalized, type_line, allow_spell_text_override);
     let children = quoted
         .iter()
         .map(|quote| {
-            let mut child = build_unit(quote, card_name);
+            let mut child = build_unit(quote, card_name, None, false, true);
             child.role = StructuralRole::Granted;
             child
         })
@@ -813,12 +861,31 @@ fn build_unit(text: &str, card_name: &str) -> Segment {
     }
 }
 
+fn activation_instruction_sentence_split(text: &str) -> Option<usize> {
+    static ACTIVATION_INSTRUCTION: OnceLock<Regex> = OnceLock::new();
+    let activation_instruction = ACTIVATION_INSTRUCTION.get_or_init(|| {
+        Regex::new(
+            r"(?i)\. (activate only\b|activate this ability only\b|any player may activate\b)",
+        )
+        .expect("valid activation-instruction regex")
+    });
+    activation_instruction
+        .captures(text)
+        .and_then(|captures| captures.get(1))
+        .map(|instruction| instruction.start())
+}
+
 /// Split a keyword-only line such as `Flying, trample` or `Flying; banding`
 /// into one keyword unit per item. Returns `None` for anything that is not
 /// a comma/semicolon list of alphabetic keyword items.
-fn split_keyword_list(stripped: &str, card_name: &str) -> Option<Vec<Segment>> {
+fn split_keyword_list(
+    stripped: &str,
+    card_name: &str,
+    type_line: Option<&str>,
+) -> Option<Vec<Segment>> {
     if !stripped.contains([',', ';'])
-        || classify_kind(&normalize_text(stripped, card_name)) != AbilityKind::Keyword
+        || classify_kind(&normalize_text(stripped, card_name), type_line, false)
+            != AbilityKind::Keyword
     {
         return None;
     }
@@ -841,7 +908,7 @@ fn split_keyword_list(stripped: &str, card_name: &str) -> Option<Vec<Segment>> {
         pieces
             .into_iter()
             .map(|piece| {
-                let mut unit = build_unit(piece, card_name);
+                let mut unit = build_unit(piece, card_name, type_line, false, true);
                 unit.kind = AbilityKind::Keyword;
                 // List position alone lowercases later items (`Flying, trample`);
                 // sentence-case the template so it matches the standalone keyword.
@@ -855,8 +922,13 @@ fn split_keyword_list(stripped: &str, card_name: &str) -> Option<Vec<Segment>> {
     )
 }
 
-fn classify_kind(normalized: &str) -> AbilityKind {
+fn classify_kind(
+    normalized: &str,
+    type_line: Option<&str>,
+    allow_spell_text_override: bool,
+) -> AbilityKind {
     static REPLACEMENT: OnceLock<Regex> = OnceLock::new();
+    static PREVENTION: OnceLock<Regex> = OnceLock::new();
     static CDA: OnceLock<Regex> = OnceLock::new();
     // CR 614.1a-d: "instead", "skip", "As ~ enters", "enters with/as/tapped".
     let replacement = REPLACEMENT.get_or_init(|| {
@@ -868,6 +940,8 @@ fn classify_kind(normalized: &str) -> AbilityKind {
         Regex::new(r"^~'s (power|toughness|power and toughness|colors?|mana value) (is|are) |^~ is (all colors|colorless|every creature type)\b")
             .expect("valid cda regex")
     });
+    let prevention = PREVENTION
+        .get_or_init(|| Regex::new(r"\bprevent(s|ed|ing)?\b").expect("valid prevention regex"));
     let lower = normalized.to_lowercase();
     if lower.starts_with("remove ~ from your deck before playing") {
         AbilityKind::Ante
@@ -884,6 +958,10 @@ fn classify_kind(normalized: &str) -> AbilityKind {
         AbilityKind::Activated
     } else if is_keyword_line(normalized) {
         AbilityKind::Keyword
+    } else if allow_spell_text_override && is_instant_or_sorcery(type_line) {
+        AbilityKind::SpellOrStatic
+    } else if prevention.is_match(&lower) {
+        AbilityKind::Prevention
     } else if replacement.is_match(&lower) {
         AbilityKind::Replacement
     } else if cda.is_match(&lower) {
@@ -891,6 +969,23 @@ fn classify_kind(normalized: &str) -> AbilityKind {
     } else {
         AbilityKind::SpellOrStatic
     }
+}
+
+fn type_line_for_face(type_line: Option<&str>, face: usize) -> Option<&str> {
+    let type_line = type_line?.trim();
+    type_line
+        .split(" // ")
+        .nth(face)
+        .map(str::trim)
+        .filter(|part| !part.is_empty())
+        .or(Some(type_line))
+}
+
+fn is_instant_or_sorcery(type_line: Option<&str>) -> bool {
+    type_line.is_some_and(|line| {
+        line.split([' ', '\u{2014}', '/'])
+            .any(|word| matches!(word, "Instant" | "Sorcery"))
+    })
 }
 
 fn is_keyword_line(line: &str) -> bool {
@@ -903,27 +998,60 @@ fn is_keyword_line(line: &str) -> bool {
         && !line.starts_with('•')
 }
 
-/// A one-shot trigger phrase of the form `At the beginning of ... next ...`
-/// (CR 603.7); the only delayed-trigger surface form detected so far.
+/// One-shot trigger starts that can be created by a preceding effect (CR 603.7).
 fn delayed_trigger_start() -> &'static Regex {
     static START: OnceLock<Regex> = OnceLock::new();
     START.get_or_init(|| {
-        Regex::new(r"^At the beginning of [^,]*\bnext\b").expect("valid delayed trigger regex")
+        Regex::new(r"(?i)^(at the beginning of ([^,]*\bnext\b|the next\b)|at end of combat\b)")
+            .expect("valid delayed trigger regex")
     })
 }
 
 /// Byte offset at which a trailing delayed-trigger sentence begins, ignoring
 /// matches inside quoted abilities.
 fn delayed_trigger_split(text: &str) -> Option<usize> {
-    static BOUNDARY: OnceLock<Regex> = OnceLock::new();
-    let boundary = BOUNDARY.get_or_init(|| {
-        Regex::new(r"\. (At the beginning of [^,]*\bnext\b)").expect("valid delayed boundary regex")
+    static SENTENCE_BOUNDARY: OnceLock<Regex> = OnceLock::new();
+    static INVERTED_DELAYED: OnceLock<Regex> = OnceLock::new();
+    let sentence_boundary = SENTENCE_BOUNDARY.get_or_init(|| {
+        Regex::new(
+            r"(?i)\. ((at the beginning of ([^,]*\bnext\b|the next\b)|at end of combat\b|when you do\b|(when|whenever) [^.]*\b(this turn|this way)\b))",
+        )
+        .expect("valid delayed sentence boundary regex")
+    });
+    let inverted_delayed = INVERTED_DELAYED.get_or_init(|| {
+        Regex::new(r"(?i)(at the beginning of ([^,.]*\bnext\b|the next\b)|at end of combat\b)")
+            .expect("valid inverted delayed trigger regex")
     });
     let masked = mask_quoted(text);
-    boundary
+    if let Some(sentence) = sentence_boundary
         .captures(&masked)
         .and_then(|captures| captures.get(1))
-        .map(|sentence| sentence.start())
+    {
+        return Some(sentence.start());
+    }
+    for (period, _) in masked.match_indices(". ") {
+        let sentence_start = period + 2;
+        let sentence = &masked[sentence_start..];
+        let sentence_end = sentence.find(". ").unwrap_or(sentence.len());
+        if inverted_delayed.is_match(&sentence[..sentence_end]) {
+            return Some(sentence_start);
+        }
+    }
+    let delayed = inverted_delayed.find(&masked)?;
+    if delayed.start() == 0 {
+        return None;
+    }
+    let prefix = &text[..delayed.start()];
+    let sentence_start = prefix.rfind(". ").map_or(0, |offset| offset + 2);
+    if sentence_start > 0 && text[sentence_start..].trim_start().starts_with("If ") {
+        return Some(sentence_start);
+    }
+    let local_prefix = &text[sentence_start..delayed.start()];
+    let split = local_prefix
+        .rfind(": ")
+        .or_else(|| local_prefix.rfind(", "))
+        .map(|offset| sentence_start + offset + 2)?;
+    (split < delayed.start()).then_some(split)
 }
 
 /// Replace every character inside double quotes with `_`, preserving byte
@@ -1048,13 +1176,17 @@ fn command_templates(db_path: &Path, args: TemplateArgs) -> Result<Value> {
     let conn = open_db(db_path)?;
     let set_filter = set_predicate("?1");
     let sql = format!(
-        "SELECT name, oracle_text FROM cards \
+        "SELECT name, oracle_text, type_line FROM cards \
          WHERE oracle_text IS NOT NULL AND oracle_text != ''{set_filter} ORDER BY oracle_id"
     );
     let mut statement = conn.prepare(&sql)?;
     let set_code = args.set.as_deref().unwrap_or("").to_lowercase();
     let rows = statement.query_map([&set_code], |row| {
-        Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        Ok((
+            row.get::<_, String>(0)?,
+            row.get::<_, String>(1)?,
+            row.get::<_, Option<String>>(2)?,
+        ))
     })?;
     let mut counts: HashMap<String, u64> = HashMap::new();
     let mut kinds: BTreeMap<AbilityKind, u64> = BTreeMap::new();
@@ -1064,9 +1196,9 @@ fn command_templates(db_path: &Path, args: TemplateArgs) -> Result<Value> {
     let mut empty = 0_u64;
     let mut cards = 0_u64;
     for row in rows {
-        let (name, text) = row?;
+        let (name, text, type_line) = row?;
         cards += 1;
-        for segment in segment_text(&text, &name) {
+        for segment in segment_text(&text, &name, type_line.as_deref()) {
             segment.walk(&mut |unit| {
                 if unit.source == TextSource::RulesSupplied {
                     rules_supplied += 1;
@@ -1133,7 +1265,9 @@ fn command_templates(db_path: &Path, args: TemplateArgs) -> Result<Value> {
             "keyword_lists": "split on , and ; into one keyword unit each",
             "mode_marker": "• removed; role = mode under the parent ability",
             "granted_ability": "quoted ability replaced by \"[ability]\" and counted as a child unit",
-            "delayed_trigger": "`At the beginning of ... next ...` split off as a child of the creating unit",
+            "delayed_trigger": "supported `next`/`at end of combat`/scoped `When` forms split off as children of the creating unit",
+            "type_line_context": "per-face type line keeps instant/sorcery spell text out of replacement/prevention ability kinds except recognized static exceptions",
+            "prevention_effect": "static CR 615 prevention text is reported separately from replacement_effect",
             "face_separator": "excluded"
         },
         "coverage": coverage,
@@ -1260,7 +1394,7 @@ fn command_audit_signals(db_path: &Path, args: SetAuditArgs) -> Result<Value> {
 fn load_audit_cards(conn: &Connection, set: &str) -> Result<Vec<AuditCard>> {
     let set = set.to_lowercase();
     let mut statement = conn.prepare(
-        "SELECT oracle_id, name, first_set, first_released_at, first_is_fallback, oracle_text \
+        "SELECT oracle_id, name, type_line, first_set, first_released_at, first_is_fallback, oracle_text \
          FROM cards WHERE lower(first_set) = ?1 \
          ORDER BY lower(name), name, oracle_id",
     )?;
@@ -1282,7 +1416,7 @@ fn load_earlier_audit_cards(
         return Ok(Vec::new());
     };
     let mut statement = conn.prepare(
-        "SELECT oracle_id, name, first_set, first_released_at, first_is_fallback, oracle_text \
+        "SELECT oracle_id, name, type_line, first_set, first_released_at, first_is_fallback, oracle_text \
          FROM cards WHERE first_set IS NOT NULL AND first_released_at IS NOT NULL \
          AND first_released_at < ?1 AND oracle_text IS NOT NULL AND oracle_text != '' \
          AND first_is_fallback = 0 \
@@ -1301,10 +1435,11 @@ fn audit_card_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<AuditCard> {
     Ok(AuditCard {
         oracle_id: row.get(0)?,
         name: row.get(1)?,
-        first_set: row.get(2)?,
-        first_released_at: row.get(3)?,
-        first_is_fallback: row.get::<_, i64>(4)? != 0,
-        oracle_text: row.get(5)?,
+        type_line: row.get(2)?,
+        first_set: row.get(3)?,
+        first_released_at: row.get(4)?,
+        first_is_fallback: row.get::<_, i64>(5)? != 0,
+        oracle_text: row.get(6)?,
     })
 }
 
@@ -1321,7 +1456,7 @@ fn audit_records(cards: &[AuditCard]) -> Vec<AuditRecord> {
     for card in cards {
         if let Some(text) = card.oracle_text.as_ref().filter(|text| !text.is_empty()) {
             let line_lookup = source_line_lookup(text);
-            for segment in segment_text(text, &card.name) {
+            for segment in segment_text(text, &card.name, card.type_line.as_deref()) {
                 flatten_audit_segment(card, &line_lookup, &segment, None, 0, &mut records);
             }
         }
@@ -1497,7 +1632,7 @@ fn printed_template_units(cards: &[AuditCard]) -> Vec<(String, String)> {
     let mut units = Vec::new();
     for card in cards {
         if let Some(text) = card.oracle_text.as_ref().filter(|text| !text.is_empty()) {
-            for segment in segment_text(text, &card.name) {
+            for segment in segment_text(text, &card.name, card.type_line.as_deref()) {
                 segment.walk(&mut |unit| {
                     if unit.source == TextSource::Printed && !unit.normalized.is_empty() {
                         units.push((unit.normalized.clone(), card.name.clone()));
@@ -1533,8 +1668,8 @@ fn suspicious_signals(record: &AuditRecord, segment: &Segment) -> Vec<&'static s
     if lower.contains("activate only") || lower.contains("activate this ability only") {
         signals.push("activation_restriction_embedded_candidate");
     }
-    if lower.contains("at the beginning of")
-        && lower.contains("next")
+    if (delayed_trigger_start().is_match(&record.unit_text)
+        || delayed_trigger_split(&record.unit_text).is_some())
         && record.role != StructuralRole::DelayedTrigger
         && !segment
             .children
@@ -1589,7 +1724,7 @@ fn signal_definitions() -> Value {
         "uncited_rules_supplied_unit": "rules_supplied unit with no CR citation",
         "quoted_text_not_extracted_candidate": "unit_text contains double quotes but the unit has no granted child",
         "activation_restriction_embedded_candidate": "normalized text contains `activate only` or `activate this ability only`",
-        "delayed_trigger_unattached_candidate": "normalized text contains `At the beginning of` and `next` but the unit is not a delayed_trigger and has no delayed_trigger child",
+        "delayed_trigger_unattached_candidate": "unit_text contains a supported delayed-trigger split pattern but the unit is not a delayed_trigger and has no delayed_trigger child",
         "short_punctuation_free_residual_candidate": "printed spell_or_static_text unit with at most eight words and no period, colon, quote, bullet, or modal dash",
         "conditional_cda_candidate": "normalized text starts with `As long as ~` and mentions power or toughness",
         "payment_restriction_embedded_candidate": "normalized text contains `spend only`"
@@ -1702,6 +1837,14 @@ mod tests {
 
     fn kinds(segments: &[Segment]) -> Vec<AbilityKind> {
         segments.iter().map(|segment| segment.kind).collect()
+    }
+
+    fn segment_text(text: &str, card_name: &str) -> Vec<Segment> {
+        super::segment_text(text, card_name, None)
+    }
+
+    fn segment_text_with_type(text: &str, card_name: &str, type_line: &str) -> Vec<Segment> {
+        super::segment_text(text, card_name, Some(type_line))
     }
 
     fn normalized(segments: &[Segment]) -> Vec<&str> {
@@ -1949,6 +2092,19 @@ mod tests {
     }
 
     #[test]
+    fn recurring_end_of_combat_trigger_after_replacement_is_not_delayed() {
+        let segments = segment_text(
+            "This creature enters with seven +1/+0 counters on it.\nAt end of combat, if this creature attacked or blocked this combat, remove a +1/+0 counter from it.",
+            "",
+        );
+        assert_eq!(segments.len(), 2);
+        assert_eq!(segments[0].kind, AbilityKind::Replacement);
+        assert_eq!(segments[1].kind, AbilityKind::Triggered);
+        assert_eq!(segments[1].role, StructuralRole::Ability);
+        assert!(segments[0].children.is_empty());
+    }
+
+    #[test]
     fn delayed_trigger_phrase_inside_quotes_is_not_split() {
         let segments = segment_text(
             "Enchanted land has \"{T}: Add {G}. At the beginning of the next end step, sacrifice this land.\"",
@@ -1961,6 +2117,169 @@ mod tests {
         assert_eq!(granted.role, StructuralRole::Granted);
         assert_eq!(granted.kind, AbilityKind::Activated);
         assert_eq!(granted.children[0].role, StructuralRole::DelayedTrigger);
+    }
+
+    #[test]
+    fn inverted_next_step_delayed_triggers_split_as_children() {
+        let rukh = segment_text(
+            "When this creature dies, create a 4/4 red Bird creature token with flying at the beginning of the next end step.",
+            "Rukh Egg",
+        );
+        assert_eq!(rukh.len(), 1);
+        assert_eq!(rukh[0].kind, AbilityKind::Triggered);
+        assert_eq!(rukh[0].normalized, "When ~ dies,");
+        assert_eq!(rukh[0].children.len(), 1);
+        assert_eq!(rukh[0].children[0].kind, AbilityKind::Triggered);
+        assert_eq!(rukh[0].children[0].role, StructuralRole::DelayedTrigger);
+        assert_eq!(
+            rukh[0].children[0].normalized,
+            "create a N/N red Bird creature token with flying at the beginning of the next end step."
+        );
+
+        let nafs = segment_text(
+            "Whenever this creature deals damage to a player, that player loses 1 life at the beginning of their next draw step unless they pay {1} before that draw step.",
+            "Nafs Asp",
+        );
+        assert_eq!(nafs[0].normalized, "Whenever ~ deals damage to a player,");
+        assert_eq!(nafs[0].children[0].role, StructuralRole::DelayedTrigger);
+        assert_eq!(
+            nafs[0].children[0].normalized,
+            "that player loses N life at the beginning of their next draw step unless they pay {M} before that draw step."
+        );
+    }
+
+    #[test]
+    fn delayed_trigger_split_preserves_conditional_leadin_and_compound_condition() {
+        let dragon = segment_text(
+            "{R}: This creature gets +1/+0 until end of turn. If this ability has been activated four or more times this turn, sacrifice this creature at the beginning of the next end step.",
+            "Dragon Whelp",
+        );
+        assert_eq!(dragon[0].normalized, "{M}: ~ gets +N/+N until end of turn.");
+        assert_eq!(dragon[0].children[0].role, StructuralRole::DelayedTrigger);
+        assert_eq!(
+            dragon[0].children[0].normalized,
+            "If this ability has been activated four or more times this turn, sacrifice ~ at the beginning of the next end step."
+        );
+
+        let compound = segment_text(
+            "Create a 1/1 creature token. Sacrifice it at the beginning of the next end step or if it would leave the battlefield.",
+            "",
+        );
+        assert_eq!(compound[0].normalized, "Create a N/N creature token.");
+        assert_eq!(
+            compound[0].children[0].normalized,
+            "Sacrifice it at the beginning of the next end step or if it would leave the battlefield."
+        );
+    }
+
+    #[test]
+    fn end_of_combat_delayed_trigger_splits_as_child() {
+        let segments = segment_text(
+            "Whenever this creature blocks or becomes blocked by a non-Wall creature, destroy that creature at end of combat.",
+            "",
+        );
+        assert_eq!(segments.len(), 1);
+        assert_eq!(segments[0].kind, AbilityKind::Triggered);
+        assert_eq!(
+            segments[0].normalized,
+            "Whenever ~ blocks or becomes blocked by a non-Wall creature,"
+        );
+        assert_eq!(segments[0].children[0].role, StructuralRole::DelayedTrigger);
+        assert_eq!(
+            segments[0].children[0].normalized,
+            "destroy that creature at end of combat."
+        );
+    }
+
+    #[test]
+    fn activation_instruction_after_delayed_trigger_stays_on_parent() {
+        let segments = segment_text(
+            "{T}: Choose target non-Wall creature. That creature attacks this turn if able. Destroy it at the beginning of the next end step if it didn't attack this turn. Activate only during an opponent's turn, before attackers are declared.",
+            "",
+        );
+        assert_eq!(segments.len(), 1);
+        assert_eq!(
+            segments[0].normalized,
+            "{M}: Choose target non-Wall creature. That creature attacks this turn if able. Activate only during an opponent's turn, before attackers are declared."
+        );
+        assert_eq!(segments[0].children.len(), 1);
+        assert_eq!(
+            segments[0].children[0].normalized,
+            "Destroy it at the beginning of the next end step if it didn't attack this turn."
+        );
+    }
+
+    #[test]
+    fn delayed_trigger_text_in_reminder_text_is_not_split() {
+        let segments = segment_text(
+            "Draw a card. (At the beginning of the next upkeep, this reminder explains timing.)",
+            "",
+        );
+        assert_eq!(segments.len(), 1);
+        assert!(segments[0].children.is_empty());
+        assert_eq!(segments[0].normalized, "Draw a card.");
+    }
+
+    #[test]
+    fn delayed_trigger_inside_quoted_ability_stays_under_granted_child() {
+        let segments = segment_text(
+            "Equipped creature has \"Whenever this creature attacks, sacrifice it at end of combat.\"",
+            "",
+        );
+        assert_eq!(segments.len(), 1);
+        assert_eq!(segments[0].children.len(), 1);
+        let granted = &segments[0].children[0];
+        assert_eq!(granted.role, StructuralRole::Granted);
+        assert_eq!(granted.kind, AbilityKind::Triggered);
+        assert_eq!(granted.children.len(), 1);
+        assert_eq!(granted.children[0].role, StructuralRole::DelayedTrigger);
+    }
+
+    #[test]
+    fn scoped_sentence_initial_when_forms_split_as_delayed_triggers() {
+        let sandals = segment_text(
+            "{2}, {T}: Target creature gains islandwalk until end of turn. When that creature dies this turn, destroy this artifact.",
+            "Sandals of Abdallah",
+        );
+        assert_eq!(sandals.len(), 1);
+        assert_eq!(sandals[0].kind, AbilityKind::Activated);
+        assert_eq!(sandals[0].children[0].role, StructuralRole::DelayedTrigger);
+        assert_eq!(
+            sandals[0].children[0].normalized,
+            "When that creature dies this turn, destroy ~."
+        );
+
+        let this_way = segment_text(
+            "Exile target creature. Whenever a creature exiled this way dies this way, draw a card.",
+            "",
+        );
+        assert_eq!(this_way[0].children[0].role, StructuralRole::DelayedTrigger);
+
+        let reflexive = segment_text(
+            "You may sacrifice a creature. When you do, draw a card.",
+            "",
+        );
+        assert_eq!(
+            reflexive[0].children[0].role,
+            StructuralRole::DelayedTrigger
+        );
+    }
+
+    #[test]
+    fn unscoped_sentence_initial_when_forms_are_not_delayed_trigger_children() {
+        let independent = segment_text(
+            "Remove a time counter from this permanent. When the last is removed, sacrifice it.",
+            "",
+        );
+        assert_eq!(independent.len(), 1);
+        assert!(independent[0].children.is_empty());
+
+        let animate_dead = segment_text(
+            "When this Aura enters, return enchanted creature card to the battlefield under your control and attach this Aura to it. When this Aura leaves the battlefield, that creature's controller sacrifices it.",
+            "Animate Dead",
+        );
+        assert_eq!(animate_dead.len(), 1);
+        assert!(animate_dead[0].children.is_empty());
     }
 
     #[test]
@@ -2023,6 +2342,131 @@ mod tests {
     }
 
     #[test]
+    fn instant_and_sorcery_spell_text_is_type_line_aware() {
+        let disintegrate = segment_text_with_type(
+            "Disintegrate deals X damage to any target. If it's a creature, it can't be regenerated this turn, and if it would die this turn, exile it instead.",
+            "Disintegrate",
+            "Sorcery",
+        );
+        assert_eq!(disintegrate[0].kind, AbilityKind::SpellOrStatic);
+
+        let camouflage = segment_text_with_type(
+            "This turn, instead of declaring blockers, each defending player chooses any number of creatures they control and divides them into piles.",
+            "Camouflage",
+            "Instant",
+        );
+        assert_eq!(camouflage[0].kind, AbilityKind::SpellOrStatic);
+
+        let eye = segment_text_with_type(
+            "The next time a source of your choice would deal damage to you this turn, instead that source deals that much damage to you and Eye for an Eye deals that much damage to that source's controller.",
+            "Eye for an Eye",
+            "Instant",
+        );
+        assert_eq!(eye[0].kind, AbilityKind::SpellOrStatic);
+    }
+
+    #[test]
+    fn instant_and_sorcery_static_exceptions_are_preserved() {
+        assert_eq!(
+            segment_text_with_type(
+                "Cast this spell only before the combat damage step.",
+                "Berserk",
+                "Instant",
+            )[0]
+            .kind,
+            AbilityKind::CastRestriction
+        );
+        assert_eq!(
+            segment_text_with_type(
+                "As an additional cost to cast this spell, sacrifice a creature.",
+                "Sacrifice",
+                "Sorcery",
+            )[0]
+            .kind,
+            AbilityKind::AdditionalCost
+        );
+        assert_eq!(
+            segment_text_with_type("This spell costs {1} less to cast.", "", "Instant")[0].kind,
+            AbilityKind::SpellOrStatic
+        );
+        assert_eq!(
+            segment_text_with_type("This spell can't be countered.", "", "Sorcery")[0].kind,
+            AbilityKind::SpellOrStatic
+        );
+    }
+
+    #[test]
+    fn multiface_cards_use_the_current_face_type_line() {
+        let segments = segment_text_with_type(
+            "If you would draw a card, draw two cards instead.\n//\nThe next time a source would deal damage to you this turn, prevent that damage.",
+            "",
+            "Enchantment // Instant",
+        );
+        assert_eq!(segments.len(), 2);
+        assert_eq!(segments[0].face, 0);
+        assert_eq!(segments[0].kind, AbilityKind::Replacement);
+        assert_eq!(segments[1].face, 1);
+        assert_eq!(segments[1].kind, AbilityKind::SpellOrStatic);
+    }
+
+    #[test]
+    fn static_prevention_effects_have_their_own_kind() {
+        assert_eq!(
+            segment_text(
+                "For each 1 damage that would be dealt to this creature, if it has a +1/+1 counter on it, remove a +1/+1 counter from it and prevent that 1 damage.",
+                "Rock Hydra",
+            )[0]
+            .kind,
+            AbilityKind::Prevention
+        );
+        assert_eq!(
+            segment_text(
+                "As long as this creature is attacking, prevent all damage Deserts would deal to this creature and to creatures banded with this creature.",
+                "Camel",
+            )[0]
+            .kind,
+            AbilityKind::Prevention
+        );
+        assert_eq!(
+            segment_text(
+                "Prevent all damage that would be dealt to this creature by Deserts.",
+                "Desert Nomads",
+            )[0]
+            .kind,
+            AbilityKind::Prevention
+        );
+    }
+
+    #[test]
+    fn prevention_in_activated_triggered_or_spell_text_keeps_precedence() {
+        assert_eq!(
+            segment_text(
+                "{T}: Prevent the next 1 damage that would be dealt to target creature this turn.",
+                "Oasis",
+            )[0]
+            .kind,
+            AbilityKind::Activated
+        );
+        assert_eq!(
+            segment_text(
+                "Whenever a creature attacks, prevent all combat damage that would be dealt by it this turn.",
+                "",
+            )[0]
+            .kind,
+            AbilityKind::Triggered
+        );
+        assert_eq!(
+            segment_text_with_type(
+                "Prevent all combat damage that would be dealt this turn.",
+                "Fog",
+                "Instant",
+            )[0]
+            .kind,
+            AbilityKind::SpellOrStatic
+        );
+    }
+
+    #[test]
     fn indices_are_preorder_across_nested_units() {
         let segments = segment_text(
             "Choose one —\n• Draw a card.\n• Discard a card.\nFlying, haste",
@@ -2073,6 +2517,7 @@ mod tests {
         AuditCard {
             oracle_id: format!("{set}-{name}"),
             name: name.to_owned(),
+            type_line: None,
             first_set: set.to_owned(),
             first_released_at: Some(released_at.to_owned()),
             first_is_fallback: false,
@@ -2205,7 +2650,8 @@ mod tests {
                  (Theme color: {W})\n\
                  Choose \"left\" or \"right\".\n\
                  Draw a card. Activate only as a sorcery.\n\
-                 Draw a card at the beginning of the next end step.\n\
+                 This creature enters tapped.\n\
+                 At end of combat, draw a card.\n\
                  As long as this creature isn't attacking, its power and toughness are each equal to the number of Forests you control.\n\
                  Spend only black mana on X.\n\
                  Other creatures have \"{T}: Add {G}.\"",
