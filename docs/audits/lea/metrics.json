@@ -1,0 +1,121 @@
+{
+  "annotated_file": "docs/audits/lea/units-annotated.tsv",
+  "cards": 275,
+  "units": {
+    "all": 412,
+    "printed": 398,
+    "rules_supplied": 14,
+    "printed_top_level": 384,
+    "printed_children": 14
+  },
+  "boundary": {
+    "precision": {
+      "numerator": 390,
+      "denominator": 395,
+      "value": 0.9873
+    },
+    "recall": {
+      "numerator": 390,
+      "denominator": 395,
+      "value": 0.9873
+    },
+    "by_value": {
+      "ok": 390,
+      "under": 5,
+      "unsure": 3
+    },
+    "missed_boundaries": 5,
+    "unsure": 3
+  },
+  "kind_accuracy": {
+    "numerator": 379,
+    "denominator": 383,
+    "value": 0.9896
+  },
+  "kind_not_applicable_or_unsure": 7,
+  "role_accuracy": {
+    "numerator": 388,
+    "denominator": 388,
+    "value": 1.0
+  },
+  "source_accuracy": {
+    "numerator": 412,
+    "denominator": 412,
+    "value": 1.0
+  },
+  "dispositions": {
+    "accept": 398,
+    "defect": 8,
+    "adjudicate": 4,
+    "ambiguous": 1,
+    "unsupported": 1
+  },
+  "context_required": {
+    "cr": 99,
+    "none": 293,
+    "type_line": 19,
+    "game_state": 1
+  },
+  "structure_tags": {
+    "keyword": 91,
+    "delayed_trigger_when": 1,
+    "granted_quoted": 7,
+    "intervening_if": 8,
+    "multi_sentence": 59,
+    "mana_ability": 14,
+    "rules_supplied": 14,
+    "one_off_candidate": 8,
+    "cast_restriction": 5,
+    "delayed_trigger_parent": 2,
+    "delayed_trigger_next": 2,
+    "enters_replacement": 9,
+    "mode_header": 3,
+    "mode": 6,
+    "instead_in_spell": 2,
+    "physical_action": 1,
+    "activation_instruction": 9,
+    "delayed_trigger_end_of_combat": 2,
+    "ante": 3,
+    "delayed_trigger_recurring": 1,
+    "conditional_creation": 1,
+    "delayed_trigger_inverted": 3,
+    "payment_restriction": 1,
+    "granted_quoted_parent": 4,
+    "cost_modification": 3,
+    "conditional_cda": 1,
+    "self_reference_name": 4,
+    "instead_in_activated": 2,
+    "cda": 2,
+    "keyword_list_split": 3,
+    "text_change": 2,
+    "state_trigger": 2,
+    "name_predicate": 1,
+    "short_quote_not_ability": 1,
+    "prevention_static": 1,
+    "self_reference_this_ability": 1,
+    "player_control": 1
+  },
+  "normalization_flags": {
+    "fragmentation:object_type": 41,
+    "fragmentation:land_type": 27,
+    "fragmentation:color_word": 37,
+    "collision:tap_as_mana": 52
+  },
+  "kind_expected_when_wrong": {
+    "keyword_ability": 1,
+    "spell_or_static_text": 2,
+    "gap:prevention": 1
+  },
+  "annotators": {
+    "fable-pass1": 412
+  },
+  "templates": {
+    "distinct": 291,
+    "singletons": 265
+  },
+  "drift": {
+    "export": "docs/audits/lea/units-export.tsv",
+    "changed_or_missing_units": 0,
+    "examples": []
+  }
+}

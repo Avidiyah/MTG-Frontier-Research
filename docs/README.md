@@ -17,17 +17,38 @@ also means it runs in constrained environments like Termux on Android.
 
 | File | What it is |
 |---|---|
-| `mtg_card_pipeline.py` | Fetch Scryfall bulk data → load into SQLite → template frequency report |
-| `mtg_search.py` | Look up individual cards by name in the built database |
+| `scripts/python/mtg_card_pipeline.py` | Fetch Scryfall bulk data → load into SQLite → template frequency report |
+| `scripts/python/mtg_search.py` | Look up individual cards by name in the built database |
+| `scripts/python/export_units.py` | Flatten `mtg-discover segment` output for one first-printing set into a TSV unit inventory (protocol step S3) |
+| `scripts/python/audit_metrics.py` | Compute the structural-audit measurements, novelty, and drift from an annotated unit table (protocol step S14) |
 | `mtg-discover` | Rust CLI for agent-driven corpus and rules research |
 | `.gitignore` | Keeps the bulk downloads and the SQLite store out of version control |
 
 ## Quick start
 
 ```
-python mtg_card_pipeline.py all     # fetch, load, and analyze
-python mtg_search.py                # interactive card lookup
+python scripts/python/mtg_card_pipeline.py all     # fetch, load, and analyze
+python scripts/python/mtg_search.py                # interactive card lookup
 ```
+
+## Structural-audit scripts
+
+Both are standard-library Python and add no segmentation logic of their own;
+they drive the release build of `mtg-discover`.
+
+```
+python scripts/python/export_units.py lea > docs/audits/lea/units-export.tsv
+python scripts/python/audit_metrics.py docs/audits/lea/units-annotated.tsv --export docs/audits/lea/units-export.tsv
+python scripts/python/audit_metrics.py docs/audits/arn/units-annotated.tsv --earlier docs/audits/lea/units-export.tsv
+```
+
+`export_units.py` enumerates a set with `cards "" --set <code>`, runs
+`segment --card` per card, and writes one row per unit with a parent
+pointer (columns defined in `docs/protocol/structural-investigation-protocol.md`
+§4.1). `audit_metrics.py` reads the annotated table, prints every ratio with
+its numerator and denominator, computes unit/template novelty against earlier
+sets' exports, and reports drift when the annotated unit text no longer
+matches a fresh export.
 
 ## Rust discovery CLI
 
