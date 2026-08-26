@@ -433,8 +433,10 @@ which carries the full disposition table. Summary:
 A unit-level annotation of all 412 Alpha units (single annotator, CR
 citations per row) now exists at `docs/audits/lea/units-annotated.tsv` with
 its measurements in `docs/audits/lea/metrics.json`: boundary precision
-390 / 395, 5 missed boundaries (all nested delayed triggers — Dragon Whelp,
-Stone Giant, Nettling Imp, Animate Dead, Cyclopean Tomb), kind accuracy
+390 / 397, 7 missed boundaries (all nested delayed triggers — Dragon Whelp,
+Stone Giant, Nettling Imp, Animate Dead, Cyclopean Tomb, and Cockatrice /
+Thicket Basilisk after adjudication via the Gorgon Recluse ruling during
+the Arabian Nights audit), kind accuracy
 379 / 383 (Disintegrate, Camouflage, Animate Dead's quoted keyword, Rock
 Hydra's prevention static), and one verified normalization collision:
 `{T}` and `{Q}` collapse to `{M}`, so `{T}: Add {G}.` and `{G}: Add {C}.`

@@ -302,13 +302,15 @@ hit is not proof that the rule completely determines a card's behavior.
 
 ### Evaluation
 
-- The only structural annotation is Alpha (`docs/audits/lea/`): all 412
-  units, single annotator, unadjudicated, CR citation per row. Measured on
-  it: boundary precision 390 / 395 judged printed units, 5 missed boundaries
-  (nested delayed triggers), kind accuracy 379 / 383, one `unsupported`
-  (prevention static) and one `ambiguous` (Gaea's Liege) unit. Alpha is a
-  development and regression set, not a gold set and not evidence about the
-  corpus.
+- Structural annotations exist for Alpha (`docs/audits/lea/`, 412 units),
+  Beta's two new cards (`docs/audits/leb/`) and Arabian Nights
+  (`docs/audits/arn/`, 109 units): single annotator, CR citation per row,
+  unadjudicated except where noted. Alpha: boundary precision 390 / 397,
+  7 missed boundaries (all nested delayed triggers), kind accuracy
+  379 / 383. Arabian Nights: 106 / 109, 3 missed (same class), kind
+  101 / 104, unit novelty 77 / 109 and template novelty 76 / 92 against
+  Alpha + Beta. These are development and regression sets, not gold sets
+  and not evidence about the corpus.
 - A held-out pool is frozen (protocol §6.3: `oracle_id` prefix `f`,
   non-fallback, excluding `lea`/`leb`/`arn`; 2,096 cards) but not yet sampled
   or annotated.
@@ -371,9 +373,11 @@ Unless new evidence changes priorities:
    `docs/protocol/structural-investigation-protocol.md` (frozen v1.0).
    Alpha is done: its seven segmenter changes are implemented, tested and
    measured, and its unit-level annotation is committed. Gate 0 passed on
-   2026-08-26 (`docs/gates/gate-0-evidence.md`). Arabian Nights (`arn`, 77
-   cards, 109 printed units) is next; its plan, regression corpus and
-   held-out rules are in the gate document §8 and it has not been started.
+   2026-08-26 (`docs/gates/gate-0-evidence.md`). Arabian Nights (`arn`) and
+   Beta (`leb`) are audited (`docs/findings/arn-structural-audit.md`) with
+   three generic segmenter proposals awaiting Codex (delayed-trigger
+   forms, type-line context for `instead`, prevention kind). Antiquities
+   (`atq`, 85 cards) is next.
 2. **Normalization ablations:** measure one reversible transformation at a time
    rather than applying increasingly lossy normalization as a bundle.
 3. **Typed-slot discovery:** test candidate roles for numbers, mana, objects,
@@ -449,3 +453,14 @@ When updating this document:
   are not separate abilities per CR 602.1b; Animate Dead's last sentence is
   a delayed trigger; Gaea's Liege's CDA status is ambiguous under CR
   604.3a(5)). Arabian Nights plan prepared, not started.
+- Gate 0 countersigned by the owner. Arabian Nights (77 cards, 109 units)
+  and Beta (2 cards) audited under protocol v1.0: 3 more missed nested
+  delayed triggers (Rukh Egg, Sandals of Abdallah, Nafs Asp), 1 more
+  `instead`-on-instant kind defect (Eye for an Eye), 2 more prevention
+  statics (Camel, Desert Nomads); unit novelty 77 / 109 vs Alpha + Beta.
+  Corpus counterexample searches (535 inverted delayed-trigger hits, 154
+  `at end of combat`, 798 sentence-initial `When`) support a generic
+  sentence-level delayed-trigger split but show the delayed-vs-independent
+  *role* needs CR context (reflexive triggers, CR 603.12; vanishing-style
+  triggers). Alpha's Cockatrice / Thicket Basilisk adjudicated to missed
+  delayed triggers via the Gorgon Recluse ruling.

@@ -125,8 +125,10 @@ Neither caveat changes a criterion's status as written in the roadmap.
 
 ## 7. Known structural failure classes (from the Alpha unit audit)
 
-Single-annotator, unadjudicated (`annotator = fable-pass1`), 412 units,
-`docs/audits/lea/metrics.json`:
+Single-annotator, unadjudicated (`annotator = fable-pass1`), 412 units, as
+measured at the gate review (F4's two rows were adjudicated to `under`
+during the Arabian Nights audit the same day: precision is now 390 / 397,
+missed 7, defects 10 — see `docs/audits/lea/metrics.json`):
 
 | Measurement | Value |
 |---|---|
@@ -209,8 +211,9 @@ python scripts/python/audit_metrics.py docs/audits/lea/units-annotated.tsv --exp
 
 ## 10. Decision record
 
-**Decision:** Gate 0 passes (2026-08-26, research lead; awaiting program-owner
-countersignature in this file).
+**Decision:** Gate 0 passes (2026-08-26, research lead; countersigned by the
+program owner 2026-08-26: "Gate 0 Pass. Begin Arabian Nights"). Phase 1 is
+open; the Arabian Nights investigation started the same day.
 **Evidence:** sections 2–5. **Options considered:** (a) pass; (b) pending
 until T1 pins the snapshot and B1/B2/V3 are re-measured; (c) fail. (b) was
 rejected because the roadmap's criteria do not require snapshot pinning or

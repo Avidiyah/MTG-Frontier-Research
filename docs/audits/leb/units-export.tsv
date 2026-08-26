@@ -1,0 +1,3 @@
+set	oracle_id	name	type_line	index	parent_index	depth	face	line	kind	role	source	rule	text	normalized
+leb	7a5a8414-4da4-4dd0-93ae-210d50f4d6f6	Circle of Protection: Black	Enchantment	0		0	0	1	activated_ability	ability	printed		{1}: The next time a black source of your choice would deal damage to you this turn, prevent that damage.	{M}: The next time a black source of your choice would deal damage to you this turn, prevent that damage.
+leb	c718911c-c955-4eb9-9e16-be4bd49a4e4e	Volcanic Island	Land — Island Mountain	0		0	0	1	activated_ability	ability	rules_supplied	305.6	({T}: Add {U} or {R}.)	{M}: Add {M} or {M}.

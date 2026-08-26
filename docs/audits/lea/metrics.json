@@ -11,21 +11,21 @@
   "boundary": {
     "precision": {
       "numerator": 390,
-      "denominator": 395,
-      "value": 0.9873
+      "denominator": 397,
+      "value": 0.9824
     },
     "recall": {
       "numerator": 390,
-      "denominator": 395,
-      "value": 0.9873
+      "denominator": 397,
+      "value": 0.9824
     },
     "by_value": {
       "ok": 390,
-      "under": 5,
-      "unsure": 3
+      "under": 7,
+      "unsure": 1
     },
-    "missed_boundaries": 5,
-    "unsure": 3
+    "missed_boundaries": 7,
+    "unsure": 1
   },
   "kind_accuracy": {
     "numerator": 379,
@@ -45,8 +45,8 @@
   },
   "dispositions": {
     "accept": 398,
-    "defect": 8,
-    "adjudicate": 4,
+    "defect": 10,
+    "adjudicate": 2,
     "ambiguous": 1,
     "unsupported": 1
   },
@@ -107,7 +107,8 @@
     "gap:prevention": 1
   },
   "annotators": {
-    "fable-pass1": 412
+    "fable-pass1": 410,
+    "fable-pass1;adjudicated-2026-08-26": 2
   },
   "templates": {
     "distinct": 291,

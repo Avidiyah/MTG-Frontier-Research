@@ -893,9 +893,10 @@ its phase is active and a change record (§2.3) accepts it.
 | D2 | Native `export --set` with stable unit keys (T2) replacing `export_units.py` | Protocol S3 | Phase 1 (tooling) | Codex |
 | D3 | Re-measure Alpha B1 (typed-slot ablation), B2 (corpus recurrence) and V3 (printing invariance) with preserved scripts | Gate 0 caveat B | Phase 1 | research lead, after D2 |
 | D4 | Keep `{T}`/`{Q}` distinct from mana in normalization (T10) | Alpha collision C1 (52 units) | Phase 1, via protocol S10 | proposal: research lead; change: Codex |
-| D5 | Generic delayed-trigger detection for inverted, `When …`-in-effect, recurring, and `at end of combat` forms (F1–F4) | Alpha defects, 5 missed boundaries | Phase 1, via S10 after Arabian Nights counterexample search | Codex |
-| D6 | Type-line context for kind on instants/sorceries (F5) | Disintegrate, Camouflage | Phase 1, via S10 | Codex |
-| D7 | Prevention (CR 615) as a kind, or documented merge with replacement (F7) | Rock Hydra | Phase 1 taxonomy decision | research lead |
+| D5 | Generic delayed-trigger detection for inverted, `When …`-in-effect, recurring, and `at end of combat` forms (F1–F4) | Alpha 7 + Arabian Nights 3 missed boundaries; counterexample search done (`arn` audit V2); proposals P-ARN-1/2 ready for decision | Phase 1, via S10 | Codex |
+| D6 | Type-line context for kind on instants/sorceries (F5) | Disintegrate, Camouflage, Eye for an Eye; search done (`arn` V3); proposal P-ARN-3 | Phase 1, via S10 | Codex |
+| D7 | Prevention (CR 615) as a kind, or documented merge with replacement (F7) | Rock Hydra, Camel, Desert Nomads; search done (`arn` V4); proposal P-ARN-4 | Phase 1 taxonomy decision | research lead |
+| D14 | Splitting sentence-initial `When` clauses that are independent triggered abilities in the same paragraph (vanishing-style) | `arn` audit V2 class (c) | Phase 1, needs its own S8 search | research lead |
 | D8 | Role value for referenced/lost quoted abilities (F11) | Animate Dead | Phase 1 taxonomy decision | research lead |
 | D9 | CR-slot decomposition fields for activated/triggered units (T8) | Alpha V5, hypothesis N3 | Phase 1 (tooling) | Codex |
 | D10 | Second annotator pass / adjudication of Alpha | Protocol S5.9; Gate 1 criterion | Phase 1 | second agent or owner |
