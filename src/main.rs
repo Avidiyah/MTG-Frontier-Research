@@ -769,11 +769,126 @@ fn segment_text(text: &str, card_name: &str, type_line: Option<&str>) -> Vec<Seg
             }
         }
     }
+    apply_spell_created_delayed_triggers(&mut segments, type_line);
     let mut next = 0;
     for segment in &mut segments {
         segment.assign_indices(&mut next);
     }
     segments
+}
+
+/// P-ATQ-4: a top-level instant/sorcery unit whose printed text *is* a
+/// delayed-trigger clause (CR 603.7d: "If a spell creates a delayed
+/// triggered ability, the source of that delayed triggered ability is that
+/// spell") gets `role = DelayedTrigger` instead of the default `Ability`.
+/// This runs once, after every line of the card has already been segmented
+/// and attached, and only ever *changes the role of an existing top-level
+/// unit in place* — it never attaches it as anyone's child (unlike the
+/// `delayed_trigger_start` mechanism above, which is for a delayed-trigger
+/// phrase on its own line that continues a *preceding* unit's effect).
+/// Resolving the spell and the delayed trigger it creates are the same
+/// printed unit here, so `parent_index` stays `None`: the unit's own
+/// top-level position on this face already represents "created by this
+/// spell" (CR 603.7d) without inventing a face-as-parent `Segment` the
+/// current schema has no room for.
+fn apply_spell_created_delayed_triggers(segments: &mut [Segment], type_line: Option<&str>) {
+    for segment in segments {
+        if segment.role != StructuralRole::Ability
+            || segment.source != TextSource::Printed
+            || segment.kind != AbilityKind::Triggered
+        {
+            continue;
+        }
+        let face_type_line = type_line_for_face(type_line, segment.face);
+        if is_spell_created_delayed_trigger(classification_text(segment), face_type_line) {
+            segment.role = StructuralRole::DelayedTrigger;
+        }
+    }
+}
+
+/// The text `classify_kind` actually judged this unit on: the P-ATQ-3
+/// prefix-stripped body when a prefix was found, otherwise the full
+/// normalized text. Re-derives this from `extract_prefix` rather than
+/// storing it, so P-ATQ-4 reads exactly the same evidence P-ATQ-3's
+/// classification used instead of duplicating or bypassing that logic.
+fn classification_text(segment: &Segment) -> &str {
+    match extract_prefix(&segment.normalized) {
+        Some((_, body)) => body,
+        None => &segment.normalized,
+    }
+}
+
+/// CR 603.7d: resolving an instant or sorcery may itself create a delayed
+/// triggered ability ("Whenever a creature blocks this turn, ..."), distinct
+/// from (1) an ordinary triggered ability of the card that functions from
+/// another zone under CR 113.6b (cycling, discard, graveyard/exile/suspend/
+/// haunt abilities) and (2) a cast- or resolution-trigger of the spell
+/// itself. All three surface as `kind = triggered_ability` on an instant or
+/// sorcery face; only the first is a P-ATQ-4 role correction. Positive
+/// evidence (not just the leading trigger word) is required: an explicit
+/// future/duration temporal scope (CR 603.7b: "unless it has a stated
+/// duration, such as 'this turn'"), with no evidence the ability instead
+/// functions off the stack or is about the spell's own casting/resolution.
+fn is_spell_created_delayed_trigger(classification_text: &str, type_line: Option<&str>) -> bool {
+    is_instant_or_sorcery(type_line)
+        && has_delayed_trigger_temporal_scope(classification_text)
+        && !is_cast_or_resolve_trigger(classification_text)
+        && !has_off_stack_evidence(classification_text)
+}
+
+/// CR 603.7b's "stated duration" evidence that resolving the spell scopes
+/// the delayed trigger to the rest of the current turn, combat, or a named
+/// future event ("this turn", "this combat", "next end step", "you next
+/// cast ..."), rather than the ordinary one-shot phrasing every other kind
+/// of triggered ability also uses.
+fn has_delayed_trigger_temporal_scope(text: &str) -> bool {
+    static TEMPORAL: OnceLock<Regex> = OnceLock::new();
+    let temporal = TEMPORAL.get_or_init(|| {
+        Regex::new(r"(?i)\bthis turn\b|\bthis combat\b|\bnext\b")
+            .expect("valid temporal scope regex")
+    });
+    temporal.is_match(text)
+}
+
+/// The trigger condition is about the spell's own casting or resolution
+/// (self-reference `~`, since `normalize_text` already collapses "this
+/// spell"/the card's own name), not about an event the spell's resolution
+/// watches for afterward. This must exclude even when a temporal phrase is
+/// also present (e.g. "When you cast ~, copy it for each ... spell you've
+/// cast this turn." is still a cast trigger, not a 603.7d delayed trigger).
+fn is_cast_or_resolve_trigger(text: &str) -> bool {
+    static CAST_OR_RESOLVE: OnceLock<Regex> = OnceLock::new();
+    let cast_or_resolve = CAST_OR_RESOLVE.get_or_init(|| {
+        Regex::new(r"(?i)^when you cast ~|\bcast ~ from\b|~ is countered\b|^when ~ resolves\b")
+            .expect("valid cast/resolve trigger regex")
+    });
+    cast_or_resolve.is_match(text)
+}
+
+/// Evidence the ability instead functions from another zone under CR
+/// 113.6b: a CR-defined off-stack keyword mechanic (cycling, suspend,
+/// haunt — always about the object bearing them), or the unit's own
+/// self-reference (`~`) near a graveyard/exile/discard zone word in the
+/// same sentence. The zone words alone are not used as a blacklist: "if
+/// this card is in your graveyard" (self, excluded) and "return those
+/// cards from your graveyard" (someone else's cards, not excluded) both
+/// contain "graveyard", but only the first is evidence this ability
+/// functions from that zone rather than being created by the spell's
+/// resolution.
+fn has_off_stack_evidence(text: &str) -> bool {
+    static KEYWORD: OnceLock<Regex> = OnceLock::new();
+    static ZONE_SELF: OnceLock<Regex> = OnceLock::new();
+    let keyword = KEYWORD.get_or_init(|| {
+        Regex::new(r"(?i)\bcycl(?:e|ing)\b|\bsuspended\b|\bhaunts?\b")
+            .expect("valid off-stack keyword regex")
+    });
+    let zone_self = ZONE_SELF.get_or_init(|| {
+        Regex::new(
+            r"(?i)~[^.]{0,30}\b(?:graveyard|exiled?|discard(?:ed|s)?)\b|\b(?:graveyard|exiled?|discard(?:ed|s)?)\b[^.]{0,30}~",
+        )
+        .expect("valid off-stack zone-self-reference regex")
+    });
+    keyword.is_match(text) || zone_self.is_match(text)
 }
 
 /// Units derived from one printed line. Roles other than `Ability` are
@@ -2886,6 +3001,324 @@ mod tests {
         assert!(!is_saga_chapter_prefix("N")); // a normalized Arabic numeral
         assert!(!is_saga_chapter_prefix("Heroic"));
         assert!(!is_saga_chapter_prefix(""));
+    }
+
+    // P-ATQ-4: a top-level instant/sorcery unit whose printed text *is* a
+    // delayed-trigger clause (CR 603.7d) gets `role = delayed_trigger`
+    // instead of the default `ability`, while `kind` stays
+    // `triggered_ability`. Synthetic fixtures reproduce the wording
+    // *classes* found in the historical corpus check (30 spell-created
+    // delayed triggers, 65 off-stack, 16 cast/resolve, out of 111 I/S
+    // top-level triggered_ability units); no card name appears in
+    // production code.
+
+    #[test]
+    fn whenever_this_turn_on_an_instant_becomes_a_delayed_trigger() {
+        // Class A.
+        let segments = segment_text_with_type(
+            "Whenever a creature attacks this turn, it gets +1/+0 until end of turn.",
+            "",
+            "Instant",
+        );
+        assert_eq!(segments[0].kind, AbilityKind::Triggered);
+        assert_eq!(segments[0].role, StructuralRole::DelayedTrigger);
+    }
+
+    #[test]
+    fn when_you_next_cast_this_turn_on_a_sorcery_becomes_a_delayed_trigger() {
+        // Class A: "next" scoping without "this turn"/"this combat" in the
+        // trigger clause itself, guarding against a fix that only handles
+        // the bare duration words.
+        let segments = segment_text_with_type(
+            "When you next cast an instant or sorcery spell this turn, copy that spell.",
+            "",
+            "Sorcery",
+        );
+        assert_eq!(segments[0].kind, AbilityKind::Triggered);
+        assert_eq!(segments[0].role, StructuralRole::DelayedTrigger);
+    }
+
+    #[test]
+    fn at_the_beginning_of_combat_this_turn_on_a_sorcery_becomes_a_delayed_trigger() {
+        // Class A, "At ..." trigger word.
+        let segments = segment_text_with_type(
+            "At the beginning of combat this turn, untap target creature.",
+            "",
+            "Sorcery",
+        );
+        assert_eq!(segments[0].kind, AbilityKind::Triggered);
+        assert_eq!(segments[0].role, StructuralRole::DelayedTrigger);
+    }
+
+    #[test]
+    fn this_combat_scoping_on_an_instant_becomes_a_delayed_trigger() {
+        // Class A, "this combat" duration.
+        let segments = segment_text_with_type(
+            "Whenever a creature blocks this combat, it gets -1/-1 until end of turn.",
+            "",
+            "Instant",
+        );
+        assert_eq!(segments[0].kind, AbilityKind::Triggered);
+        assert_eq!(segments[0].role, StructuralRole::DelayedTrigger);
+    }
+
+    #[test]
+    fn next_end_step_on_a_single_line_spell_becomes_a_delayed_trigger_without_a_parent() {
+        // A single-line instant/sorcery whose entire text is the delayed
+        // trigger: before P-ATQ-4 this fell back to `role = ability`
+        // because the pre-existing `delayed_trigger_start` mechanism only
+        // keeps `delayed_trigger` when it can attach the unit as a child
+        // of a preceding sibling, and a lone top-level unit has none. This
+        // unit must stay top-level (`parent_index` has no representation
+        // here, but nothing pushes it into another unit's `children`)
+        // while still carrying the corrected role.
+        let segments = segment_text_with_type(
+            "At the beginning of the next end step, return that creature to the battlefield.",
+            "",
+            "Sorcery",
+        );
+        assert_eq!(segments.len(), 1);
+        assert_eq!(segments[0].kind, AbilityKind::Triggered);
+        assert_eq!(segments[0].role, StructuralRole::DelayedTrigger);
+        assert!(segments[0].children.is_empty());
+    }
+
+    #[test]
+    fn cycling_trigger_stays_an_ordinary_card_ability() {
+        // Class B: the ability functions from hand as part of cycling
+        // (CR 113.6b), not created by the spell's resolution.
+        let segments =
+            segment_text_with_type("When you cycle this card, draw a card.", "", "Instant");
+        assert_eq!(segments[0].kind, AbilityKind::Triggered);
+        assert_eq!(segments[0].role, StructuralRole::Ability);
+    }
+
+    #[test]
+    fn graveyard_functioning_trigger_stays_an_ordinary_card_ability() {
+        // Class B: "if this card is in your graveyard" is the ability's own
+        // zone check (CR 113.6b), not a duration on a delayed trigger.
+        let segments = segment_text_with_type(
+            "Whenever an opponent gains life, if this card is in your graveyard, you may return it to your hand.",
+            "",
+            "Sorcery",
+        );
+        assert_eq!(segments[0].kind, AbilityKind::Triggered);
+        assert_eq!(segments[0].role, StructuralRole::Ability);
+    }
+
+    #[test]
+    fn a_delayed_trigger_scoped_this_turn_that_returns_someone_elses_cards_from_a_graveyard_is_not_excluded()
+     {
+        // Guards the negative-evidence check itself: the mere word
+        // "graveyard" must not disqualify an otherwise valid delayed
+        // trigger when the graveyard is the destination/subject of the
+        // effect rather than the ability's own zone check. Contrast with
+        // the previous test, where "this card is in your graveyard" *is*
+        // a self zone-check.
+        let segments = segment_text_with_type(
+            "Whenever a spell or ability an opponent controls causes you to discard cards this turn, return those cards from your graveyard to your hand.",
+            "",
+            "Instant",
+        );
+        assert_eq!(segments[0].kind, AbilityKind::Triggered);
+        assert_eq!(segments[0].role, StructuralRole::DelayedTrigger);
+    }
+
+    #[test]
+    fn discard_trigger_stays_an_ordinary_card_ability() {
+        // Class B: a trigger condition on the card's own movement out of
+        // hand (CR 603.6c-style zone-change trigger), not a delayed
+        // trigger created by resolving a spell.
+        let segments = segment_text_with_type(
+            "When you discard this card, you may pay {B}. If you do, return it to your hand.",
+            "",
+            "Instant",
+        );
+        assert_eq!(segments[0].kind, AbilityKind::Triggered);
+        assert_eq!(segments[0].role, StructuralRole::Ability);
+    }
+
+    #[test]
+    fn suspend_off_stack_trigger_stays_an_ordinary_card_ability() {
+        // Class B: a suspended card's own upkeep trigger (CR 702.61-style),
+        // functioning from exile, not created by spell resolution.
+        let segments = segment_text_with_type(
+            "At the beginning of each upkeep, if this card is suspended, remove a time counter from it.",
+            "",
+            "Sorcery",
+        );
+        assert_eq!(segments[0].kind, AbilityKind::Triggered);
+        assert_eq!(segments[0].role, StructuralRole::Ability);
+    }
+
+    #[test]
+    fn cast_trigger_stays_an_ordinary_card_ability_even_with_a_this_turn_phrase() {
+        // Class C: the trigger condition is the spell's own casting, not an
+        // event its resolution watches for afterward. Deliberately includes
+        // a "this turn" phrase elsewhere in the effect text, to prove the
+        // cast/resolve exclusion takes precedence over the temporal-scope
+        // evidence rather than being redundant with it.
+        let segments = segment_text_with_type(
+            "When you cast this spell, copy it for each other instant and sorcery spell you've cast this turn.",
+            "",
+            "Sorcery",
+        );
+        assert_eq!(segments[0].kind, AbilityKind::Triggered);
+        assert_eq!(segments[0].role, StructuralRole::Ability);
+    }
+
+    #[test]
+    fn resolution_trigger_stays_an_ordinary_card_ability() {
+        // Class C: "When this spell resolves" is not itself the delayed
+        // trigger CR 603.7d describes; it is the spell's own resolution
+        // trigger.
+        let segments = segment_text_with_type(
+            "When this spell resolves, discard a card. Then draw a card.",
+            "",
+            "Instant",
+        );
+        assert_eq!(segments[0].kind, AbilityKind::Triggered);
+        assert_eq!(segments[0].role, StructuralRole::Ability);
+    }
+
+    #[test]
+    fn identical_wording_on_a_permanent_face_does_not_become_a_delayed_trigger() {
+        // Type-line context matters: the same "this turn" trigger text that
+        // is P-ATQ-4 on an instant/sorcery face is an ordinary printed
+        // ability when it appears on a permanent.
+        let segments = segment_text_with_type(
+            "Whenever a creature attacks this turn, it gets +1/+0 until end of turn.",
+            "",
+            "Creature — Human",
+        );
+        assert_eq!(segments[0].kind, AbilityKind::Triggered);
+        assert_eq!(segments[0].role, StructuralRole::Ability);
+    }
+
+    #[test]
+    fn non_trigger_spell_text_with_this_turn_is_unaffected() {
+        // The duration phrase alone is insufficient: this unit is not even
+        // `kind = triggered_ability`, so P-ATQ-4 must never touch it.
+        let segments = segment_text_with_type(
+            "Target creature gets +2/+2 until end of turn.",
+            "",
+            "Instant",
+        );
+        assert_eq!(segments[0].kind, AbilityKind::SpellOrStatic);
+        assert_eq!(segments[0].role, StructuralRole::Ability);
+    }
+
+    #[test]
+    fn p_atq_1_delayed_trigger_child_splitting_is_unaffected_by_p_atq_4() {
+        // A multi-line spell that already produces a `delayed_trigger`
+        // *child* via P-ATQ-1's sentence-boundary split must keep exactly
+        // that shape: P-ATQ-4 only changes the role of a top-level unit in
+        // place and must never reparent or duplicate an existing child.
+        let segments = segment_text_with_type(
+            "Do something. At the beginning of the next end step, do something else.",
+            "",
+            "Sorcery",
+        );
+        assert_eq!(segments.len(), 1);
+        assert_eq!(segments[0].kind, AbilityKind::SpellOrStatic);
+        assert_eq!(segments[0].role, StructuralRole::Ability);
+        assert_eq!(segments[0].children.len(), 1);
+        let child = &segments[0].children[0];
+        assert_eq!(child.kind, AbilityKind::Triggered);
+        assert_eq!(child.role, StructuralRole::DelayedTrigger);
+        assert_eq!(
+            child.normalized,
+            "At the beginning of the next end step, do something else."
+        );
+    }
+
+    #[test]
+    fn p_atq_2_prevention_prohibition_exclusion_is_unaffected_by_p_atq_4() {
+        assert_eq!(
+            segment_text("Damage can't be prevented.", "")[0].kind,
+            AbilityKind::SpellOrStatic
+        );
+    }
+
+    #[test]
+    fn p_atq_3_saga_chapter_and_ability_word_handling_is_unaffected_by_p_atq_4() {
+        let saga = segment_text_with_type(
+            "I, II — Prevent all damage that would be dealt to creatures you control this turn.",
+            "",
+            "Enchantment — Saga",
+        );
+        assert_eq!(saga[0].kind, AbilityKind::Triggered);
+        assert_eq!(saga[0].prefix.as_deref(), Some("I, II"));
+        // Not an instant/sorcery face, so P-ATQ-4 does not apply even
+        // though the body reads as a delayed trigger; the Saga
+        // chapter-symbol kind override from P-ATQ-3 is what makes it
+        // `triggered_ability` here, unrelated to P-ATQ-4's role change.
+        assert_eq!(saga[0].role, StructuralRole::Ability);
+
+        let ability_word = segment_text(
+            "Heroic — Whenever you cast a spell that targets this creature, do something.",
+            "",
+        );
+        assert_eq!(ability_word[0].kind, AbilityKind::Triggered);
+        assert_eq!(ability_word[0].prefix.as_deref(), Some("Heroic"));
+        assert_eq!(ability_word[0].role, StructuralRole::Ability);
+    }
+
+    #[test]
+    fn p_atq_3_prefix_stripped_body_is_the_evidence_p_atq_4_reads() {
+        // An ability-word prefix in front of an otherwise qualifying
+        // Class A body must not hide the temporal-scope evidence from
+        // P-ATQ-4, the same way it must not hide the trigger word from
+        // `classify_kind` (P-ATQ-3).
+        let segments = segment_text_with_type(
+            "Adamant — Whenever a creature attacks this turn, it gets +1/+0 until end of turn.",
+            "",
+            "Instant",
+        );
+        assert_eq!(segments[0].kind, AbilityKind::Triggered);
+        assert_eq!(segments[0].prefix.as_deref(), Some("Adamant"));
+        assert_eq!(segments[0].role, StructuralRole::DelayedTrigger);
+    }
+
+    #[test]
+    fn has_delayed_trigger_temporal_scope_requires_a_stated_duration() {
+        assert!(has_delayed_trigger_temporal_scope(
+            "Whenever a creature blocks this turn, it gets -1/-1."
+        ));
+        assert!(has_delayed_trigger_temporal_scope(
+            "When you next cast an instant or sorcery spell, copy it."
+        ));
+        assert!(!has_delayed_trigger_temporal_scope(
+            "When you cycle this card, draw a card."
+        ));
+    }
+
+    #[test]
+    fn has_off_stack_evidence_requires_self_reference_near_the_zone_word() {
+        assert!(has_off_stack_evidence("if ~ is in your graveyard"));
+        assert!(has_off_stack_evidence("When you cycle ~, draw a card."));
+        assert!(has_off_stack_evidence("you discard ~"));
+        // A zone word describing someone else's cards, with no self
+        // reference nearby, is not off-stack evidence.
+        assert!(!has_off_stack_evidence(
+            "return those cards from your graveyard to your hand"
+        ));
+    }
+
+    #[test]
+    fn is_cast_or_resolve_trigger_excludes_the_spells_own_casting_and_resolution() {
+        assert!(is_cast_or_resolve_trigger(
+            "When you cast ~, copy it for each spell you've cast this turn."
+        ));
+        assert!(is_cast_or_resolve_trigger(
+            "When ~ resolves, discard a card."
+        ));
+        assert!(is_cast_or_resolve_trigger(
+            "Whenever ~ is countered or fizzles, you may copy it."
+        ));
+        assert!(!is_cast_or_resolve_trigger(
+            "Whenever a creature attacks this turn, it gets +1/+0."
+        ));
     }
 
     #[test]

@@ -272,6 +272,18 @@ hit is not proof that the rule completely determines a card's behavior.
   independent sentence-initial `When` abilities sharing a paragraph (D14),
   `Activate only ...` restrictions, ability words, and many multi-sentence
   units remain unsplit.
+- A top-level `triggered_ability` unit on an instant/sorcery face whose
+  trigger clause carries an explicit future/duration temporal scope (`this
+  turn`, `this combat`, `next ...`; CR 603.7b) and no evidence it instead
+  functions off the stack (a cycling/suspend/haunt keyword, or a self
+  reference near a graveyard/exile/discard zone word; CR 113.6b) or is
+  about the spell's own casting or resolution gets `role = delayed_trigger`
+  in place, per CR 603.7d, rather than the default `role = ability`; `kind`
+  stays `triggered_ability` (P-ATQ-4, implemented, not yet
+  corpus-validated). It stays top-level (no `parent_index`), distinguishing
+  it from a `delayed_trigger` *child* produced by the existing
+  cross-line/sentence-boundary split (P-ARN-1/P-ATQ-1), which always has a
+  parent.
 - `kind` labels are heuristic. Replacement detection is lexical
   (`instead`/`skip`/enters-with/as/tapped) except that top-level instant and
   sorcery spell text is classified with type-line context; static prevention
@@ -339,8 +351,9 @@ hit is not proof that the rule completely determines a card's behavior.
   (144 / 161 top-level correct; 9 `can't be prevented`, 8 ability-word /
   chapter-prefixed misfires); instant/sorcery faces carry 0 lexical
   replacement/prevention labels but 30 spell-only delayed triggers are
-  labelled top-level triggers. **This 982 figure predates P-ATQ-1** (below)
-  and has not been regenerated since; do not treat it as the current
+  labelled top-level triggers. **This 982 figure predates P-ATQ-1, and the
+  30-unit spell-only-delayed-trigger figure predates P-ATQ-4** (below) and
+  neither has been regenerated since; do not treat either as the current
   segmenter's output.
 - A held-out pool is frozen (protocol §6.3: `oracle_id` prefix `f`,
   non-fallback, excluding `lea`/`leb`/`arn`; 2,096 cards) but not yet sampled
@@ -689,3 +702,121 @@ When updating this document:
   before/after `prevention_effect` count and kind distribution, execute
   the S8 counterexample search and S11 over-segmentation check this
   session could not run, and only then treat P-ATQ-3 as accepted.
+- Implemented P-ATQ-4: a new `apply_spell_created_delayed_triggers` pass in
+  `src/main.rs` runs once per card face, after `segment_text` has already
+  attached every line's unit (mode children, P-ARN-1/P-ATQ-1 delayed-trigger
+  children, granted quoted abilities), and changes `role` from `ability` to
+  `delayed_trigger` **in place** — never reparenting or duplicating a unit —
+  on a top-level unit that is `source = printed`, `kind = triggered_ability`,
+  on an instant/sorcery face, and satisfies a new
+  `is_spell_created_delayed_trigger` predicate. That predicate requires a
+  stated future/duration temporal scope in the CR 603.7b sense
+  (`has_delayed_trigger_temporal_scope`: `this turn`, `this combat`, or
+  `next ...`) **and** the absence of two kinds of negative evidence:
+  `is_cast_or_resolve_trigger` (the condition is about the spell's own
+  casting/resolution: `when you cast ~`, `~ resolves`, `~ is countered`) and
+  `has_off_stack_evidence` (a CR-defined off-stack keyword — `cycle`,
+  `suspended`, `haunts` — or the unit's self-reference `~` within the same
+  sentence as a `graveyard`/`exile`/`discard` zone word, CR 113.6b). The
+  zone check is a proximity match on `~`, not a bare word blacklist, so it
+  does not misfire on a delayed trigger that merely mentions a graveyard as
+  the destination of its effect rather than as the ability's own zone
+  (e.g. "return **those cards** from your graveyard" vs. "if **this
+  card/`~`** is in your graveyard"). All four helper functions operate on
+  the same P-ATQ-3 classification text (`extract_prefix`'s stripped body
+  when a prefix is present, else the full normalized text) that
+  `classify_kind` already used to assign `triggered_ability`, so a prefix
+  cannot hide P-ATQ-4's evidence either. `kind` is never changed. No `kind`
+  variant, card name, or set code appears in the implementation.
+
+  The distinct concrete failure this corrects: a single-line instant or
+  sorcery whose *entire* printed text is a CR 603.7d delayed-trigger clause
+  (e.g. "Whenever a creature blocks this turn, ...") previously kept
+  `role = ability`, because the repository's existing cross-line delayed-
+  trigger mechanism (the `delayed_trigger_start`-based check already in
+  `segment_line`, used for e.g. a trailing "At the beginning of the next end
+  step, ..." *line* that continues an earlier line's effect) only keeps
+  `role = delayed_trigger` when it can attach the unit as a *child* of a
+  preceding sibling; a lone top-level unit has none, so it fell back to
+  `role = ability`. P-ATQ-4 is a separate mechanism for exactly that case:
+  it changes an existing top-level unit's role in place and deliberately
+  never attaches it as anyone's child, since resolving the spell and the
+  delayed trigger it creates are the same printed unit (CR 603.7d: "the
+  source of that delayed triggered ability is that spell"). `parent_index`
+  stays absent either way, which is what distinguishes a P-ATQ-4 unit from
+  a `delayed_trigger` *child* produced by the pre-existing mechanism (which
+  always has a parent) and from a `granted` delayed trigger inside a quoted
+  ability (a different `role` entirely) — no new field was needed to keep
+  the three cases distinguishable in audit output.
+
+  Regression tests added in `src/main.rs` (21 new; `cargo test`: 82 passed,
+  up from 61), all synthetic: the four positive temporal-scope forms (`this
+  turn`, `you next cast ... this turn`, `at the beginning of combat this
+  turn`, `this combat`), including the single-line no-parent case that was
+  the concrete pre-P-ATQ-4 defect; the `cycle`/graveyard-self/`discard
+  this card`/`suspended` off-stack negative classes; a direct positive
+  counterexample proving the zone check is proximity-based, not a
+  blacklist (a delayed trigger scoped `this turn` that returns *someone
+  else's* discarded cards from a graveyard is not excluded); a cast trigger
+  that also contains a `this turn` phrase, proving the cast/resolve
+  exclusion takes precedence rather than merely being redundant with it; a
+  resolution trigger; identical wording on a non-instant/sorcery face
+  (type-line context matters); non-trigger spell text containing `this
+  turn` (kind gates the check before role does); the existing P-ARN-1/
+  P-ATQ-1 multi-line delayed-trigger *child* split, reconfirmed unchanged
+  in shape; P-ATQ-2's `can't be prevented` exclusion and P-ATQ-3's Saga-
+  chapter/ability-word prefix handling, both reconfirmed unaffected; a
+  case combining a P-ATQ-3 ability-word prefix with a P-ATQ-4 temporal
+  clause, showing the prefix does not hide the evidence from either
+  mechanism; and direct unit tests of the three new helper predicates.
+  `cargo fmt -- --check`, `cargo test` (82 passed), `cargo clippy
+  --all-targets -- -D warnings`, and `cargo build --release` all pass.
+
+  **Partial corpus cross-check, not a full S8/S11 pass:** this session's
+  network egress policy again returns 403 for `api.scryfall.com`
+  (re-confirmed), so `cards.sqlite` does not exist and neither
+  `dump_corpus_units.py` nor `check_kind_rules_part2.py` could run against
+  the live corpus — the same blocker as P-ATQ-1/2/3. However, the 111
+  I/S-face top-level `triggered_ability` units (105 non-pool) recorded
+  verbatim in the already-committed
+  `docs/audits/corpus-checks/2026-08-26-kind-rules-check.md` §B/§B2 are
+  themselves reproducible evidence: this session ran the release binary's
+  `segment` command against all 105 non-pool texts and their recorded type
+  lines. 28 were classified `delayed_trigger` and 77 stayed `ability`, with
+  no unexpected role or an execution error on any unit; every one of the 28
+  matches this session's own by-hand CR-based classification of the same
+  105 rows, and the two units whose text contains both a trigger-word start
+  and a temporal-scope phrase yet were *not* flagged (Sunfire Balm: `cycle`;
+  Show of Confidence: `cast this spell`) are exactly the off-stack and
+  cast/resolve counterexamples this proposal is designed to exclude.
+  Diffing this rule's output against `check_kind_rules_part2.py`'s own
+  blacklist-based measurement heuristic on the same 105 rows found exactly
+  two disagreements, both resolving in the new rule's favor on CR grounds:
+  the old heuristic's `if`/`elif` ordering lets its temporal-scope branch
+  win *before* its cast/resolve branch ever runs, so it misclassifies "When
+  you cast [this spell], copy it for each ... spell you've cast this turn."
+  as a delayed trigger; and the old heuristic's bare-word `graveyard`
+  exclusion misclassifies a genuine delayed trigger ("... return **those**
+  [other, discarded] cards from your graveyard to your hand") as off-stack,
+  exactly the false-exclusion class the task description warned this
+  session to check for. This is a strong desk cross-check against evidence
+  already committed to the repository, not a freshly executed S8 corpus
+  query or an S11 over-segmentation pass: it does not cover the full
+  12,468-unit I/S-face population, the 6 held-out-pool rows in the 111 (not
+  inspected, consistent with protocol §6.3), or corpus-wide false negatives
+  outside the 111 units the earlier audit already flagged as
+  `triggered_ability`. P-ATQ-4 is implemented and unit-tested, corroborated
+  against the recorded historical evidence, but **not yet accepted under
+  protocol S10/S11**. A later session with data access must run
+  `dump_corpus_units.py` and `check_kind_rules_part2.py`, confirm the
+  before/after role distribution and the ~30-unit historical comparison
+  point on the live corpus, execute a true S8 counterexample search over
+  the full I/S-face population (not just the 111 already flagged
+  `triggered_ability` — a false negative could be hiding in a different
+  temporal phrasing this proposal does not yet cover), rerun
+  `audit_metrics.py` against `lea`/`leb`/`arn`/`atq` to confirm no new
+  non-`accept` rows, and only then treat P-ATQ-4 as accepted. This session
+  also could not run the still-outstanding P-ATQ-1/P-ATQ-2/P-ATQ-3 corpus
+  validation for the same reason; that work remains open exactly as
+  recorded in their own disposition entries above, unchanged by this
+  session.
