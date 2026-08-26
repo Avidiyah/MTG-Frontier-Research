@@ -326,7 +326,9 @@ hit is not proof that the rule completely determines a card's behavior.
   (144 / 161 top-level correct; 9 `can't be prevented`, 8 ability-word /
   chapter-prefixed misfires); instant/sorcery faces carry 0 lexical
   replacement/prevention labels but 30 spell-only delayed triggers are
-  labelled top-level triggers.
+  labelled top-level triggers. **This 982 figure predates P-ATQ-1** (below)
+  and has not been regenerated since; do not treat it as the current
+  segmenter's output.
 - A held-out pool is frozen (protocol §6.3: `oracle_id` prefix `f`,
   non-fallback, excluding `lea`/`leb`/`arn`; 2,096 cards) but not yet sampled
   or annotated.
@@ -498,3 +500,43 @@ When updating this document:
   rule-(c) fragment (Battering Ram); unit novelty rose to 96/125, falsifying
   N1 as stated (novelty tracks theme, not only date). Corpus S11 checks
   preserved as scripts. Proposals P-ATQ-1..4 recorded; D15–D20 registered.
+- Implemented P-ATQ-1: `delayed_trigger_split` in `src/main.rs` no longer
+  searches backward for the nearest comma/colon before a delayed-trigger
+  phrase in a single sentence (the rejected rule (c)); it only returns a
+  split point at a complete sentence boundary (P-ARN-1 generic/inverted
+  `next`/`at end of combat`, P-ARN-2 scoped `When`/`Whenever ... this
+  turn`/`this way`/`When you do`). When a delayed-trigger phrase remains in
+  an unresolved single sentence, the unit is kept whole and the existing
+  `delayed_trigger_unattached_candidate` audit signal (T8-style slot) fires
+  instead of a fabricated split; this required no new mechanism. Added
+  `src/main.rs` regression tests: sentence-level splitting still creates a
+  `delayed_trigger` child and a valid parent
+  (`sentence_level_delayed_trigger_still_splits_as_a_child`); a leading
+  `Whenever CONDITION,` trigger clause is no longer split off as its own
+  parent, for both the plain and inverted-`next`-phrase forms
+  (`end_of_combat_delayed_trigger_in_a_single_sentence_stays_whole`,
+  `inverted_next_step_delayed_trigger_in_a_single_sentence_stays_whole`); an
+  activation-cost colon (`{T}:`) is never emitted as its own unit
+  (`activation_cost_colon_is_not_split_into_its_own_parent`); a quoted
+  granted ability's internal comma/colon is never used as a split point,
+  for either the outer or the inner unit
+  (`delayed_trigger_and_punctuation_inside_quotes_are_not_split`,
+  `delayed_trigger_inside_quoted_ability_stays_under_granted_child`); and
+  the unattached-trigger signal fires for the conservative-fallback case
+  (`suspicious_signals_flag_unresolved_single_sentence_delayed_trigger`).
+  `cargo fmt -- --check`, `cargo test` (45 passed), `cargo clippy
+  --all-targets -- -D warnings`, and `cargo build --release` all pass at
+  this change. **Not yet done:** this session's network egress policy
+  blocks `api.scryfall.com` (403; confirmed via the agent-proxy status
+  endpoint), so `scripts/python/mtg_card_pipeline.py` cannot fetch bulk
+  data, `cards.sqlite` does not exist, and neither `mtg-discover
+  info`/`templates` nor `scripts/python/corpus_checks/check_delayed_split.py`
+  could be run. The corpus-wide before/after counts (982 → an expected
+  ~869 delayed-trigger children, per the proposal in
+  `docs/findings/atq-structural-audit.md` §8) and the S10 regression rerun
+  of `audit_metrics.py` against `lea`/`leb`/`arn`/`atq` exports are
+  therefore **not verified** in this session. P-ATQ-1 is implemented and
+  unit-tested but not yet accepted under protocol S10 (items 4–5); a later
+  session with data access must regenerate the snapshot, rerun the S11
+  corpus check, and refresh the "Verified data snapshot" numbers above
+  before the baseline table is updated or the proposal is marked accepted.

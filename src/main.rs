@@ -1007,20 +1007,38 @@ fn delayed_trigger_start() -> &'static Regex {
     })
 }
 
+/// A delayed-trigger phrase occurring anywhere in the text (CR 603.7a),
+/// matched outside quoted spans.
+fn inverted_delayed_trigger() -> &'static Regex {
+    static INVERTED_DELAYED: OnceLock<Regex> = OnceLock::new();
+    INVERTED_DELAYED.get_or_init(|| {
+        Regex::new(r"(?i)(at the beginning of ([^,.]*\bnext\b|the next\b)|at end of combat\b)")
+            .expect("valid inverted delayed trigger regex")
+    })
+}
+
 /// Byte offset at which a trailing delayed-trigger sentence begins, ignoring
-/// matches inside quoted abilities.
+/// matches inside quoted abilities. Splits only at a complete sentence
+/// boundary: P-ARN-1's generic and inverted `next`/`at end of combat` forms,
+/// and P-ARN-2's scoped `When`/`Whenever ... this turn`/`this way`/`When you
+/// do` forms.
+///
+/// P-ATQ-1 retracted the single-sentence fallback that used to search
+/// backward from the phrase for the nearest comma or colon: corpus-wide that
+/// heuristic produced parents that were bare trigger conditions (`When ~
+/// dies,`) or bare activation costs (`{T}:`), not reference units, and it
+/// searched the unmasked text so it could also split inside a quoted
+/// ability. When a delayed-trigger phrase appears in a single sentence with
+/// no preceding sentence boundary, this now returns `None` and the unit is
+/// left whole; `delayed_trigger_unresolved` records that case as a signal
+/// instead of fabricating a boundary.
 fn delayed_trigger_split(text: &str) -> Option<usize> {
     static SENTENCE_BOUNDARY: OnceLock<Regex> = OnceLock::new();
-    static INVERTED_DELAYED: OnceLock<Regex> = OnceLock::new();
     let sentence_boundary = SENTENCE_BOUNDARY.get_or_init(|| {
         Regex::new(
             r"(?i)\. ((at the beginning of ([^,]*\bnext\b|the next\b)|at end of combat\b|when you do\b|(when|whenever) [^.]*\b(this turn|this way)\b))",
         )
         .expect("valid delayed sentence boundary regex")
-    });
-    let inverted_delayed = INVERTED_DELAYED.get_or_init(|| {
-        Regex::new(r"(?i)(at the beginning of ([^,.]*\bnext\b|the next\b)|at end of combat\b)")
-            .expect("valid inverted delayed trigger regex")
     });
     let masked = mask_quoted(text);
     if let Some(sentence) = sentence_boundary
@@ -1029,6 +1047,7 @@ fn delayed_trigger_split(text: &str) -> Option<usize> {
     {
         return Some(sentence.start());
     }
+    let inverted_delayed = inverted_delayed_trigger();
     for (period, _) in masked.match_indices(". ") {
         let sentence_start = period + 2;
         let sentence = &masked[sentence_start..];
@@ -1037,21 +1056,22 @@ fn delayed_trigger_split(text: &str) -> Option<usize> {
             return Some(sentence_start);
         }
     }
-    let delayed = inverted_delayed.find(&masked)?;
-    if delayed.start() == 0 {
-        return None;
+    None
+}
+
+/// True when `text` contains a delayed-trigger phrase (outside quotes) that
+/// `delayed_trigger_split` could not resolve to a sentence boundary. This is
+/// the P-ATQ-1 conservative fallback: an unresolved single-sentence trigger
+/// (no valid complete-effect-clause boundary) is reported through the
+/// existing `delayed_trigger_unattached_candidate` signal rather than split.
+fn delayed_trigger_unresolved(text: &str) -> bool {
+    if delayed_trigger_split(text).is_some() {
+        return true;
     }
-    let prefix = &text[..delayed.start()];
-    let sentence_start = prefix.rfind(". ").map_or(0, |offset| offset + 2);
-    if sentence_start > 0 && text[sentence_start..].trim_start().starts_with("If ") {
-        return Some(sentence_start);
-    }
-    let local_prefix = &text[sentence_start..delayed.start()];
-    let split = local_prefix
-        .rfind(": ")
-        .or_else(|| local_prefix.rfind(", "))
-        .map(|offset| sentence_start + offset + 2)?;
-    (split < delayed.start()).then_some(split)
+    let masked = mask_quoted(text);
+    inverted_delayed_trigger()
+        .find(&masked)
+        .is_some_and(|delayed| delayed.start() > 0)
 }
 
 /// Replace every character inside double quotes with `_`, preserving byte
@@ -1669,7 +1689,7 @@ fn suspicious_signals(record: &AuditRecord, segment: &Segment) -> Vec<&'static s
         signals.push("activation_restriction_embedded_candidate");
     }
     if (delayed_trigger_start().is_match(&record.unit_text)
-        || delayed_trigger_split(&record.unit_text).is_some())
+        || delayed_trigger_unresolved(&record.unit_text))
         && record.role != StructuralRole::DelayedTrigger
         && !segment
             .children
@@ -2120,31 +2140,75 @@ mod tests {
     }
 
     #[test]
-    fn inverted_next_step_delayed_triggers_split_as_children() {
+    fn sentence_level_delayed_trigger_still_splits_as_a_child() {
+        // P-ATQ-1 preserves the validated P-ARN-1 sentence-level split: a
+        // trailing sentence beginning with a delayed-trigger phrase, after a
+        // complete preceding sentence, becomes a delayed_trigger child and
+        // the parent ability remains valid.
+        let segments = segment_text(
+            "Perform an effect. At the beginning of the next end step, perform another effect.",
+            "",
+        );
+        assert_eq!(segments.len(), 1);
+        assert_eq!(segments[0].normalized, "Perform an effect.");
+        assert_eq!(segments[0].children.len(), 1);
+        assert_eq!(segments[0].children[0].role, StructuralRole::DelayedTrigger);
+        assert_eq!(segments[0].children[0].kind, AbilityKind::Triggered);
+        assert_eq!(
+            segments[0].children[0].normalized,
+            "At the beginning of the next end step, perform another effect."
+        );
+    }
+
+    #[test]
+    fn inverted_next_step_delayed_trigger_in_a_single_sentence_stays_whole() {
+        // P-ATQ-1: retracts the comma/colon fallback that used to split these
+        // (Antiquities audit V3; Arabian Nights Rukh Egg #0, Nafs Asp #0) into
+        // a bare trigger-condition parent (`When ~ dies,`) and a child. With
+        // no sentence boundary before the delayed-trigger phrase, the whole
+        // single-sentence ability is kept as one unit and the unattached
+        // trigger is left as a signal (see
+        // `suspicious_signals_flag_unresolved_single_sentence_delayed_trigger`).
         let rukh = segment_text(
             "When this creature dies, create a 4/4 red Bird creature token with flying at the beginning of the next end step.",
             "Rukh Egg",
         );
         assert_eq!(rukh.len(), 1);
         assert_eq!(rukh[0].kind, AbilityKind::Triggered);
-        assert_eq!(rukh[0].normalized, "When ~ dies,");
-        assert_eq!(rukh[0].children.len(), 1);
-        assert_eq!(rukh[0].children[0].kind, AbilityKind::Triggered);
-        assert_eq!(rukh[0].children[0].role, StructuralRole::DelayedTrigger);
+        assert_eq!(rukh[0].role, StructuralRole::Ability);
+        assert!(rukh[0].children.is_empty());
         assert_eq!(
-            rukh[0].children[0].normalized,
-            "create a N/N red Bird creature token with flying at the beginning of the next end step."
+            rukh[0].normalized,
+            "When ~ dies, create a N/N red Bird creature token with flying at the beginning of the next end step."
         );
 
         let nafs = segment_text(
             "Whenever this creature deals damage to a player, that player loses 1 life at the beginning of their next draw step unless they pay {1} before that draw step.",
             "Nafs Asp",
         );
-        assert_eq!(nafs[0].normalized, "Whenever ~ deals damage to a player,");
-        assert_eq!(nafs[0].children[0].role, StructuralRole::DelayedTrigger);
+        assert_eq!(nafs.len(), 1);
+        assert!(nafs[0].children.is_empty());
         assert_eq!(
-            nafs[0].children[0].normalized,
-            "that player loses N life at the beginning of their next draw step unless they pay {M} before that draw step."
+            nafs[0].normalized,
+            "Whenever ~ deals damage to a player, that player loses N life at the beginning of their next draw step unless they pay {M} before that draw step."
+        );
+    }
+
+    #[test]
+    fn activation_cost_colon_is_not_split_into_its_own_parent() {
+        // P-ATQ-1: never split at the activation-cost colon (CR 602.1a) —
+        // `{T}:` must never be emitted as its own structural unit.
+        let segments = segment_text(
+            "{T}: Destroy target creature that blocked this creature this turn at end of combat.",
+            "",
+        );
+        assert_eq!(segments.len(), 1);
+        assert_eq!(segments[0].kind, AbilityKind::Activated);
+        assert!(segments[0].children.is_empty());
+        assert_ne!(segments[0].normalized, "{M}:");
+        assert_eq!(
+            segments[0].normalized,
+            "{M}: Destroy target creature that blocked ~ this turn at end of combat."
         );
     }
 
@@ -2173,21 +2237,23 @@ mod tests {
     }
 
     #[test]
-    fn end_of_combat_delayed_trigger_splits_as_child() {
+    fn end_of_combat_delayed_trigger_in_a_single_sentence_stays_whole() {
+        // P-ATQ-1: this used to be split at the comma closing the leading
+        // `Whenever CONDITION,` trigger clause (rule (c), rejected on
+        // corpus evidence in `docs/findings/atq-structural-audit.md`,
+        // Antiquities Battering Ram #1 class). The comma does not close a
+        // complete effect clause, so the whole triggered ability now stays
+        // one unit.
         let segments = segment_text(
             "Whenever this creature blocks or becomes blocked by a non-Wall creature, destroy that creature at end of combat.",
             "",
         );
         assert_eq!(segments.len(), 1);
         assert_eq!(segments[0].kind, AbilityKind::Triggered);
+        assert!(segments[0].children.is_empty());
         assert_eq!(
             segments[0].normalized,
-            "Whenever ~ blocks or becomes blocked by a non-Wall creature,"
-        );
-        assert_eq!(segments[0].children[0].role, StructuralRole::DelayedTrigger);
-        assert_eq!(
-            segments[0].children[0].normalized,
-            "destroy that creature at end of combat."
+            "Whenever ~ blocks or becomes blocked by a non-Wall creature, destroy that creature at end of combat."
         );
     }
 
@@ -2222,6 +2288,10 @@ mod tests {
 
     #[test]
     fn delayed_trigger_inside_quoted_ability_stays_under_granted_child() {
+        // The granted ability's own text is a single sentence with no
+        // sentence boundary before "at end of combat", so P-ATQ-1 keeps it
+        // whole (no comma-fallback split) rather than manufacturing a
+        // trigger-condition-only child under the granted ability.
         let segments = segment_text(
             "Equipped creature has \"Whenever this creature attacks, sacrifice it at end of combat.\"",
             "",
@@ -2231,8 +2301,41 @@ mod tests {
         let granted = &segments[0].children[0];
         assert_eq!(granted.role, StructuralRole::Granted);
         assert_eq!(granted.kind, AbilityKind::Triggered);
-        assert_eq!(granted.children.len(), 1);
-        assert_eq!(granted.children[0].role, StructuralRole::DelayedTrigger);
+        assert!(granted.children.is_empty());
+        assert_eq!(
+            granted.normalized,
+            "Whenever ~ attacks, sacrifice it at end of combat."
+        );
+    }
+
+    #[test]
+    fn delayed_trigger_and_punctuation_inside_quotes_are_not_split() {
+        // Structural properties, not the outer/inner quote status, drive the
+        // split: a comma or colon inside a quoted granted ability must never
+        // be mistaken for the outer or inner unit's structural boundary
+        // (Antiquities corpus check: rule (c) used to `rfind` on unmasked
+        // text and could split inside a quotation). Neither the outer
+        // sentence (no visible delayed-trigger phrase once the quote is
+        // masked) nor the granted ability itself (a single sentence, no
+        // sentence boundary before "at end of combat") is split.
+        let segments = segment_text(
+            "Whenever this creature blocks, it deals damage equal to its power to any target. Equipped creature has \"{T}: Exile target creature, then return it to the battlefield tapped at end of combat.\"",
+            "",
+        );
+        assert_eq!(segments.len(), 1);
+        assert_eq!(
+            segments[0].normalized,
+            "Whenever ~ blocks, it deals damage equal to its power to any target. Equipped creature has \"[ability]\""
+        );
+        assert_eq!(segments[0].children.len(), 1);
+        let granted = &segments[0].children[0];
+        assert_eq!(granted.role, StructuralRole::Granted);
+        assert_eq!(granted.kind, AbilityKind::Activated);
+        assert!(granted.children.is_empty());
+        assert_eq!(
+            granted.normalized,
+            "{M}: Exile target creature, then return it to the battlefield tapped at end of combat."
+        );
     }
 
     #[test]
@@ -2683,5 +2786,40 @@ mod tests {
             Some("({T}: Add {G}.)"),
         )]);
         assert!(cited_land[0].signals.is_empty());
+    }
+
+    #[test]
+    fn suspicious_signals_flag_unresolved_single_sentence_delayed_trigger() {
+        // P-ATQ-1's conservative fallback: when a single sentence has no
+        // valid complete-effect-clause boundary before its delayed-trigger
+        // phrase, the unit is kept whole (not split at a fabricated
+        // comma/colon boundary) and the existing T8-style
+        // `delayed_trigger_unattached_candidate` signal records the miss.
+        let cards = vec![audit_card(
+            "Whole Trigger",
+            "sig",
+            "2000-01-01",
+            Some("Whenever this creature becomes blocked, destroy that creature at end of combat."),
+        )];
+        let records = audit_records(&cards);
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0].parent_index, None);
+        assert!(
+            records[0]
+                .signals
+                .contains(&"delayed_trigger_unattached_candidate")
+        );
+
+        let resolved = audit_records(&[audit_card(
+            "Resolved Trigger",
+            "sig",
+            "2000-01-01",
+            Some("Draw a card. At end of combat, destroy target creature."),
+        )]);
+        assert!(!resolved.iter().any(|record| {
+            record
+                .signals
+                .contains(&"delayed_trigger_unattached_candidate")
+        }));
     }
 }
