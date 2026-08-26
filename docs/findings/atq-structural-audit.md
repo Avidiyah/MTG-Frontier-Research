@@ -204,6 +204,44 @@ trigger — an honest miss rather than a fragment). Expected corpus effect:
 ~113 / 121 comma-colon children revert (982 → ~869), 3 in-quote splits
 vanish, no bare-condition templates remain top-level.
 
+### P-ATQ-1 implementation disposition (2026-08-26)
+
+**Implemented, not yet accepted under protocol S10.** `delayed_trigger_split`
+in `src/main.rs` was narrowed to the two proposed cases (sentence-level
+generic/inverted `next`/`at end of combat`, and scoped `When`/`Whenever ...
+this turn`/`this way`/`When you do`); the single-sentence backward
+comma/colon search (rule (c)) was deleted rather than guarded, so it can no
+longer fire on a leading trigger-condition comma, an activation-cost colon,
+or (having searched unmasked text) inside a quoted ability. When no
+sentence-boundary split point exists, the unit is left whole and the
+existing `delayed_trigger_unattached_candidate` audit signal (the T8-style
+unresolved-trigger slot already in `suspicious_signals`) is extended to
+cover this case, so no new signalling mechanism was added. Regression tests
+were added for: sentence-level splitting still producing a valid parent and
+a `delayed_trigger` child; the Battering-Ram-class leading trigger-condition
+comma (plain and inverted-`next`-phrase forms, matching Cockatrice/Thicket
+Basilisk/Rukh Egg/Nafs Asp's wording class); the `{T}:` activation-cost
+colon; a quoted granted ability's internal punctuation, for both the outer
+unit and the granted child itself; and the unattached-trigger signal firing
+in the conservative-fallback case. `cargo fmt -- --check`, `cargo test` (45
+passed), `cargo clippy --all-targets -- -D warnings`, and `cargo build
+--release` all pass.
+
+What is **not** done: this was implemented in a sandboxed session whose
+network egress policy blocks `api.scryfall.com` (confirmed 403 via the
+agent-proxy status endpoint), so `cards.sqlite` and the Scryfall bulk files
+do not exist and could not be regenerated. Section 6's S11 corpus check
+(`scripts/python/corpus_checks/check_delayed_split.py`), the corpus-wide
+`templates` before/after totals, and the `audit_metrics.py` regression rerun
+against `lea`/`leb`/`arn`/`atq` exports (S10 items 4–5) were **not run**.
+The ~982 → ~869 delayed-trigger count and the disappearance of the 121
+comma/colon and 3 in-quote splits above remain the *expected* effect from
+S10 item 4's original estimate, not a measured one. `docs/current-state.md`
+records this same caveat. A later session with data access must run the
+reproduction commands in section 10, confirm the corpus counts, rerun
+`audit_metrics.py` on the four earlier exports to confirm no new
+non-`accept` rows, and only then treat P-ATQ-1 as accepted.
+
 **P-ATQ-2 — `can't be prevented` is not a prevention effect.** Exclude text
 matching `can't be prevented` from `prevention_effect`; classify as residual
 static. Fix rows: the 9 units listed in check B §A (CR 615.1a defines
