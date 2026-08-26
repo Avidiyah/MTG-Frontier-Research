@@ -21,8 +21,10 @@ from collections import Counter
 
 
 def read_tsv(path):
-    with open(path, encoding="utf-8") as f:
-        rows = [line.rstrip("\n").split("\t") for line in f]
+    # Strip CRLF as well as LF: git autocrlf checkouts must not turn the last
+    # column into "value\r" and fake template novelty or drift.
+    with open(path, encoding="utf-8", newline="") as f:
+        rows = [line.rstrip("\r\n").split("\t") for line in f if line.strip()]
     header, body = rows[0], rows[1:]
     return [dict(zip(header, r)) for r in body]
 
