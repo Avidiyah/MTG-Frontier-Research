@@ -47,6 +47,11 @@ enum Command {
     Templates(TemplateArgs),
     /// List first-printing sets in release order with card counts.
     Sets(SetsArgs),
+    /// Export and measure set-level structural audit data.
+    Audit {
+        #[command(subcommand)]
+        command: AuditCommand,
+    },
 }
 
 #[derive(Args)]
@@ -140,6 +145,24 @@ struct SetsArgs {
     /// Only include sets released on or before this date (YYYY-MM-DD).
     #[arg(long)]
     until: Option<String>,
+}
+
+#[derive(Subcommand)]
+enum AuditCommand {
+    /// Export every structural unit for cards first printed in a set.
+    Export(SetAuditArgs),
+    /// Summarize structural-unit counts for cards first printed in a set.
+    Summary(SetAuditArgs),
+    /// Compare a set's printed templates to chronologically earlier sets.
+    Novelty(SetAuditArgs),
+    /// List observable suspicious candidates for manual audit triage.
+    Signals(SetAuditArgs),
+}
+
+#[derive(Args, Clone)]
+struct SetAuditArgs {
+    /// First-printing set code to audit, such as lea.
+    set: String,
 }
 
 #[derive(Serialize)]
@@ -248,6 +271,56 @@ struct Segment {
     children: Vec<Segment>,
 }
 
+#[derive(Clone, Debug)]
+struct AuditCard {
+    oracle_id: String,
+    name: String,
+    first_set: String,
+    first_released_at: Option<String>,
+    first_is_fallback: bool,
+    oracle_text: Option<String>,
+}
+
+#[derive(Serialize, Clone, Debug)]
+struct AuditRecord {
+    oracle_id: String,
+    card_name: String,
+    first_set: String,
+    first_released_at: Option<String>,
+    first_is_fallback: bool,
+    face: usize,
+    source_line: usize,
+    unit_index: usize,
+    parent_index: Option<usize>,
+    depth: usize,
+    source_line_text: Option<String>,
+    unit_text: String,
+    normalized: String,
+    kind: AbilityKind,
+    role: StructuralRole,
+    source: TextSource,
+    rule: Option<&'static str>,
+    signals: Vec<&'static str>,
+}
+
+#[derive(Default)]
+struct AuditSummary {
+    cards: u64,
+    cards_with_text: u64,
+    printed_units: u64,
+    rules_supplied_units: u64,
+    empty_units: u64,
+    distinct_printed_templates: usize,
+    singleton_templates: u64,
+    multi_sentence_units: u64,
+    residual_spell_or_static_units: u64,
+    uncited_rules_supplied_units: u64,
+    templates: HashMap<String, u64>,
+    kinds: BTreeMap<AbilityKind, u64>,
+    roles: BTreeMap<StructuralRole, u64>,
+    sources: BTreeMap<TextSource, u64>,
+}
+
 impl Segment {
     fn walk<'a>(&'a self, visit: &mut impl FnMut(&'a Segment)) {
         visit(self);
@@ -287,6 +360,7 @@ fn main() -> Result<()> {
         Command::Segment(args) => command_segment(&db_path, args)?,
         Command::Templates(args) => command_templates(&db_path, args)?,
         Command::Sets(args) => command_sets(&db_path, args)?,
+        Command::Audit { command } => command_audit(&db_path, command)?,
     };
 
     println!("{}", serde_json::to_string_pretty(&output)?);
@@ -1059,6 +1133,431 @@ fn command_templates(db_path: &Path, args: TemplateArgs) -> Result<Value> {
     }))
 }
 
+fn command_audit(db_path: &Path, command: AuditCommand) -> Result<Value> {
+    match command {
+        AuditCommand::Export(args) => command_audit_export(db_path, args),
+        AuditCommand::Summary(args) => command_audit_summary(db_path, args),
+        AuditCommand::Novelty(args) => command_audit_novelty(db_path, args),
+        AuditCommand::Signals(args) => command_audit_signals(db_path, args),
+    }
+}
+
+fn command_audit_export(db_path: &Path, args: SetAuditArgs) -> Result<Value> {
+    let conn = open_db(db_path)?;
+    let cards = load_audit_cards(&conn, &args.set)?;
+    let records = audit_records(&cards);
+    Ok(json!({
+        "set": args.set.to_lowercase(),
+        "ordering": "card name, oracle_id, face, pre-order unit_index",
+        "count": records.len(),
+        "records": records
+    }))
+}
+
+fn command_audit_summary(db_path: &Path, args: SetAuditArgs) -> Result<Value> {
+    let conn = open_db(db_path)?;
+    let cards = load_audit_cards(&conn, &args.set)?;
+    let summary = summarize_audit(&cards);
+    Ok(json!({
+        "set": args.set.to_lowercase(),
+        "inclusion_policy": audit_inclusion_policy(),
+        "cards": summary.cards,
+        "cards_with_text": summary.cards_with_text,
+        "printed_units": summary.printed_units,
+        "rules_supplied_units": summary.rules_supplied_units,
+        "empty_units": summary.empty_units,
+        "distinct_printed_templates": summary.distinct_printed_templates,
+        "singleton_templates": summary.singleton_templates,
+        "kind_histogram": histogram(summary.kinds),
+        "role_histogram": histogram(summary.roles),
+        "source_histogram": histogram(summary.sources),
+        "multi_sentence_unit_count": summary.multi_sentence_units,
+        "residual_spell_static_count": summary.residual_spell_or_static_units,
+        "uncited_rules_supplied_count": summary.uncited_rules_supplied_units
+    }))
+}
+
+fn command_audit_novelty(db_path: &Path, args: SetAuditArgs) -> Result<Value> {
+    let conn = open_db(db_path)?;
+    let set = args.set.to_lowercase();
+    let selected = load_audit_cards(&conn, &set)?;
+    let selected_release = selected_set_release(&selected);
+    let earlier = load_earlier_audit_cards(&conn, selected_release.as_deref())?;
+    let novelty = novelty_report(&selected, &earlier);
+    Ok(json!({
+        "set": set,
+        "selected_released_at": selected_release,
+        "earlier_sets_policy": "Only records with first_released_at strictly earlier than the selected set are earlier; same-date ties and missing dates are not earlier.",
+        "first_printing_policy": "Uses the repository first_set derivation, including fallback first-printing records flagged by first_is_fallback.",
+        "earlier_cards_with_text": earlier.iter().filter(|card| card.oracle_text.as_ref().is_some_and(|text| !text.is_empty())).count(),
+        "total_printed_units": novelty["total_printed_units"],
+        "units_seen_earlier": novelty["units_seen_earlier"],
+        "novel_units": novelty["novel_units"],
+        "unit_novelty_percent": novelty["unit_novelty_percent"],
+        "distinct_templates": novelty["distinct_templates"],
+        "templates_seen_earlier": novelty["templates_seen_earlier"],
+        "novel_templates": novelty["novel_templates"],
+        "template_novelty_percent": novelty["template_novelty_percent"],
+        "novel_template_records": novelty["novel_template_records"]
+    }))
+}
+
+fn command_audit_signals(db_path: &Path, args: SetAuditArgs) -> Result<Value> {
+    let conn = open_db(db_path)?;
+    let cards = load_audit_cards(&conn, &args.set)?;
+    let records: Vec<_> = audit_records(&cards)
+        .into_iter()
+        .filter(|record| !record.signals.is_empty())
+        .collect();
+    let mut counts: BTreeMap<&'static str, u64> = BTreeMap::new();
+    for record in &records {
+        for signal in &record.signals {
+            *counts.entry(signal).or_default() += 1;
+        }
+    }
+    Ok(json!({
+        "set": args.set.to_lowercase(),
+        "signal_policy": "Signals are surface-form audit candidates, not parser errors or ground-truth labels.",
+        "signal_definitions": signal_definitions(),
+        "signal_histogram": counts,
+        "count": records.len(),
+        "records": records
+    }))
+}
+
+fn load_audit_cards(conn: &Connection, set: &str) -> Result<Vec<AuditCard>> {
+    let set = set.to_lowercase();
+    let mut statement = conn.prepare(
+        "SELECT oracle_id, name, first_set, first_released_at, first_is_fallback, oracle_text \
+         FROM cards WHERE lower(first_set) = ?1 \
+         ORDER BY lower(name), name, oracle_id",
+    )?;
+    let cards = statement
+        .query_map([&set], audit_card_from_row)?
+        .collect::<rusqlite::Result<Vec<_>>>()?;
+    if cards.is_empty() {
+        bail!("no cards found for first-printing set {:?}", set);
+    }
+    Ok(cards)
+}
+
+fn load_earlier_audit_cards(
+    conn: &Connection,
+    selected_release: Option<&str>,
+) -> Result<Vec<AuditCard>> {
+    let Some(selected_release) = selected_release else {
+        return Ok(Vec::new());
+    };
+    let mut statement = conn.prepare(
+        "SELECT oracle_id, name, first_set, first_released_at, first_is_fallback, oracle_text \
+         FROM cards WHERE first_set IS NOT NULL AND first_released_at IS NOT NULL \
+         AND first_released_at < ?1 AND oracle_text IS NOT NULL AND oracle_text != '' \
+         ORDER BY first_released_at, lower(first_set), lower(name), name, oracle_id",
+    )?;
+    Ok(statement
+        .query_map([selected_release], audit_card_from_row)?
+        .collect::<rusqlite::Result<Vec<_>>>()?)
+}
+
+fn audit_card_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<AuditCard> {
+    Ok(AuditCard {
+        oracle_id: row.get(0)?,
+        name: row.get(1)?,
+        first_set: row.get(2)?,
+        first_released_at: row.get(3)?,
+        first_is_fallback: row.get::<_, i64>(4)? != 0,
+        oracle_text: row.get(5)?,
+    })
+}
+
+fn selected_set_release(cards: &[AuditCard]) -> Option<String> {
+    cards
+        .iter()
+        .filter_map(|card| card.first_released_at.as_deref())
+        .min()
+        .map(str::to_owned)
+}
+
+fn audit_records(cards: &[AuditCard]) -> Vec<AuditRecord> {
+    let mut records = Vec::new();
+    for card in cards {
+        if let Some(text) = card.oracle_text.as_ref().filter(|text| !text.is_empty()) {
+            let line_lookup = source_line_lookup(text);
+            for segment in segment_text(text, &card.name) {
+                flatten_audit_segment(card, &line_lookup, &segment, None, 0, &mut records);
+            }
+        }
+    }
+    records.sort_by(|a, b| {
+        a.card_name
+            .to_lowercase()
+            .cmp(&b.card_name.to_lowercase())
+            .then_with(|| a.card_name.cmp(&b.card_name))
+            .then_with(|| a.oracle_id.cmp(&b.oracle_id))
+            .then_with(|| a.face.cmp(&b.face))
+            .then_with(|| a.unit_index.cmp(&b.unit_index))
+    });
+    records
+}
+
+fn flatten_audit_segment(
+    card: &AuditCard,
+    line_lookup: &BTreeMap<usize, String>,
+    segment: &Segment,
+    parent_index: Option<usize>,
+    depth: usize,
+    records: &mut Vec<AuditRecord>,
+) {
+    let source_line_text = line_lookup.get(&segment.line).cloned();
+    let mut record = AuditRecord {
+        oracle_id: card.oracle_id.clone(),
+        card_name: card.name.clone(),
+        first_set: card.first_set.clone(),
+        first_released_at: card.first_released_at.clone(),
+        first_is_fallback: card.first_is_fallback,
+        face: segment.face,
+        source_line: segment.line,
+        unit_index: segment.index,
+        parent_index,
+        depth,
+        source_line_text,
+        unit_text: segment.text.clone(),
+        normalized: segment.normalized.clone(),
+        kind: segment.kind,
+        role: segment.role,
+        source: segment.source,
+        rule: segment.rule,
+        signals: Vec::new(),
+    };
+    record.signals = suspicious_signals(&record, segment);
+    records.push(record);
+    for child in &segment.children {
+        flatten_audit_segment(
+            card,
+            line_lookup,
+            child,
+            Some(segment.index),
+            depth + 1,
+            records,
+        );
+    }
+}
+
+fn source_line_lookup(text: &str) -> BTreeMap<usize, String> {
+    text.lines()
+        .enumerate()
+        .map(|(index, line)| (index + 1, line.trim().to_owned()))
+        .collect()
+}
+
+fn summarize_audit(cards: &[AuditCard]) -> AuditSummary {
+    let mut summary = AuditSummary {
+        cards: cards.len() as u64,
+        cards_with_text: cards
+            .iter()
+            .filter(|card| {
+                card.oracle_text
+                    .as_ref()
+                    .is_some_and(|text| !text.is_empty())
+            })
+            .count() as u64,
+        ..Default::default()
+    };
+    for record in audit_records(cards) {
+        *summary.sources.entry(record.source).or_default() += 1;
+        if record.source == TextSource::RulesSupplied {
+            summary.rules_supplied_units += 1;
+            if record.rule.is_none() {
+                summary.uncited_rules_supplied_units += 1;
+            }
+            continue;
+        }
+        if record.normalized.is_empty() {
+            summary.empty_units += 1;
+            continue;
+        }
+        summary.printed_units += 1;
+        *summary
+            .templates
+            .entry(record.normalized.clone())
+            .or_default() += 1;
+        *summary.kinds.entry(record.kind).or_default() += 1;
+        *summary.roles.entry(record.role).or_default() += 1;
+        if is_multi_sentence(&record.unit_text) {
+            summary.multi_sentence_units += 1;
+        }
+        if record.kind == AbilityKind::SpellOrStatic {
+            summary.residual_spell_or_static_units += 1;
+        }
+    }
+    summary.distinct_printed_templates = summary.templates.len();
+    summary.singleton_templates = summary
+        .templates
+        .values()
+        .filter(|count| **count == 1)
+        .count() as u64;
+    summary
+}
+
+fn novelty_report(selected: &[AuditCard], earlier: &[AuditCard]) -> Value {
+    let earlier_templates: HashSet<String> = printed_template_units(earlier)
+        .into_iter()
+        .map(|unit| unit.0)
+        .collect();
+    let selected_units = printed_template_units(selected);
+    let total_printed_units = selected_units.len() as u64;
+    let units_seen_earlier = selected_units
+        .iter()
+        .filter(|unit| earlier_templates.contains(&unit.0))
+        .count() as u64;
+    let novel_units = total_printed_units - units_seen_earlier;
+
+    let mut selected_templates: BTreeMap<String, (u64, Vec<String>)> = BTreeMap::new();
+    for (template, card_name) in &selected_units {
+        let entry = selected_templates
+            .entry(template.clone())
+            .or_insert_with(|| (0, Vec::new()));
+        entry.0 += 1;
+        if !entry.1.contains(card_name) {
+            entry.1.push(card_name.clone());
+            entry.1.sort();
+        }
+    }
+    let distinct_templates = selected_templates.len() as u64;
+    let templates_seen_earlier = selected_templates
+        .keys()
+        .filter(|template| earlier_templates.contains(*template))
+        .count() as u64;
+    let novel_templates = distinct_templates - templates_seen_earlier;
+    let novel_template_records: Vec<_> = selected_templates
+        .into_iter()
+        .filter(|(template, _)| !earlier_templates.contains(template))
+        .map(|(template, (count, mut cards))| {
+            cards.truncate(5);
+            json!({
+                "template": template,
+                "count": count,
+                "representative_cards": cards
+            })
+        })
+        .collect();
+
+    json!({
+        "total_printed_units": total_printed_units,
+        "units_seen_earlier": units_seen_earlier,
+        "novel_units": novel_units,
+        "unit_novelty_percent": percent(novel_units, total_printed_units),
+        "distinct_templates": distinct_templates,
+        "templates_seen_earlier": templates_seen_earlier,
+        "novel_templates": novel_templates,
+        "template_novelty_percent": percent(novel_templates, distinct_templates),
+        "novel_template_records": novel_template_records
+    })
+}
+
+fn printed_template_units(cards: &[AuditCard]) -> Vec<(String, String)> {
+    let mut units = Vec::new();
+    for card in cards {
+        if let Some(text) = card.oracle_text.as_ref().filter(|text| !text.is_empty()) {
+            for segment in segment_text(text, &card.name) {
+                segment.walk(&mut |unit| {
+                    if unit.source == TextSource::Printed && !unit.normalized.is_empty() {
+                        units.push((unit.normalized.clone(), card.name.clone()));
+                    }
+                });
+            }
+        }
+    }
+    units.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.cmp(&b.1)));
+    units
+}
+
+fn suspicious_signals(record: &AuditRecord, segment: &Segment) -> Vec<&'static str> {
+    let mut signals = Vec::new();
+    let lower = record.normalized.to_lowercase();
+    if record.source == TextSource::Printed
+        && record.kind == AbilityKind::SpellOrStatic
+        && is_multi_sentence(&record.unit_text)
+    {
+        signals.push("residual_multi_sentence_unit");
+    }
+    if record.source == TextSource::RulesSupplied && record.rule.is_none() {
+        signals.push("uncited_rules_supplied_unit");
+    }
+    if record.unit_text.contains('"')
+        && !segment
+            .children
+            .iter()
+            .any(|child| child.role == StructuralRole::Granted)
+    {
+        signals.push("quoted_text_not_extracted_candidate");
+    }
+    if lower.contains("activate only") || lower.contains("activate this ability only") {
+        signals.push("activation_restriction_embedded_candidate");
+    }
+    if lower.contains("at the beginning of")
+        && lower.contains("next")
+        && record.role != StructuralRole::DelayedTrigger
+        && !segment
+            .children
+            .iter()
+            .any(|child| child.role == StructuralRole::DelayedTrigger)
+    {
+        signals.push("delayed_trigger_unattached_candidate");
+    }
+    if record.source == TextSource::Printed
+        && record.kind == AbilityKind::SpellOrStatic
+        && is_short_punctuation_free(&record.normalized)
+    {
+        signals.push("short_punctuation_free_residual_candidate");
+    }
+    if lower.starts_with("as long as ~") && (lower.contains("power") || lower.contains("toughness"))
+    {
+        signals.push("conditional_cda_candidate");
+    }
+    if lower.contains("spend only") {
+        signals.push("payment_restriction_embedded_candidate");
+    }
+    signals
+}
+
+fn is_multi_sentence(text: &str) -> bool {
+    text.matches(". ").count() + text.matches("? ").count() + text.matches("! ").count() > 0
+}
+
+fn is_short_punctuation_free(text: &str) -> bool {
+    let words = text.split_whitespace().count();
+    words <= 8
+        && !text.contains('.')
+        && !text.contains(':')
+        && !text.contains('"')
+        && !text.contains("\u{2014}")
+        && !text.starts_with('\u{2022}')
+}
+
+fn audit_inclusion_policy() -> Value {
+    json!({
+        "set_selection": "cards whose derived first_set matches the selected set code",
+        "card_count": "all cards in the selected first_set, including cards without Oracle text",
+        "unit_count": "same as templates: printed units with non-empty normalized text; rules_supplied units counted separately",
+        "fallback_first_printings": "included, matching existing sets/templates behavior; records expose first_is_fallback through the source database policy but audit rows are selected by first_set",
+        "ordering": "card name, oracle_id, face, pre-order unit_index"
+    })
+}
+
+fn signal_definitions() -> Value {
+    json!({
+        "residual_multi_sentence_unit": "printed spell_or_static_text unit whose unit_text contains more than one sentence boundary",
+        "uncited_rules_supplied_unit": "rules_supplied unit with no CR citation",
+        "quoted_text_not_extracted_candidate": "unit_text contains double quotes but the unit has no granted child",
+        "activation_restriction_embedded_candidate": "normalized text contains `activate only` or `activate this ability only`",
+        "delayed_trigger_unattached_candidate": "normalized text contains `At the beginning of` and `next` but the unit is not a delayed_trigger and has no delayed_trigger child",
+        "short_punctuation_free_residual_candidate": "printed spell_or_static_text unit with at most eight words and no period, colon, quote, bullet, or modal dash",
+        "conditional_cda_candidate": "normalized text starts with `As long as ~` and mentions power or toughness",
+        "payment_restriction_embedded_candidate": "normalized text contains `spend only`"
+    })
+}
+
 /// Serialize a label-keyed histogram as a JSON object keyed by the label's
 /// serde name.
 fn histogram<K: Serialize>(map: BTreeMap<K, u64>) -> Value {
@@ -1530,5 +2029,175 @@ mod tests {
         assert!(is_rule_within("603.1a", "603"));
         assert!(!is_rule_within("603.10", "603.1"));
         assert!(!is_rule_within("603.2", "603.1"));
+    }
+
+    fn audit_card(name: &str, set: &str, released_at: &str, text: Option<&str>) -> AuditCard {
+        AuditCard {
+            oracle_id: format!("{set}-{name}"),
+            name: name.to_owned(),
+            first_set: set.to_owned(),
+            first_released_at: Some(released_at.to_owned()),
+            first_is_fallback: false,
+            oracle_text: text.map(str::to_owned),
+        }
+    }
+
+    #[test]
+    fn audit_records_are_sorted_and_flatten_nested_units_with_parents() {
+        let cards = vec![
+            audit_card(
+                "Zombie Master",
+                "lea",
+                "1993-08-05",
+                Some("Other Zombies have \"{B}: Regenerate this permanent.\""),
+            ),
+            audit_card(
+                "Blue Elemental Blast",
+                "lea",
+                "1993-08-05",
+                Some(
+                    "Choose one \u{2014}\n\u{2022} Counter target red spell.\n\u{2022} Destroy target red permanent.",
+                ),
+            ),
+        ];
+        let records = audit_records(&cards);
+        assert_eq!(records[0].card_name, "Blue Elemental Blast");
+        assert_eq!(records[0].unit_index, 0);
+        assert_eq!(records[0].parent_index, None);
+        assert_eq!(records[0].depth, 0);
+        assert_eq!(records[1].parent_index, Some(0));
+        assert_eq!(records[1].depth, 1);
+        assert_eq!(records[1].role, StructuralRole::Mode);
+        assert_eq!(records[2].parent_index, Some(0));
+        assert_eq!(records[2].role, StructuralRole::Mode);
+
+        let zombie_child = records
+            .iter()
+            .find(|record| {
+                record.card_name == "Zombie Master" && record.role == StructuralRole::Granted
+            })
+            .expect("granted child");
+        assert_eq!(zombie_child.parent_index, Some(0));
+        assert_eq!(zombie_child.depth, 1);
+        assert_eq!(zombie_child.normalized, "{M}: Regenerate ~.");
+    }
+
+    #[test]
+    fn audit_summary_counts_match_template_inclusion_policy() {
+        let cards = vec![
+            audit_card(
+                "Example",
+                "tst",
+                "2000-01-01",
+                Some(
+                    "Flying\n({T}: Add {G}.)\nChoose one \u{2014}\n\u{2022} Draw a card.\n\u{2022} You gain 3 life.\nDo one thing. Do another thing.",
+                ),
+            ),
+            audit_card("No Text", "tst", "2000-01-01", None),
+        ];
+        let summary = summarize_audit(&cards);
+        assert_eq!(summary.cards, 2);
+        assert_eq!(summary.cards_with_text, 1);
+        assert_eq!(summary.printed_units, 5);
+        assert_eq!(summary.rules_supplied_units, 1);
+        assert_eq!(summary.distinct_printed_templates, 5);
+        assert_eq!(summary.singleton_templates, 5);
+        assert_eq!(summary.multi_sentence_units, 1);
+        assert_eq!(summary.residual_spell_or_static_units, 4);
+        assert_eq!(summary.uncited_rules_supplied_units, 0);
+        assert_eq!(summary.sources.get(&TextSource::Printed), Some(&5));
+        assert_eq!(summary.sources.get(&TextSource::RulesSupplied), Some(&1));
+    }
+
+    #[test]
+    fn novelty_classifies_units_and_templates_against_earlier_sets() {
+        let earlier = vec![audit_card(
+            "Earlier",
+            "old",
+            "1993-01-01",
+            Some("Flying\nDraw a card."),
+        )];
+        let selected = vec![audit_card(
+            "Selected",
+            "new",
+            "1993-02-01",
+            Some("Flying\nDestroy target creature.\nDestroy target creature."),
+        )];
+        let report = novelty_report(&selected, &earlier);
+        assert_eq!(report["total_printed_units"].as_u64(), Some(3));
+        assert_eq!(report["units_seen_earlier"].as_u64(), Some(1));
+        assert_eq!(report["novel_units"].as_u64(), Some(2));
+        assert_eq!(report["unit_novelty_percent"].as_f64(), Some(66.67));
+        assert_eq!(report["distinct_templates"].as_u64(), Some(2));
+        assert_eq!(report["templates_seen_earlier"].as_u64(), Some(1));
+        assert_eq!(report["novel_templates"].as_u64(), Some(1));
+        assert_eq!(report["template_novelty_percent"].as_f64(), Some(50.0));
+        assert_eq!(
+            report["novel_template_records"][0]["count"].as_u64(),
+            Some(2)
+        );
+    }
+
+    #[test]
+    fn novelty_for_no_earlier_set_is_one_hundred_percent() {
+        let selected = vec![audit_card(
+            "Alpha Example",
+            "lea",
+            "1993-08-05",
+            Some("Flying\nDraw a card."),
+        )];
+        let report = novelty_report(&selected, &[]);
+        assert_eq!(report["total_printed_units"].as_u64(), Some(2));
+        assert_eq!(report["units_seen_earlier"].as_u64(), Some(0));
+        assert_eq!(report["novel_units"].as_u64(), Some(2));
+        assert_eq!(report["unit_novelty_percent"].as_f64(), Some(100.0));
+        assert_eq!(report["templates_seen_earlier"].as_u64(), Some(0));
+        assert_eq!(report["novel_templates"].as_u64(), Some(2));
+        assert_eq!(report["template_novelty_percent"].as_f64(), Some(100.0));
+    }
+
+    #[test]
+    fn suspicious_signals_include_positive_and_negative_cases() {
+        let cards = vec![audit_card(
+            "Signals",
+            "sig",
+            "2000-01-01",
+            Some(
+                "Do one thing. Do another thing.\n\
+                 (Theme color: {W})\n\
+                 Choose \"left\" or \"right\".\n\
+                 Draw a card. Activate only as a sorcery.\n\
+                 Draw a card at the beginning of the next end step.\n\
+                 As long as this creature isn't attacking, its power and toughness are each equal to the number of Forests you control.\n\
+                 Spend only black mana on X.\n\
+                 Other creatures have \"{T}: Add {G}.\"",
+            ),
+        )];
+        let records = audit_records(&cards);
+        let has_signal = |name: &str| records.iter().any(|record| record.signals.contains(&name));
+        assert!(has_signal("residual_multi_sentence_unit"));
+        assert!(has_signal("uncited_rules_supplied_unit"));
+        assert!(has_signal("quoted_text_not_extracted_candidate"));
+        assert!(has_signal("activation_restriction_embedded_candidate"));
+        assert!(has_signal("delayed_trigger_unattached_candidate"));
+        assert!(has_signal("conditional_cda_candidate"));
+        assert!(has_signal("payment_restriction_embedded_candidate"));
+
+        let granted_parent = records
+            .iter()
+            .find(|record| record.normalized == "Other creatures have \"[ability]\"")
+            .expect("granted parent");
+        assert!(
+            !granted_parent
+                .signals
+                .contains(&"quoted_text_not_extracted_candidate")
+        );
+        let cited_land = audit_records(&[audit_card(
+            "Forest",
+            "lea",
+            "1993-08-05",
+            Some("({T}: Add {G}.)"),
+        )]);
+        assert!(cited_land[0].signals.is_empty());
     }
 }
