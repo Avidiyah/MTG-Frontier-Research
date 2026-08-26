@@ -929,6 +929,7 @@ fn classify_kind(
 ) -> AbilityKind {
     static REPLACEMENT: OnceLock<Regex> = OnceLock::new();
     static PREVENTION: OnceLock<Regex> = OnceLock::new();
+    static PREVENTION_PROHIBITION: OnceLock<Regex> = OnceLock::new();
     static CDA: OnceLock<Regex> = OnceLock::new();
     // CR 614.1a-d: "instead", "skip", "As ~ enters", "enters with/as/tapped".
     let replacement = REPLACEMENT.get_or_init(|| {
@@ -942,6 +943,14 @@ fn classify_kind(
     });
     let prevention = PREVENTION
         .get_or_init(|| Regex::new(r"\bprevent(s|ed|ing)?\b").expect("valid prevention regex"));
+    // P-ATQ-2 (CR 615.1a defines a prevention effect by *preventing* an
+    // event; "can't/cannot be prevented" instead prohibits prevention — a
+    // rule-modifying statement, not the effect it describes). Apostrophe
+    // optional/either form since normalized text is not apostrophe-folded.
+    let prevention_prohibition = PREVENTION_PROHIBITION.get_or_init(|| {
+        Regex::new(r"\bcan(?:['\u{2019}])?t be prevented\b|\bcannot be prevented\b")
+            .expect("valid prevention-prohibition regex")
+    });
     let lower = normalized.to_lowercase();
     if lower.starts_with("remove ~ from your deck before playing") {
         AbilityKind::Ante
@@ -960,7 +969,7 @@ fn classify_kind(
         AbilityKind::Keyword
     } else if allow_spell_text_override && is_instant_or_sorcery(type_line) {
         AbilityKind::SpellOrStatic
-    } else if prevention.is_match(&lower) {
+    } else if prevention.is_match(&lower) && !prevention_prohibition.is_match(&lower) {
         AbilityKind::Prevention
     } else if replacement.is_match(&lower) {
         AbilityKind::Replacement
@@ -2566,6 +2575,70 @@ mod tests {
             )[0]
             .kind,
             AbilityKind::SpellOrStatic
+        );
+    }
+
+    #[test]
+    fn prevention_prohibition_is_not_classified_as_prevention_effect() {
+        // P-ATQ-2: "can't/cannot be prevented" prohibits prevention (a
+        // rule-modifying statement, CR 614/615 territory but not itself a
+        // CR 615.1a prevention effect); it must fall through to the
+        // existing residual static kind, not `prevention_effect`
+        // (Antiquities corpus check §7 A, 9 misfires).
+        assert_eq!(
+            segment_text(
+                "Damage that would be dealt to you by red sources can't be prevented.",
+                "",
+            )[0]
+            .kind,
+            AbilityKind::SpellOrStatic
+        );
+        // A distinct wording of the same prohibition class, to show the
+        // exclusion is structural (the "can't be prevented" collocation),
+        // not tied to one exact preceding phrase.
+        assert_eq!(
+            segment_text("Damage dealt by this creature can't be prevented.", "")[0].kind,
+            AbilityKind::SpellOrStatic
+        );
+        // "cannot" (uncontracted) and a curly apostrophe both still count.
+        assert_eq!(
+            segment_text("Damage that would be dealt to you cannot be prevented.", "")[0].kind,
+            AbilityKind::SpellOrStatic
+        );
+        assert_eq!(
+            segment_text(
+                "Damage that would be dealt to you by red sources can\u{2019}t be prevented.",
+                "",
+            )[0]
+            .kind,
+            AbilityKind::SpellOrStatic
+        );
+    }
+
+    #[test]
+    fn prevention_prohibition_exclusion_does_not_regress_genuine_prevention() {
+        // The exclusion is the narrow "can't/cannot be prevented"
+        // collocation, not a blanket "contains 'prevented'" rule: a unit
+        // that both commands genuine prevention and separately describes
+        // damage as ("is") prevented must still classify as
+        // `prevention_effect`.
+        assert_eq!(
+            segment_text(
+                "If this creature would be dealt damage, that damage is prevented.",
+                "",
+            )[0]
+            .kind,
+            AbilityKind::Prevention
+        );
+        // Existing positive prevention cases (imperative "prevent") remain
+        // unaffected, since they never contain "prevented" at all.
+        assert_eq!(
+            segment_text(
+                "Prevent all damage that would be dealt to target creature this turn.",
+                "",
+            )[0]
+            .kind,
+            AbilityKind::Prevention
         );
     }
 

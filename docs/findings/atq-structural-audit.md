@@ -247,6 +247,69 @@ matching `can't be prevented` from `prevention_effect`; classify as residual
 static. Fix rows: the 9 units listed in check B §A (CR 615.1a defines
 prevention effects by *preventing* damage).
 
+### P-ATQ-2 implementation disposition (2026-08-26)
+
+**Implemented, not yet accepted under protocol S10.** `classify_kind` in
+`src/main.rs` gained a `prevention_prohibition` regex
+(`can(?:'|’)?t be prevented|cannot be prevented`, checked against the same
+lowercased normalized text as the existing `prevention` regex; apostrophe
+optional and either straight or curly, since normalization does not fold
+apostrophes and neither form could be ruled out without corpus access) and
+the `prevention_effect` branch condition became `prevention.is_match(&lower)
+&& !prevention_prohibition.is_match(&lower)`. No new `AbilityKind`, no
+reordering of the surrounding `replacement`/`cda`/residual chain: a
+prohibited unit simply falls through to whichever of those already-existing
+branches its wording matches, landing on the residual `spell_or_static_text`
+kind for the audit's 9 fix rows exactly as the proposal specified. The
+ability-word/Saga-chapter/named-mode prefix class (the other 8 misfires in
+check §7 A) is untouched, as scoped — P-ATQ-3 remains unimplemented.
+
+Regression tests added: `prevention_prohibition_is_not_classified_as_
+prevention_effect` (two independently worded `can't be prevented`
+statics, `cannot be prevented`, and a curly-apostrophe `can’t be prevented`
+variant, all landing on `spell_or_static_text`) and
+`prevention_prohibition_exclusion_does_not_regress_genuine_prevention` (a
+unit that both commands genuine prevention and separately describes damage
+as "is prevented" still classifies as `prevention_effect`, demonstrating the
+new regex is the narrow collocation and not a `contains "prevented"`
+blanket rule). The existing `static_prevention_effects_have_their_own_kind`
+and `prevention_in_activated_triggered_or_spell_text_keeps_precedence`
+tests were left unchanged and still pass unmodified — none of their
+fixtures use the prohibition wording, so no prior expectation needed to
+change. `cargo fmt -- --check`, `cargo test` (47 passed), `cargo clippy
+--all-targets -- -D warnings`, and `cargo build --release` all pass.
+
+What is **not** done, for the same reason as P-ATQ-1: this session's network
+egress policy again returns 403 for `api.scryfall.com` (re-confirmed this
+session), so `cards.sqlite` does not exist and could not be regenerated.
+`scripts/python/corpus_checks/check_kind_rules.py` reads `cards.sqlite`
+directly (for type-line lookups) and its required input comes from
+`dump_corpus_units.py`, which also needs the database — neither could run.
+Consequently:
+
+- The protocol's S8 counterexample search (corpus hits for `prevent`,
+  `prevented`, `can't be prevented`, `cannot be prevented`, inspected across
+  decades) was **not performed**. The apostrophe-form decision above is
+  based on the local `Magic-Comprehensive_Rules.md` text (which uses a
+  curly `’`) and this repository's own `src/main.rs` conventions (the CDA
+  regex and every existing test fixture use a straight `'`, consistent with
+  Scryfall's Oracle-text convention), not on a corpus sample — hence
+  supporting both forms rather than picking one.
+- The before/after count of `can't be prevented` misfires (audit figure: 9
+  → expected 0) is **not measured** in this session.
+- Whether any additional prohibition wording variant exists in the corpus
+  beyond the two forms tested is **unknown**; none is assumed found, and
+  none should be treated as resolved.
+- The separate P-ATQ-3 prefixed-trigger class (8 misfires) is expected to
+  be unaffected by this change (the new regex only excludes text matching
+  the prohibition collocation) but this has not been corpus-verified either.
+
+`docs/current-state.md` records this same caveat. A later session with data
+access must run `dump_corpus_units.py` and `check_kind_rules.py`, confirm
+the 9-misfire class is gone with no new false positives (genuine prevention
+wrongly excluded) or false negatives (a prohibition variant still
+misclassified), and only then treat P-ATQ-2 as accepted.
+
 **P-ATQ-3 — strip ability-word / chapter / named-mode prefixes before
 classification.** A leading `<words> — ` (no period, no colon, ≤ 45 chars)
 is an ability word, Saga chapter, or named mode (CR 207.2c, 714.2); classify

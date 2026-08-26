@@ -175,6 +175,10 @@ integers to `N`, strips `•`, and replaces a quoted ability with
 | Kinds | static/spell 21,521 · triggered 17,503 · keyword 17,630 · activated 12,000 · replacement 2,208 · additional cost 317 · CDA 245 · prevention 181 · cast restriction 68 · ante 9 |
 | Roles | ability 67,075 · mode 2,121 · granted 1,504 · delayed trigger 982 |
 
+**This table predates P-ATQ-1 and P-ATQ-2** (decision log below) and has not
+been regenerated since; do not treat the `prevention 181` kind count or the
+`delayed trigger 982` role count as the current segmenter's output.
+
 The most frequent normalized unit is `Flying` with 3,526 occurrences (4.92%).
 
 Historical baseline (line = unit, raw-text classification, 2026-08-25 to
@@ -271,8 +275,12 @@ hit is not proof that the rule completely determines a card's behavior.
 - `kind` labels are heuristic. Replacement detection is lexical
   (`instead`/`skip`/enters-with/as/tapped) except that top-level instant and
   sorcery spell text is classified with type-line context; static prevention
-  text is a distinct `prevention_effect` kind; CDA detection covers the
-  `~'s power and toughness are each equal to` form but not conditional
+  text is a distinct `prevention_effect` kind, excluding the `can't`/`cannot
+  be prevented` prohibition idiom (P-ATQ-2), which falls through to the
+  residual static kind instead; ability-word/Saga-chapter/named-mode
+  prefixed triggers can still hide the trigger word and misclassify as
+  `prevention_effect` (P-ATQ-3, not yet implemented); CDA detection covers
+  the `~'s power and toughness are each equal to` form but not conditional
   forms (Gaea's Liege); payment restrictions (`Spend only black mana on X`)
   are still residual static text; short static sentences without a period
   are labelled keywords.
@@ -540,3 +548,47 @@ When updating this document:
   session with data access must regenerate the snapshot, rerun the S11
   corpus check, and refresh the "Verified data snapshot" numbers above
   before the baseline table is updated or the proposal is marked accepted.
+- Implemented P-ATQ-2: `classify_kind` in `src/main.rs` no longer labels
+  `can't be prevented` / `cannot be prevented` text as `prevention_effect`.
+  A new `prevention_prohibition` regex (`can(?:'|’)?t be prevented|cannot be
+  prevented`, matched against the same lowercased normalized text as the
+  existing `prevention` regex, apostrophe optional/either form since
+  normalization does not fold apostrophes) is checked alongside the
+  existing prevention match; when both match, the unit falls through the
+  existing `else if` chain (replacement, then CDA, then residual) exactly
+  as it would if the prevention regex hadn't matched at all — no new kind,
+  no reordering of the surrounding branches, no card- or set-specific
+  logic. Added `src/main.rs` regression tests:
+  `prevention_prohibition_is_not_classified_as_prevention_effect` (two
+  distinct `can't be prevented` wordings plus `cannot be prevented` and a
+  curly-apostrophe `can’t be prevented` variant all classify as
+  `spell_or_static_text`, matching the existing residual-static fallback)
+  and `prevention_prohibition_exclusion_does_not_regress_genuine_prevention`
+  (a unit that both commands genuine prevention and separately describes
+  damage as "is prevented" still classifies as `prevention_effect`, showing
+  the exclusion is the narrow collocation and not a blanket `contains
+  "prevented"` rule). All prior prevention/replacement/CDA tests, including
+  `static_prevention_effects_have_their_own_kind` and
+  `prevention_in_activated_triggered_or_spell_text_keeps_precedence`, were
+  left unchanged and still pass — none of their fixtures used the
+  prohibition wording. `cargo fmt -- --check`, `cargo test` (47 passed),
+  `cargo clippy --all-targets -- -D warnings`, and `cargo build --release`
+  all pass. **Not yet done, same blocker as P-ATQ-1:** this session's
+  network egress policy again returns 403 for `api.scryfall.com`, so
+  `cards.sqlite` could not be (re)generated and neither
+  `scripts/python/corpus_checks/check_kind_rules.py` (which reads
+  `cards.sqlite` directly for type-line lookups) nor
+  `scripts/python/corpus_checks/dump_corpus_units.py` (its required input)
+  could be run. The Antiquities audit's 9 `can't be prevented` misfires are
+  therefore not re-measured, and the 8 ability-word/Saga-chapter/named-mode
+  prefixed misfires from the same check (P-ATQ-3, explicitly out of scope
+  here) are expected to remain untouched but likewise unverified. A search
+  of the local `Magic-Comprehensive_Rules.md` text and the existing
+  `src/main.rs` test fixtures (all of which already use a straight ASCII
+  apostrophe for `can't`, consistent with Scryfall's Oracle-text
+  convention) informed the regex, but this substitutes for the protocol's
+  S8 corpus counterexample search rather than satisfying it. P-ATQ-2 is
+  implemented and unit-tested but not yet accepted under protocol S10
+  (items 4–5); a later session with data access must rerun
+  `check_kind_rules.py`, confirm the 9-misfire class is gone with no new
+  false positives or negatives, and refresh the baseline numbers above.
