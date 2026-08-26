@@ -101,6 +101,10 @@ model already exists and therefore does not solve the active frontier.
 | `Cargo.toml`, `Cargo.lock` | Rust package and reproducible dependency resolution |
 | `scripts/python/mtg_card_pipeline.py` | Fetch Scryfall bulk data (including all printings), load SQLite with first-printing columns, and run the original template baseline |
 | `docs/findings/` | One document per completed investigation; read the newest after this file |
+| `docs/protocol/structural-investigation-protocol.md` | Frozen (v1.0) set-by-set structural audit procedure, annotation schema, measurement definitions, held-out pool, tooling requirements |
+| `docs/gates/` | One evidence package and decision record per roadmap gate (`gate-0-evidence.md`) |
+| `docs/audits/<set>/` | Per-set artifact package: frozen unit export, unit-level annotation, `metrics.json` (Alpha done) |
+| `scripts/python/export_units.py`, `scripts/python/audit_metrics.py` | Interim standard-library tools for the protocol (unit export; measurements, novelty, drift) |
 | `scripts/python/mtg_search.py` | Human-oriented interactive card lookup |
 | `.github/copilot-instructions.md`, `CLAUDE.md` | Agent onboarding, verified commands, architecture, and repository conventions |
 | `docs/README.md` | Setup, command reference, and older pipeline documentation |
@@ -277,8 +281,12 @@ hit is not proof that the rule completely determines a card's behavior.
 
 ### Normalization baseline
 
-- All mana symbols collapse to `{M}`, losing color, generic, variable,
-  alternative, and special-mana distinctions.
+- All brace symbols collapse to `{M}` — mana symbols (losing color, generic,
+  variable, alternative, and special-mana distinctions) **and also the tap
+  and untap symbols `{T}` / `{Q}`**, so `{T}: Add {G}.` and `{G}: Add {C}.`
+  share a template (verified 2026-08-26; 52 Alpha units carry `{T}`).
+  Changing this is a normalization proposal (deferred item D4), not yet
+  accepted.
 - All integers collapse to `N`, losing semantic roles such as cost, damage,
   quantity, power/toughness modification, and counter count.
 - Object descriptions, types, subtypes, zones, players, durations, and
@@ -294,8 +302,18 @@ hit is not proof that the rule completely determines a card's behavior.
 
 ### Evaluation
 
-- There is no gold-standard segmentation or semantic annotation set.
-- There is no agreed semantic operator inventory.
+- The only structural annotation is Alpha (`docs/audits/lea/`): all 412
+  units, single annotator, unadjudicated, CR citation per row. Measured on
+  it: boundary precision 390 / 395 judged printed units, 5 missed boundaries
+  (nested delayed triggers), kind accuracy 379 / 383, one `unsupported`
+  (prevention static) and one `ambiguous` (Gaea's Liege) unit. Alpha is a
+  development and regression set, not a gold set and not evidence about the
+  corpus.
+- A held-out pool is frozen (protocol §6.3: `oracle_id` prefix `f`,
+  non-fallback, excluding `lea`/`leb`/`arn`; 2,096 cards) but not yet sampled
+  or annotated.
+- There is no semantic annotation set and no agreed semantic operator
+  inventory.
 - There is no executable equivalence test or minimal rules model.
 - Corpus-wide coverage currently measures normalized strings, not correctness.
 
@@ -349,10 +367,13 @@ the share of its units whose template did not appear in any earlier set.
 
 Unless new evidence changes priorities:
 
-1. **Segmentation audit:** per set, classify failures across card faces,
-   paragraphs, modal spells, keyword lists, ability words, and nested text.
-   Alpha is done and its seven proposed segmenter changes are implemented
-   and measured; Arabian Nights (`arn`) is next, using the new baseline.
+1. **Segmentation audit:** per set, following
+   `docs/protocol/structural-investigation-protocol.md` (frozen v1.0).
+   Alpha is done: its seven segmenter changes are implemented, tested and
+   measured, and its unit-level annotation is committed. Gate 0 passed on
+   2026-08-26 (`docs/gates/gate-0-evidence.md`). Arabian Nights (`arn`, 77
+   cards, 109 printed units) is next; its plan, regression corpus and
+   held-out rules are in the gate document §8 and it has not been started.
 2. **Normalization ablations:** measure one reversible transformation at a time
    rather than applying increasingly lossy normalization as a bundle.
 3. **Typed-slot discovery:** test candidate roles for numbers, mana, objects,
@@ -419,3 +440,12 @@ When updating this document:
   baseline: 70,799 printed units + 970 rules-supplied, 36,944 templates,
   top-100 coverage 27.14% (was 67,738 / 37,912 / 23.81%). Alpha: 398 + 14
   units, 291 templates, 265 singletons (66.6%).
+- Gate 0 reviewed and passed with two recorded caveats (snapshot identity is
+  prose-only; Alpha's B1/B2/V3 scratch measurements were not preserved and
+  are downgraded to bounded observations). Froze the structural-investigation
+  protocol v1.0 and the held-out pool. Annotated all 412 Alpha units; found
+  5 missed nested delayed-trigger boundaries, 4 kind defects, and that `{T}`
+  collapses to `{M}`. Narrowed three Alpha claims (activation instructions
+  are not separate abilities per CR 602.1b; Animate Dead's last sentence is
+  a delayed trigger; Gaea's Liege's CDA status is ambiguous under CR
+  604.3a(5)). Arabian Nights plan prepared, not started.

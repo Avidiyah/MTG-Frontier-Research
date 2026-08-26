@@ -202,12 +202,16 @@ current system before further corpus experiments change measurements.
 
 ### Gate 0 exit criteria
 
-- [ ] A clean checkout can reproduce corpus metadata and template totals.
-- [ ] Documentation and CLI output describe the same segmentation model.
-- [ ] Every accepted Alpha-derived segmenter change has a regression test.
-- [ ] Generated data, source, findings, and scratch analyses are clearly
+- [x] A clean checkout can reproduce corpus metadata and template totals.
+- [x] Documentation and CLI output describe the same segmentation model.
+- [x] Every accepted Alpha-derived segmenter change has a regression test.
+- [x] Generated data, source, findings, and scratch analyses are clearly
       separated.
-- [ ] No IR, executor, simulation, or AI implementation has entered scope.
+- [x] No IR, executor, simulation, or AI implementation has entered scope.
+
+Evidence, caveats, and the decision record: `docs/gates/gate-0-evidence.md`
+(2026-08-26, pass with two recorded reproducibility caveats). The frozen
+Phase 1 procedure is `docs/protocol/structural-investigation-protocol.md`.
 
 ### If the gate fails
 
@@ -876,3 +880,25 @@ Until Gate 0 passes, the only active tasks are:
 The next permitted research after Gate 0 is structural discovery. IR design,
 engine implementation, simulation, search, telemetry, and learning remain
 closed.
+
+## 22. Deferred-work register
+
+Items here are recorded, not scheduled. Each names the phase that may open
+it and the evidence that motivated it. Nothing on this list is in scope until
+its phase is active and a change record (§2.3) accepts it.
+
+| Id | Item | Motivating evidence | Earliest phase | Owner |
+|---|---|---|---|---|
+| D1 | Record Scryfall bulk-snapshot identity in `cards.sqlite` and `info` (T1) | Gate 0 caveat A | Phase 1 (tooling) | Codex |
+| D2 | Native `export --set` with stable unit keys (T2) replacing `export_units.py` | Protocol S3 | Phase 1 (tooling) | Codex |
+| D3 | Re-measure Alpha B1 (typed-slot ablation), B2 (corpus recurrence) and V3 (printing invariance) with preserved scripts | Gate 0 caveat B | Phase 1 | research lead, after D2 |
+| D4 | Keep `{T}`/`{Q}` distinct from mana in normalization (T10) | Alpha collision C1 (52 units) | Phase 1, via protocol S10 | proposal: research lead; change: Codex |
+| D5 | Generic delayed-trigger detection for inverted, `When …`-in-effect, recurring, and `at end of combat` forms (F1–F4) | Alpha defects, 5 missed boundaries | Phase 1, via S10 after Arabian Nights counterexample search | Codex |
+| D6 | Type-line context for kind on instants/sorceries (F5) | Disintegrate, Camouflage | Phase 1, via S10 | Codex |
+| D7 | Prevention (CR 615) as a kind, or documented merge with replacement (F7) | Rock Hydra | Phase 1 taxonomy decision | research lead |
+| D8 | Role value for referenced/lost quoted abilities (F11) | Animate Dead | Phase 1 taxonomy decision | research lead |
+| D9 | CR-slot decomposition fields for activated/triggered units (T8) | Alpha V5, hypothesis N3 | Phase 1 (tooling) | Codex |
+| D10 | Second annotator pass / adjudication of Alpha | Protocol S5.9; Gate 1 criterion | Phase 1 | second agent or owner |
+| D11 | Held-out sampling and annotation from the §6.3 pool | Gate 1 criterion | Gate 1 review | research lead |
+| D12 | Semantic hypotheses raised during audits (e.g. whether `{1}: Regenerate ~.` and `{B}: Regenerate ~.` are one operator) | Alpha | Phase 2 | — |
+| D13 | Per-face characteristics for multi-face cards in the database | `docs/current-state.md` limitations | Phase 1 (tooling), when the walk reaches split/transform layouts | Codex |

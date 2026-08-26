@@ -406,3 +406,37 @@ $mtg = ".\target\release\mtg-discover.exe"
 & $mtg segment --card "Plague Rats" ; & $mtg segment --card "Healing Salve"
 & $mtg segment --card "Forest" ; & $mtg segment --card "Wall of Air"
 ```
+
+## Status review for Gate 0 (2026-08-26)
+
+Reviewed against the recorded evidence for `docs/gates/gate-0-evidence.md`,
+which carries the full disposition table. Summary:
+
+- **Accepted:** V1, V2 (closed), V5, V7, the measured effect of the seven
+  changes, and V4/V6 with the narrower wording below.
+- **Narrowed:** (a) `Activate only …` restrictions are *not* separate
+  abilities — CR 602.1b makes activation instructions part of the activated
+  ability, so they leave V4's "one line, several abilities" list and become
+  an unrepresented slot; (b) Animate Dead's final sentence is a *delayed
+  triggered ability* created on resolution (ruling; CR 603.7a/e), not a
+  granted trigger; (c) Gaea's Liege is not an established CDA — CR 604.3a(5)
+  excludes conditional value-setting, so its status is *ambiguous* and the
+  Alpha CDA count reads "3 detected + 1 ambiguous".
+- **Bounded, not reproducible:** V3, B1 and B2 were measured by session
+  scratch scripts that were not preserved, and B1/B2 were measured on the
+  historical 388-unit segmenter. They remain bounded observations and may not
+  be cited as verified until re-measured under the protocol's tooling.
+- **Multi-sentence count:** 59 of 398 printed units at the current baseline
+  by the protocol's stated method (≥ 2 sentence terminators); the "56" above
+  used an unstated method and is superseded.
+
+A unit-level annotation of all 412 Alpha units (single annotator, CR
+citations per row) now exists at `docs/audits/lea/units-annotated.tsv` with
+its measurements in `docs/audits/lea/metrics.json`: boundary precision
+390 / 395, 5 missed boundaries (all nested delayed triggers — Dragon Whelp,
+Stone Giant, Nettling Imp, Animate Dead, Cyclopean Tomb), kind accuracy
+379 / 383 (Disintegrate, Camouflage, Animate Dead's quoted keyword, Rock
+Hydra's prevention static), and one verified normalization collision:
+`{T}` and `{Q}` collapse to `{M}`, so `{T}: Add {G}.` and `{G}: Add {C}.`
+share a template (52 Alpha units affected). These are new findings, not part
+of the seven accepted changes, and have no tests or fixes yet.
