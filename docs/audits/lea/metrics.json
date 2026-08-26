@@ -10,32 +10,33 @@
   },
   "boundary": {
     "precision": {
-      "numerator": 400,
+      "numerator": 398,
       "denominator": 402,
-      "value": 0.995
+      "value": 0.99
     },
     "recall": {
-      "numerator": 400,
-      "denominator": 402,
+      "numerator": 398,
+      "denominator": 400,
       "value": 0.995
     },
     "by_value": {
-      "ok": 400,
+      "ok": 398,
       "under": 2,
+      "over": 2,
       "unsure": 1
     },
     "missed_boundaries": 2,
     "unsure": 1
   },
   "kind_accuracy": {
-    "numerator": 392,
-    "denominator": 393,
-    "value": 0.9975
+    "numerator": 390,
+    "denominator": 391,
+    "value": 0.9974
   },
   "kind_not_applicable_or_unsure": 7,
   "role_accuracy": {
-    "numerator": 398,
-    "denominator": 398,
+    "numerator": 396,
+    "denominator": 396,
     "value": 1.0
   },
   "source_accuracy": {
@@ -44,8 +45,8 @@
     "value": 1.0
   },
   "dispositions": {
-    "accept": 411,
-    "defect": 3,
+    "accept": 409,
+    "defect": 5,
     "adjudicate": 2,
     "ambiguous": 1
   },
@@ -105,7 +106,8 @@
   },
   "annotators": {
     "fable-pass1": 403,
-    "fable-pass1;codex-accepted-2026-08-26": 14
+    "fable-pass1;codex-accepted-2026-08-26;fable-review-2026-08-26": 12,
+    "fable-pass1;codex-accepted-2026-08-26;fable-review-2026-08-26;adjudicated-2026-08-26": 2
   },
   "templates": {
     "distinct": 294,

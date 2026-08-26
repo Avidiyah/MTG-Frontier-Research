@@ -42,10 +42,18 @@ python scripts/python/audit_metrics.py docs/audits/lea/units-annotated.tsv --exp
 python scripts/python/audit_metrics.py docs/audits/arn/units-annotated.tsv --earlier docs/audits/lea/units-export.tsv
 ```
 
-`export_units.py` enumerates a set with `cards "" --set <code>`, runs
-`segment --card` per card, and writes one row per unit with a parent
-pointer (columns defined in `docs/protocol/structural-investigation-protocol.md`
-§4.1). `audit_metrics.py` reads the annotated table, prints every ratio with
+`export_units.py` enumerates a set with `cards "" --set <code>`, segments
+each card's own Oracle text with `segment --text/--name/--type-line` (name
+lookup is ambiguous for cards that share a name with tokens), and writes one
+row per unit with a parent pointer (columns defined in
+`docs/protocol/structural-investigation-protocol.md` §4.1).
+
+`scripts/python/corpus_checks/` holds the corpus-wide S11 checks run after a
+segmenter change: `dump_corpus_units.py <out.jsonl>` writes every unit of
+every first-printing set via `audit export` (about a minute; the output is
+gitignored), and `check_delayed_split.py` / `check_kind_rules.py` /
+`check_kind_rules_part2.py <dump.jsonl> <report.md>` produce the reports kept
+under `docs/audits/corpus-checks/`. `audit_metrics.py` reads the annotated table, prints every ratio with
 its numerator and denominator, computes unit/template novelty against earlier
 sets' exports, and reports drift when the annotated unit text no longer
 matches a fresh export.

@@ -10,30 +10,31 @@
   },
   "boundary": {
     "precision": {
-      "numerator": 112,
+      "numerator": 110,
       "denominator": 112,
-      "value": 1.0
+      "value": 0.9821
     },
     "recall": {
-      "numerator": 112,
-      "denominator": 112,
+      "numerator": 110,
+      "denominator": 110,
       "value": 1.0
     },
     "by_value": {
-      "ok": 112
+      "ok": 110,
+      "over": 2
     },
     "missed_boundaries": 0,
     "unsure": 0
   },
   "kind_accuracy": {
-    "numerator": 110,
-    "denominator": 110,
+    "numerator": 108,
+    "denominator": 108,
     "value": 1.0
   },
   "kind_not_applicable_or_unsure": 2,
   "role_accuracy": {
-    "numerator": 112,
-    "denominator": 112,
+    "numerator": 110,
+    "denominator": 110,
     "value": 1.0
   },
   "source_accuracy": {
@@ -42,7 +43,8 @@
     "value": 1.0
   },
   "dispositions": {
-    "accept": 112
+    "accept": 110,
+    "defect": 2
   },
   "context_required": {
     "none": 87,
@@ -103,7 +105,8 @@
   "kind_expected_when_wrong": {},
   "annotators": {
     "fable-pass1": 103,
-    "fable-pass1;codex-accepted-2026-08-26": 9
+    "fable-pass1;codex-accepted-2026-08-26;fable-review-2026-08-26": 7,
+    "fable-pass1;codex-accepted-2026-08-26;fable-review-2026-08-26;adjudicated-2026-08-26": 2
   },
   "templates": {
     "distinct": 95,

@@ -307,6 +307,21 @@ Remaining known defects/deferred cases:
 Recommendation: Antiquities (`atq`) structural research is cleared to begin;
 Codex did not begin that research.
 
+### Research-lead review of this implementation (2026-08-26, after the Antiquities audit)
+
+P-ARN-2, P-ARN-3 and P-ARN-4 are ratified; the sentence-level half of
+P-ARN-1 is ratified. The un-proposed single-sentence rule (c) — split at the
+last `: `/`, ` before the phrase — is **rejected**: the corpus S11 check
+(`docs/audits/corpus-checks/2026-08-26-delayed-split-overseg.md`) finds 108
+bare-condition and 5 bare-cost parents corpus-wide, 0/40 sampled fragments
+that are reference units, and 3 splits inside quoted abilities. Rukh Egg #0
+and Nafs Asp #0 are therefore re-dispositioned `over`/`defect` (their
+children stay `ok`), and Arabian Nights stands at boundary 110/112, accept
+110 · defect 2. The rows Codex marked `codex-accepted` were re-read by the
+research lead and carry `fable-review-2026-08-26`; the replacement rule is
+proposed as P-ATQ-1 in `docs/findings/atq-structural-audit.md`. The
+"112 / 112" figures above are Codex's pre-review numbers and are superseded.
+
 ## Measurements (protocol section 4.5; `docs/audits/arn/metrics.json`)
 
 | Field | `arn` | `leb` |

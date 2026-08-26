@@ -86,7 +86,13 @@ def main():
     for card in cards:
         if not card.get("oracle_text"):
             continue
-        result = run_json(args.mtg, args.db, ["segment", "--card", card["name"]])
+        # Segment the card's own text rather than looking it up by name:
+        # `segment --card` resolves names with LIMIT 1, and names collide with
+        # token cards (Antiquities' Shapeshifter vs. Shapeshifter tokens).
+        seg_args = ["segment", "--text", card["oracle_text"], "--name", card["name"]]
+        if card.get("type_line"):
+            seg_args += ["--type-line", card["type_line"]]
+        result = run_json(args.mtg, args.db, seg_args)
         rows.extend(flatten(card, args.set_code, result["segments"]))
 
     # Oracle text contains em dashes and curly quotes; never let the console

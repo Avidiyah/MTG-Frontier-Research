@@ -1,0 +1,144 @@
+{
+  "annotated_file": "docs/audits/atq/units-annotated.tsv",
+  "cards": 85,
+  "units": {
+    "all": 125,
+    "printed": 125,
+    "rules_supplied": 0,
+    "printed_top_level": 120,
+    "printed_children": 5
+  },
+  "boundary": {
+    "precision": {
+      "numerator": 123,
+      "denominator": 125,
+      "value": 0.984
+    },
+    "recall": {
+      "numerator": 123,
+      "denominator": 124,
+      "value": 0.9919
+    },
+    "by_value": {
+      "ok": 123,
+      "over": 1,
+      "under": 1
+    },
+    "missed_boundaries": 1,
+    "unsure": 0
+  },
+  "kind_accuracy": {
+    "numerator": 123,
+    "denominator": 123,
+    "value": 1.0
+  },
+  "kind_not_applicable_or_unsure": 0,
+  "role_accuracy": {
+    "numerator": 123,
+    "denominator": 123,
+    "value": 1.0
+  },
+  "source_accuracy": {
+    "numerator": 125,
+    "denominator": 125,
+    "value": 1.0
+  },
+  "dispositions": {
+    "accept": 123,
+    "defect": 2
+  },
+  "context_required": {
+    "none": 101,
+    "cr": 22,
+    "type_line": 2
+  },
+  "structure_tags": {
+    "prevention_in_effect": 4,
+    "prevention_static": 3,
+    "activation_instruction": 6,
+    "multi_sentence": 29,
+    "keyword": 13,
+    "compound_trigger_event": 3,
+    "cost_symbol_in_condition": 3,
+    "mana_ability": 9,
+    "sacrifice_cost": 2,
+    "optional_untap_static": 4,
+    "duration_conditional": 3,
+    "nonmana_cost": 10,
+    "duration_until_end_of_combat": 1,
+    "condition_only_parent": 1,
+    "delayed_trigger_parent": 3,
+    "delayed_trigger_end_of_combat": 1,
+    "ante": 1,
+    "enters_replacement": 8,
+    "one_off_candidate": 3,
+    "ownership_change": 1,
+    "cycle_member": 1,
+    "intervening_if": 2,
+    "recurring_end_of_combat": 1,
+    "untap_restriction": 2,
+    "remembered_choice": 8,
+    "self_reference_name": 3,
+    "granted_quoted_parent": 2,
+    "granted_quoted": 2,
+    "cda": 2,
+    "coin_flip": 1,
+    "name_predicate": 1,
+    "set_reference": 1,
+    "conditional_static": 1,
+    "redirect_replacement": 1,
+    "animate_effect": 2,
+    "optional_payment": 7,
+    "mana_restriction": 1,
+    "cost_modification": 1,
+    "choice_of_characteristics": 1,
+    "delayed_trigger_inverted": 2,
+    "noncontiguous_parent": 1,
+    "optional_choice_trigger": 1,
+    "dies_trigger": 1,
+    "delayed_trigger_when_unscoped": 1,
+    "instead_free": 1,
+    "token_with_text": 2,
+    "duration_after_leaving": 1,
+    "loses_all_abilities": 1,
+    "conditional_chain": 1,
+    "choice_of_keywords": 1,
+    "instead_in_activated": 3,
+    "subtype_reference": 3
+  },
+  "normalization_flags": {
+    "collision:tap_as_mana": 36,
+    "fragmentation:object_type": 3
+  },
+  "kind_expected_when_wrong": {},
+  "annotators": {
+    "fable-pass1;fork-pass2;adjudicated-2026-08-26": 125
+  },
+  "templates": {
+    "distinct": 114,
+    "singletons": 107
+  },
+  "novelty": {
+    "earlier_files": [
+      "docs/audits/lea/units-export.tsv",
+      "docs/audits/leb/units-export.tsv",
+      "docs/audits/arn/units-export.tsv"
+    ],
+    "earlier_distinct_templates": 374,
+    "unit_novelty": {
+      "numerator": 96,
+      "denominator": 125,
+      "value": 0.768
+    },
+    "template_novelty": {
+      "numerator": 95,
+      "denominator": 114,
+      "value": 0.8333
+    }
+  },
+  "drift": {
+    "export": "docs/audits/atq/units-export.tsv",
+    "changed_or_missing_units": 0,
+    "examples": []
+  }
+}

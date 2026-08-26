@@ -308,13 +308,25 @@ hit is not proof that the rule completely determines a card's behavior.
 
 - Structural annotations exist for Alpha (`docs/audits/lea/`, 417 units),
   Beta's two new cards (`docs/audits/leb/`) and Arabian Nights
-  (`docs/audits/arn/`, 112 units): single annotator, CR citation per row,
-  unadjudicated except where noted. After P-ARN-1 through P-ARN-4, Alpha:
-  boundary precision 400 / 402, 2 missed boundaries, kind accuracy
-  392 / 393. Arabian Nights: boundary precision, recall, kind, role, and
-  source accuracy all 1.0; unit novelty 80 / 112 and template novelty
-  79 / 95 against Alpha + Beta. These are development and regression sets,
+  (`docs/audits/arn/`, 112 units) and Antiquities (`docs/audits/atq/`,
+  125 units): CR citation per row. Alpha and Arabian Nights are
+  single-annotator with lead review; **Antiquities is adjudicated** (two
+  independent passes, 125 / 125 agreement). After P-ARN-1..4 and the lead
+  review: Alpha boundary 398 / 402 (under 2, over 2, unsure 1), kind
+  392 / 393; Arabian Nights 110 / 112 (over 2); Antiquities 123 / 125
+  (under 1, over 1), kind 123 / 123, unit novelty 96 / 125 and template
+  novelty 95 / 114 against the three earlier sets. The `over` rows are
+  condition-only parents produced by the single-sentence split rule (c),
+  rejected in review (P-ATQ-1). These are development and regression sets,
   not gold sets and not evidence about the corpus.
+- Corpus-wide S11 checks of the P-ARN rules are scripted
+  (`scripts/python/corpus_checks/`, reports in `docs/audits/corpus-checks/`):
+  delayed-trigger splits 982 (sentence-level 861 sound; 121 comma/colon
+  fragments and 3 in-quote splits defective); `prevention_effect` 181
+  (144 / 161 top-level correct; 9 `can't be prevented`, 8 ability-word /
+  chapter-prefixed misfires); instant/sorcery faces carry 0 lexical
+  replacement/prevention labels but 30 spell-only delayed triggers are
+  labelled top-level triggers.
 - A held-out pool is frozen (protocol §6.3: `oracle_id` prefix `f`,
   non-fallback, excluding `lea`/`leb`/`arn`; 2,096 cards) but not yet sampled
   or annotated.
@@ -378,10 +390,12 @@ Unless new evidence changes priorities:
    Alpha is done: its seven segmenter changes are implemented, tested and
    measured, and its unit-level annotation is committed. Gate 0 passed on
    2026-08-26 (`docs/gates/gate-0-evidence.md`). Arabian Nights (`arn`) and
-   Beta (`leb`) are audited (`docs/findings/arn-structural-audit.md`), and
-   P-ARN-1 through P-ARN-4 are implemented, tested, re-exported, and
-   measured with zero drift. Antiquities (`atq`, 85 cards) is cleared as
-   the next set for Fable to begin.
+   Beta (`leb`) are audited (`docs/findings/arn-structural-audit.md`);
+   P-ARN-1..4 are implemented and reviewed (rule (c) rejected). Antiquities
+   is audited and adjudicated (`docs/findings/atq-structural-audit.md`)
+   with proposals P-ATQ-1..4 awaiting Codex. Legends (`leg`, 310 cards,
+   290 with text — the last set below the 400-card exhaustive threshold
+   before Ice Age) is next.
 2. **Normalization ablations:** measure one reversible transformation at a time
    rather than applying increasingly lossy normalization as a bundle.
 3. **Typed-slot discovery:** test candidate roles for numbers, mana, objects,
@@ -473,3 +487,14 @@ When updating this document:
   all three report zero drift. Arabian Nights now has 112 / 112 boundary,
   role, and source accuracy and 110 / 110 kind accuracy. Antiquities is
   cleared to begin, but Codex did not start that research.
+- Lead review of `af150b0`: P-ARN-2/3/4 and sentence-level P-ARN-1 ratified;
+  the un-proposed single-sentence split rule (c) rejected on corpus evidence
+  (0/40 sampled comma/colon parents are reference units; 108 bare-condition
+  parents; 3 in-quote splits). Condition-only parents in `lea`/`arn`/`atq`
+  re-dispositioned `over`/`defect`. Fixed `export_units.py` name-collision
+  defect (Shapeshifter vs. tokens); script and native `audit export` now
+  agree field-for-field on `atq`. Antiquities audited with two passes
+  (125/125 agreement): one unscoped-`When` miss (Tawnos's Coffin), one
+  rule-(c) fragment (Battering Ram); unit novelty rose to 96/125, falsifying
+  N1 as stated (novelty tracks theme, not only date). Corpus S11 checks
+  preserved as scripts. Proposals P-ATQ-1..4 recorded; D15–D20 registered.
