@@ -461,3 +461,11 @@ Updated Alpha measurements: 417 total units (403 printed + 14 rules-supplied),
 missed boundaries 2, kind accuracy 392 / 393, dispositions accept 411 ·
 defect 3 · adjudicate 2 · ambiguous 1. `docs/audits/lea/units-export.tsv` and
 `docs/audits/lea/metrics.json` were regenerated and report zero drift.
+
+Post-P-ATQ-1 re-annotation (2026-08-26): Cockatrice #1 and Thicket Basilisk
+#0 are now single `under` units (missed 1) instead of an `over` condition-only
+parent plus a delayed child; 415 units (401 printed + 14 rules-supplied), 293
+distinct printed templates, boundary precision 396 / 400 (under 4, unsure 1),
+missed 4, kind accuracy 388 / 389, dispositions accept 407 · defect 5 ·
+adjudicate 2 · ambiguous 1 — defect total unchanged. See
+`docs/findings/atq-structural-audit.md`, P-ATQ-1 acceptance record.

@@ -242,6 +242,71 @@ reproduction commands in section 10, confirm the corpus counts, rerun
 `audit_metrics.py` on the four earlier exports to confirm no new
 non-`accept` rows, and only then treat P-ATQ-1 as accepted.
 
+### P-ATQ-1 acceptance record (technical S10 package, 2026-08-26, branch `claude/p-atq-1-acceptance` on `ac759f6`)
+
+**Status: accepted.** Research acceptance:
+`docs/findings/p-atq-research-acceptance-assessment.md` (ACCEPT, high
+confidence). This section is the S10 items 4, 5 and 7 evidence that
+acceptance was conditioned on. No segmenter code changed in this package.
+
+- **S10 item 4 — before/after, P-ATQ-1 isolated.** `8c0f229` (pre-change;
+  identical `src/main.rs` to `af150b0`) and `bf9eb04` (P-ATQ-1 only) were
+  built from `git archive` and run on the same 2026-08-25 snapshot. Printed
+  units 71,682 → 71,563 (−121 delayed-trigger children, +2 `granted`
+  children from the de-mangled quoted abilities); rules-supplied 970 → 970;
+  distinct templates 37,344 → 37,299; top-10 / 100 / 250 / 500 coverage
+  14.15 / 26.85 / 32.46 / 37.23 % → 14.17 / 26.90 / 32.52 / 37.28 %. Kinds:
+  activated 12,000 → 11,999 · static/spell 21,521 → 21,520 · triggered
+  17,503 → 17,384 · keyword 17,630 · replacement 2,208 → 2,210 · additional
+  cost 317 · CDA 245 · prevention 181 · cast restriction 68 · ante 9. Roles:
+  ability 67,075 · mode 2,121 · granted 1,504 → 1,506 · delayed trigger
+  982 → 861. HEAD (`ac759f6`, P-ATQ-1..4 combined) has the same unit and
+  template totals; its role histogram differs from `bf9eb04` only by
+  P-ATQ-4's +30 top-level `delayed_trigger` (861 → 891, ability 67,075 →
+  67,045), and its kind histogram only by P-ATQ-2/3 (`prevention_effect`
+  181 → 166, `triggered_ability` 17,384 → 19,214, etc.). Reports:
+  `docs/audits/corpus-checks/2026-08-26-delayed-split-overseg-post-p-atq-1.md`
+  (`bf9eb04`) and `…-post-p-atq-1-4-HEAD.md` (`ac759f6`).
+- **S11 — child-set identity.** Diffing the `8c0f229` and `bf9eb04` corpus
+  dumps by (`oracle_id`, face, child text): exactly the 121 comma/colon
+  children are removed (115 comma-parent, 6 colon-parent), 0 children are
+  added, and the 861 surviving children are identical to HEAD's nested set.
+  Lowercase-initial children 115 → 0; in-quote splits 3 → 0 (those three
+  cards now segment as a parent with one `granted` child). Every one of the
+  121 merged units carries `delayed_trigger_unattached_candidate`
+  (corpus-wide 14 → 186; the ~50 beyond the 121 are units the widened
+  `delayed_trigger_unresolved` check now flags that were never split). The
+  script's narrower residual regex reports 93 → 206.
+- **Expected vs measured.** The proposal estimated ~113 / 121 reverting
+  (→ ~869); measured: all 121 revert (→ 861), because rule (c) was deleted
+  rather than guarded. The 8-unit difference is the "condition + partial
+  effect" (5) and "ability-word / quote fragment" (3) classes; §6 found none
+  of them to be a reference unit, so the stronger outcome is the correct one.
+- **S10 item 5 — regression.** Fresh `lea`/`leb`/`arn`/`atq` exports drift
+  from the pre-change annotations in exactly 10 rows, all five fix rows
+  (parent changed, child missing); `leb` 0; the native `audit export` agrees
+  with the script export on every shared field. The five rows are
+  re-annotated as one unit each: `under`, missed 1, kind/role/source ok,
+  `cr_ref` 113.3c;603.7a;603.7e, `defect` (the Animate Dead / Tawnos's
+  Coffin convention for a deliberately unsplit in-unit delayed trigger),
+  annotator suffix `fable-reannotation-p-atq-1-2026-08-26`. Drift is now 0
+  on all four sets. Metrics after: Alpha 415 units, boundary 396 / 400
+  (under 4, over 0, unsure 1), missed 4, kind 388 / 389, accept 407 ·
+  defect 5 · adjudicate 2 · ambiguous 1; Arabian Nights 110 units, 108 / 110
+  (under 2), missed 2, accept 108 · defect 2; Antiquities 124 units,
+  122 / 124 (under 2), missed 2, accept 122 · defect 2. **No new
+  non-`accept` row in any set** — the defect totals are unchanged; the five
+  `over` defects became five `under` defects and five `accept` children
+  ceased to exist.
+- **S12** — the six regression tests listed in the disposition above;
+  `cargo test` 82 passed at `ac759f6`.
+- **S10 item 7** — `docs/current-state.md`, `docs/roadmap.md` (D15) and
+  `docs/gates/gate-1-readiness-matrix.md` updated in this package.
+- **Tooling** — `scripts/python/corpus_checks/dump_corpus_units.py` accepts
+  an `MTG_DISCOVER` binary-path override and `check_delayed_split.py` a
+  third argument for the commit label, so the isolated measurement is
+  reproducible.
+
 **P-ATQ-2 — `can't be prevented` is not a prevention effect.** Exclude text
 matching `can't be prevented` from `prevention_effect`; classify as residual
 static. Fix rows: the 9 units listed in check B §A (CR 615.1a defines
@@ -744,6 +809,14 @@ After the lead review, Alpha stands at boundary 398 / 402 (under 2, over 2,
 unsure 1; accept 409 · defect 5 · adjudicate 2 · ambiguous 1) and Arabian
 Nights at 110 / 112 (over 2; accept 110 · defect 2).
 
+After the P-ATQ-1 re-annotation (2026-08-26, acceptance record in §8):
+Antiquities 124 printed units (120 top-level, 4 children), boundary
+122 / 124 (under 2, over 0), missed 2, recall 122 / 124, dispositions
+accept 122 · defect 2, unit / template novelty 95 / 124 · 94 / 113 against
+371 earlier distinct templates; Alpha 396 / 400 (under 4, unsure 1), Arabian
+Nights 108 / 110 (under 2). The table above is the pre-change adjudicated
+audit and is kept as recorded.
+
 ## 10. Reproduction
 
 ```powershell
@@ -759,6 +832,11 @@ python scripts/python/corpus_checks/check_kind_rules.py corpus-units.jsonl docs/
 python scripts/python/corpus_checks/check_kind_rules_part2.py corpus-units.jsonl docs/audits/corpus-checks/2026-08-26-kind-rules-check.md
 & $mtg card "82a6d89d-9215-4540-b7d5-26cdd6afb05b" --rulings   # Shapeshifter (atq) by oracle_id; the name is ambiguous
 & $mtg card "Tawnos's Coffin" --rulings ; & $mtg card "Gorgon Recluse" --rulings
+# P-ATQ-1 acceptance package (isolated measurement): build 8c0f229 and bf9eb04 from `git archive` under .claude/tmp-*/ with the DB and rules copied in, then
+$env:MTG_DISCOVER = "<path to bf9eb04 binary>" ; python scripts/python/corpus_checks/dump_corpus_units.py corpus-units-bf9eb04.jsonl ; Remove-Item Env:MTG_DISCOVER
+python scripts/python/corpus_checks/check_delayed_split.py corpus-units-bf9eb04.jsonl docs/audits/corpus-checks/2026-08-26-delayed-split-overseg-post-p-atq-1.md bf9eb04
+python scripts/python/corpus_checks/check_delayed_split.py corpus-units.jsonl docs/audits/corpus-checks/2026-08-26-delayed-split-overseg-post-p-atq-1-4-HEAD.md ac759f6
+& $mtg audit signals atq                                  # Battering Ram #1 carries delayed_trigger_unattached_candidate
 ```
 
 The second annotation pass is `docs/audits/atq/units-annotated-pass2.tsv`

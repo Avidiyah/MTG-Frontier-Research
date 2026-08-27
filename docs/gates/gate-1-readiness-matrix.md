@@ -66,7 +66,7 @@ audit may open.
 
 | Entry dependency | Current status | Required action | Responsible role | Blocks Legends? |
 |---|---|---|---|---|
-| P-ATQ technical acceptance package | **partial** — research acceptance exists; Claude's S8/regression/evidence package is pending. | Complete technical package; surface any contradiction; close only affected proposal if needed. | Claude/technical validator; research lead adjudicates conflict. | **Yes.** |
+| P-ATQ technical acceptance package | **partial** — research acceptance exists; P-ATQ-1's technical package is complete (2026-08-26, `docs/findings/atq-structural-audit.md` acceptance record); P-ATQ-2..4 packages are pending. | Complete technical package; surface any contradiction; close only affected proposal if needed. | Claude/technical validator; research lead adjudicates conflict. | **Yes.** |
 | Live baseline reconciled in `docs/current-state.md` | **partial** — current state still contains pre-acceptance wording in places. | Reconcile after P-ATQ closure and record final commit. | Technical documentation owner; research lead verifies. | **Yes.** |
 | Legends preregistration and empty outline | **satisfied** by `docs/findings/leg-structural-audit-preregistration.md` and `docs/findings/leg-structural-audit.md`. | Program-owner countersignature after P-ATQ closure. | Research lead; program owner. | **Yes until countersigned.** |
 | Held-out-safe development export | **missing as an attested audit input**; protocol T7 remains a tooling requirement. | Produce deterministic non-held-out export and verify exclusions by aggregate/key checks before any row is displayed. No classifier change is involved. | Technical measurement owner; research lead verifies. | **Yes.** |

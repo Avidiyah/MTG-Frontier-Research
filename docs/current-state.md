@@ -334,17 +334,17 @@ hit is not proof that the rule completely determines a card's behavior.
   (`docs/audits/arn/`, 112 units) and Antiquities (`docs/audits/atq/`,
   125 units): CR citation per row. Alpha and Arabian Nights are
   single-annotator with lead review; **Antiquities is adjudicated** (two
-  independent passes, 125 / 125 agreement). After P-ARN-1..4 and the lead
-  review: Alpha boundary 398 / 402 (under 2, over 2, unsure 1), kind
-  392 / 393; Arabian Nights 110 / 112 (over 2); Antiquities 123 / 125
-  (under 1, over 1), kind 123 / 123, unit novelty 96 / 125 and template
-  novelty 95 / 114 against the three earlier sets. The `over` rows are
-  condition-only parents produced by the single-sentence split rule (c),
-  rejected in review (P-ATQ-1). P-ATQ-1..4 are now implemented, so these
-  annotation metrics describe the pre-change export and await research-lead
-  re-annotation. Fresh exports contain 415 Alpha units, 110 Arabian Nights
-  units, and 124 Antiquities units. These are development and regression sets,
-  not gold sets and not evidence about the corpus.
+  independent passes, 125 / 125 agreement). After P-ATQ-1's acceptance and
+  re-annotation (2026-08-26): Alpha 415 units, boundary 396 / 400 (under 4,
+  over 0, unsure 1), kind 388 / 389; Arabian Nights 110 units, 108 / 110
+  (under 2); Antiquities 124 units, 122 / 124 (under 2, over 0), kind
+  122 / 122, unit novelty 95 / 124 and template novelty 94 / 113 against the
+  three earlier sets. The former `over` rows (condition-only parents of the
+  rejected split rule (c)) are re-annotated as single `under` units with a
+  recorded in-unit delayed trigger (D15 slot); defect totals are unchanged
+  (Alpha 5, Arabian Nights 2, Antiquities 2). The committed exports are
+  fresh and drift 0 from the annotations. These are development and
+  regression sets, not gold sets and not evidence about the corpus.
 - Corpus-wide S11 checks of the P-ARN and P-ATQ rules are scripted
   (`scripts/python/corpus_checks/`, reports in `docs/audits/corpus-checks/`):
   after P-ATQ-1, all 861 nested delayed-trigger children are sentence-level and
@@ -419,9 +419,10 @@ Unless new evidence changes priorities:
    Beta (`leb`) are audited (`docs/findings/arn-structural-audit.md`);
    P-ARN-1..4 are implemented and reviewed (rule (c) rejected). Antiquities
    is audited and adjudicated (`docs/findings/atq-structural-audit.md`).
-   P-ATQ-1..4 are implemented and corpus-measured, pending research-lead
-   re-annotation and acceptance; P-ATQ-3 has 3 residual prefix-related
-   prevention candidates requiring adjudication. Legends (`leg`, 310 cards,
+   P-ATQ-1 is accepted (technical S10 package 2026-08-26, isolated
+   measurement at `bf9eb04`); P-ATQ-2..4 are implemented and
+   research-accepted, pending their technical packages; P-ATQ-3 has 3
+   residual prefix-related prevention candidates requiring adjudication. Legends (`leg`, 310 cards,
    290 with text — the last set below the 400-card exhaustive threshold
    before Ice Age) is next.
 2. **Normalization ablations:** measure one reversible transformation at a time
@@ -552,20 +553,16 @@ When updating this document:
   (`suspicious_signals_flag_unresolved_single_sentence_delayed_trigger`).
   `cargo fmt -- --check`, `cargo test` (45 passed), `cargo clippy
   --all-targets -- -D warnings`, and `cargo build --release` all pass at
-  this change. **Not yet done:** this session's network egress policy
-  blocks `api.scryfall.com` (403; confirmed via the agent-proxy status
-  endpoint), so `scripts/python/mtg_card_pipeline.py` cannot fetch bulk
-  data, `cards.sqlite` does not exist, and neither `mtg-discover
-  info`/`templates` nor `scripts/python/corpus_checks/check_delayed_split.py`
-  could be run. The corpus-wide before/after counts (982 → an expected
-  ~869 delayed-trigger children, per the proposal in
-  `docs/findings/atq-structural-audit.md` §8) and the S10 regression rerun
-  of `audit_metrics.py` against `lea`/`leb`/`arn`/`atq` exports are
-  therefore **not verified** in this session. P-ATQ-1 is implemented and
-  unit-tested but not yet accepted under protocol S10 (items 4–5); a later
-  session with data access must regenerate the snapshot, rerun the S11
-  corpus check, and refresh the "Verified data snapshot" numbers above
-  before the baseline table is updated or the proposal is marked accepted.
+  this change. **Accepted 2026-08-26** (technical S10 package, branch
+  `claude/p-atq-1-acceptance`): measured in isolation at `bf9eb04` against
+  `8c0f229` on the same snapshot — 71,682 → 71,563 printed units, 37,344 →
+  37,299 templates, 982 → 861 delayed-trigger children (all 121 comma/colon
+  children removed, not the estimated ~113, because rule (c) was deleted
+  rather than guarded; 0 added; 0 lowercase-initial; 0 in-quote), every
+  merged unit carrying `delayed_trigger_unattached_candidate`. Regression:
+  fresh exports drift in exactly the five fix rows, re-annotated `under`
+  (missed 1, D15 slot), drift 0, no new non-`accept` row. Full record in
+  `docs/findings/atq-structural-audit.md` ("P-ATQ-1 acceptance record").
 - Implemented P-ATQ-2: `classify_kind` in `src/main.rs` no longer labels
   `can't be prevented` / `cannot be prevented` text as `prevention_effect`.
   A new `prevention_prohibition` regex (`can(?:'|’)?t be prevented|cannot be
@@ -827,3 +824,15 @@ When updating this document:
   P-ATQ-3 reduced the 8 recorded prefix-related prevention candidates to 3;
   these remain for research-lead adjudication. All four implementations remain
   pending the protocol-required re-annotation and acceptance decision.
+- Accepted P-ATQ-1 under protocol S10 (decider: research lead, per
+  `docs/findings/p-atq-research-acceptance-assessment.md`; technical package
+  on branch `claude/p-atq-1-acceptance`). The rule (c) retraction was
+  measured in isolation (`8c0f229` → `bf9eb04`, same snapshot): all 121
+  comma/colon delayed children revert (982 → 861; the proposal had estimated
+  ~113), 0 children added, the surviving 861 are identical to HEAD's nested
+  set, and every merged unit carries the T8-style
+  `delayed_trigger_unattached_candidate` signal. Fresh `lea`/`leb`/`arn`/`atq`
+  exports and metrics are committed; the five fix rows are re-annotated as
+  `under` (missed 1) with defect totals unchanged. The corpus-check scripts
+  gained a binary-path override and a commit-label argument. P-ATQ-2..4
+  technical packages, D19 and D14 remain open.

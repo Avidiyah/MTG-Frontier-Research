@@ -343,6 +343,13 @@ Alpha after accepted P-ARN updates: boundary precision 400 / 402, missed 2,
 kind accuracy 392 / 393, dispositions accept 411; defect 3; adjudicate 2;
 ambiguous 1 (`docs/audits/lea/metrics.json`).
 
+Post-P-ATQ-1 re-annotation (2026-08-26): Rukh Egg #0 and Nafs Asp #0 are now
+single `under` units (missed 1) instead of an `over` condition-only parent
+plus a delayed child; 110 units, boundary precision 108 / 110 (under 2),
+missed 2, dispositions accept 108 · defect 2 — defect total unchanged; unit /
+template novelty vs `lea`+`leb` 78 / 110 · 77 / 93. See
+`docs/findings/atq-structural-audit.md`, P-ATQ-1 acceptance record.
+
 ## Reproduction
 
 ```powershell
