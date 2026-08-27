@@ -309,6 +309,7 @@ NAME_TOKEN_RE = re.compile(r"\b[A-Z][a-zA-Z',\- ]{2,40}\b")  # rough proper-noun
 NUMBER_RE = re.compile(r"\b\d+\b")
 MANA_SYMBOL_RE = re.compile(r"\{[^{}]+\}")
 REMINDER_TEXT_RE = re.compile(r"\([^()]*\)")
+ANALYSIS_FETCH_BATCH_SIZE = 1024
 
 
 def normalize_oracle_text(text: str, card_name: str) -> str:
@@ -329,25 +330,29 @@ def normalize_oracle_text(text: str, card_name: str) -> str:
 
 def analyze_templates(top_n: int = 40):
     conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-    cur.execute("SELECT name, oracle_text FROM cards WHERE oracle_text IS NOT NULL AND oracle_text != ''")
-    rows = cur.fetchall()
-    conn.close()
-
     counter = Counter()
     total = 0
-    for name, text in rows:
-        # Multi-line abilities: treat each line as its own template unit
-        # rather than the whole card, since composite cards (Level 2 in the
-        # roadmap's ladder) are combinations of simpler line-level templates.
-        for line in text.split("\n"):
-            line = line.strip()
-            if not line:
-                continue
-            template = normalize_oracle_text(line, name)
-            if template:
-                counter[template] += 1
-                total += 1
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT name, oracle_text FROM cards "
+            "WHERE oracle_text IS NOT NULL AND oracle_text != ''"
+        )
+        while rows := cur.fetchmany(ANALYSIS_FETCH_BATCH_SIZE):
+            for name, text in rows:
+                # Multi-line abilities: treat each line as its own template unit
+                # rather than the whole card, since composite cards (Level 2 in the
+                # roadmap's ladder) are combinations of simpler line-level templates.
+                for line in text.split("\n"):
+                    line = line.strip()
+                    if not line:
+                        continue
+                    template = normalize_oracle_text(line, name)
+                    if template:
+                        counter[template] += 1
+                        total += 1
+    finally:
+        conn.close()
 
     print(f"\nTotal ability lines analyzed: {total}")
     print(f"Distinct normalized templates: {len(counter)}")
