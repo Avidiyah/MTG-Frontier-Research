@@ -29,11 +29,11 @@ $mtg = ".\target\release\mtg-discover.exe"
 # Full Rust test suite
 cargo test
 
-# One exact unit test (tests are in src/main.rs)
-cargo test tests::normalization_handles_nested_reminder_text_and_self_references -- --exact
+# One exact unit test (tests are organized by subsystem under src/tests/)
+cargo test tests::normalization::normalization_handles_nested_reminder_text_and_self_references -- --exact
 
 # Substitute another test name when targeting a different behavior
-cargo test tests::rules_parser_separates_numbered_rules_and_glossary -- --exact
+cargo test tests::rules::rules_parser_separates_numbered_rules_and_glossary -- --exact
 
 # Formatting and lint checks
 cargo fmt -- --check
@@ -62,7 +62,7 @@ database from the local bulk files.
 Scryfall oracle_cards + rulings + default_cards
     -> scripts/python/mtg_card_pipeline.py
     -> cards.sqlite
-    -> src/main.rs (mtg-discover)
+    -> src/*.rs (mtg-discover)
        + Magic-Comprehensive_Rules.md parsed on demand
     -> JSON observations
     -> docs/findings/ and, for repository-wide changes, docs/current-state.md
@@ -76,9 +76,11 @@ Scryfall oracle_cards + rulings + default_cards
   earliest printing of any kind is stored and `first_is_fallback` is set.
   Era-by-era research therefore tracks when effects entered the game, while
   still analyzing current Oracle wording rather than historical wording.
-- `src/main.rs` is the complete Rust `mtg-discover` CLI. It opens
-  `cards.sqlite` read-only, parses the Comprehensive Rules directly from the
-  Markdown file, and serializes every successful command as one JSON document.
+- `src/main.rs` is the thin `mtg-discover` entry point. Functional modules own
+  card/set queries, rules access, segmentation/templates, audits, shared
+  database policy, and regression tests. The CLI opens `cards.sqlite`
+  read-only, parses the Comprehensive Rules directly from Markdown, and
+  serializes every successful command as one JSON document.
 - Rules parsing is structural, not semantic: numbered rules are recognized by
   their identifiers and glossary entries by document layout. Search and rule
   retrieval make the rules addressable evidence; they do not produce
@@ -117,10 +119,8 @@ the Oracle Cards file.
 This repo has a `rust-analyzer`-backed MCP server configured
 (`rust-analyzer-mcp`, see `.vscode/mcp.json` and `.mcp.json`). When it is
 connected and trusted, prefer its tools — get symbols, go to definition, find
-references, hover — over grep/text search for navigating `src/main.rs`. It is
-a single ~3,800-line file, and semantic navigation is more reliable than
-pattern matching for tracing callers of shared machinery like `segment_text`,
-`build_unit`, `classify_kind`, and `normalize_text`.
+references, hover — over grep/text search when tracing behavior across the
+functional modules under `src/`.
 
 If the MCP tools aren't available in a given session (server not installed or
 not trusted), fall back to grep/glob as usual. To install or reinstall it

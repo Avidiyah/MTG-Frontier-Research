@@ -17,7 +17,7 @@ An empirical research workbench for the problem of translating Magic: The Gather
 cargo build --release
 $mtg = ".\target\release\mtg-discover.exe"
 
-# Tests (all in src/main.rs #[cfg(test)] module)
+# Tests (organized by subsystem under src/tests/)
 cargo test
 cargo test normalization_handles   # single test by name substring
 
@@ -45,7 +45,7 @@ Every successful command prints one JSON document to stdout; errors go to stderr
 
 ## Architecture
 
-- `src/main.rs` — the entire `mtg-discover` CLI (single file). Reads `cards.sqlite` read-only and parses `Magic-Comprehensive_Rules.md` on the fly(Still make sure to read `Magic-Comprehensive_Rules.md` to verify). Key shared machinery: `segment_text`/`segment_line`/`build_unit` (line-level segmentation into a tree of typed `Segment`s: `AbilityKind` × `StructuralRole` × `TextSource`, with mode, delayed-trigger and quoted-ability children), `classify_kind` (surface-form classification on normalized text), `normalize_text` (card name and `this <type>` → `~` except after `named`, mana → `{M}`, integers → `N`, reminder text stripped) — both `segment` and `templates` run through this same code, so changing normalization changes the corpus-wide baseline numbers in `docs/current-state.md`.
+- `src/main.rs` and `src/cli.rs` — thin `mtg-discover` dispatch and CLI definitions. Functional modules own card/set queries, rules access, segmentation/templates, audits, shared database policy, JSON helpers, and tests. `src/segment.rs` contains `segment_text`/`segment_line`/`build_unit` (line-level segmentation into a tree of typed `Segment`s: `AbilityKind` × `StructuralRole` × `TextSource`, with mode, delayed-trigger and quoted-ability children), `classify_kind` (surface-form classification on normalized text), and `normalize_text` (card name and `this <type>` → `~` except after `named`, mana → `{M}`, integers → `N`, reminder text stripped). Both `segment` and `templates` use this shared machinery, so changing normalization changes the corpus-wide baseline numbers in `docs/current-state.md`.
 - `scripts/python/mtg_card_pipeline.py` — builds the data: fetches Scryfall bulk data (`oracle-cards.jsonl.gz`, `rulings.jsonl.gz`), loads into `cards.sqlite` (`cards` keyed by `oracle_id`; `rulings` indexed on `oracle_id`; JSON-text columns for keywords/colors/legalities). Double-faced cards get face texts joined with `//` and `is_dfc = 1`.
 - The normalizer/segmenter is deliberately crude — a measurement instrument, not a parser. Do not present its output as semantic parsing.
 
@@ -54,10 +54,8 @@ Every successful command prints one JSON document to stdout; errors go to stderr
 This repo has a `rust-analyzer`-backed MCP server configured (`rust-analyzer-mcp`,
 see `.vscode/mcp.json` and `.mcp.json`). When it is connected and trusted,
 prefer its tools — get symbols, go to definition, find references, hover —
-over grep/text search for navigating `src/main.rs`. It's a single ~3,800-line
-file, and semantic navigation is more reliable than pattern matching for
-tracing callers of shared machinery like `segment_text`, `build_unit`,
-`classify_kind`, and `normalize_text`.
+over grep/text search when tracing behavior across the functional modules
+under `src/`.
 
 If the MCP tools aren't available in a given session (server not installed or
 not trusted), fall back to grep/glob as usual. To install or reinstall it

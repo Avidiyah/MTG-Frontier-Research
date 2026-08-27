@@ -97,7 +97,9 @@ model already exists and therefore does not solve the active frontier.
 
 | Path | Current role |
 |---|---|
-| `src/main.rs` | Rust `mtg-discover` CLI for structured corpus and rules exploration |
+| `src/main.rs`, `src/cli.rs` | Thin Rust `mtg-discover` entry point and CLI argument definitions |
+| `src/cards.rs`, `src/rules.rs`, `src/segment.rs`, `src/audit.rs` | Card/set queries, rules access, segmentation/template analysis, and structural-audit commands |
+| `src/database.rs`, `src/util.rs`, `src/tests/` | Shared read-only database policy, JSON measurement helpers, and subsystem-oriented unit tests |
 | `Cargo.toml`, `Cargo.lock` | Rust package and reproducible dependency resolution |
 | `scripts/python/mtg_card_pipeline.py` | Fetch Scryfall bulk data (including all printings), load SQLite with first-printing columns, and run the original template baseline |
 | `docs/findings/` | One document per completed investigation; read the newest after this file |
@@ -548,7 +550,7 @@ When updating this document:
   rule-(c) fragment (Battering Ram); unit novelty rose to 96/125, falsifying
   N1 as stated (novelty tracks theme, not only date). Corpus S11 checks
   preserved as scripts. Proposals P-ATQ-1..4 recorded; D15–D20 registered.
-- Implemented P-ATQ-1: `delayed_trigger_split` in `src/main.rs` no longer
+- Implemented P-ATQ-1: `delayed_trigger_split` in `src/segment.rs` no longer
   searches backward for the nearest comma/colon before a delayed-trigger
   phrase in a single sentence (the rejected rule (c)); it only returns a
   split point at a complete sentence boundary (P-ARN-1 generic/inverted
@@ -557,7 +559,7 @@ When updating this document:
   an unresolved single sentence, the unit is kept whole and the existing
   `delayed_trigger_unattached_candidate` audit signal (T8-style slot) fires
   instead of a fabricated split; this required no new mechanism. Added
-  `src/main.rs` regression tests: sentence-level splitting still creates a
+  `src/tests/` regression tests: sentence-level splitting still creates a
   `delayed_trigger` child and a valid parent
   (`sentence_level_delayed_trigger_still_splits_as_a_child`); a leading
   `Whenever CONDITION,` trigger clause is no longer split off as its own
@@ -584,7 +586,7 @@ When updating this document:
   fresh exports drift in exactly the five fix rows, re-annotated `under`
   (missed 1, D15 slot), drift 0, no new non-`accept` row. Full record in
   `docs/findings/atq-structural-audit.md` ("P-ATQ-1 acceptance record").
-- Implemented P-ATQ-2: `classify_kind` in `src/main.rs` no longer labels
+- Implemented P-ATQ-2: `classify_kind` in `src/segment.rs` no longer labels
   `can't be prevented` / `cannot be prevented` text as `prevention_effect`.
   A new `prevention_prohibition` regex (`can(?:'|’)?t be prevented|cannot be
   prevented`, matched against the same lowercased normalized text as the
@@ -594,7 +596,7 @@ When updating this document:
   existing `else if` chain (replacement, then CDA, then residual) exactly
   as it would if the prevention regex hadn't matched at all — no new kind,
   no reordering of the surrounding branches, no card- or set-specific
-  logic. Added `src/main.rs` regression tests:
+  logic. Added `src/tests/` regression tests:
   `prevention_prohibition_is_not_classified_as_prevention_effect` (two
   distinct `can't be prevented` wordings plus `cannot be prevented` and a
   curly-apostrophe `can’t be prevented` variant all classify as
@@ -622,7 +624,7 @@ When updating this document:
   prefixed misfires from the same check (P-ATQ-3, explicitly out of scope
   here) are expected to remain untouched but likewise unverified. A search
   of the local `Magic-Comprehensive_Rules.md` text and the existing
-  `src/main.rs` test fixtures (all of which already use a straight ASCII
+  `src/tests/` test fixtures (all of which already use a straight ASCII
   apostrophe for `can't`, consistent with Scryfall's Oracle-text
   convention) informed the regex, but this substitutes for the protocol's
   S8 corpus counterexample search rather than satisfying it. P-ATQ-2 is
@@ -630,7 +632,7 @@ When updating this document:
   (items 4–5); a later session with data access must rerun
   `check_kind_rules.py`, confirm the 9-misfire class is gone with no new
   false positives or negatives, and refresh the baseline numbers above.
-- Implemented P-ATQ-3: `build_unit` in `src/main.rs` now detects a leading
+- Implemented P-ATQ-3: `build_unit` in `src/segment.rs` now detects a leading
   `<prefix> — ` structural marker on the fully normalized unit text (em
   dash, prefix has no period or colon, prefix ≤ 45 characters, non-empty
   body after the dash) via a new `extract_prefix` function, before
@@ -658,7 +660,7 @@ When updating this document:
   code, or ability-word vocabulary list appears in the implementation; the
   rule is purely structural (delimiter, length, punctuation, and — for the
   chapter case only — the CR-defined Roman-numeral/Saga-type gate).
-  Regression tests added in `src/main.rs` (16 new, all synthetic, none
+  Regression tests added in `src/tests/` (16 new, all synthetic, none
   naming an Antiquities card): an ability-word prefix over a `Whenever`
   trigger and over an `At the beginning of` trigger (guards against a fix
   that only handles one trigger word); a multi-chapter (`I, II —`) and a
@@ -726,7 +728,7 @@ When updating this document:
   the S8 counterexample search and S11 over-segmentation check this
   session could not run, and only then treat P-ATQ-3 as accepted.
 - Implemented P-ATQ-4: a new `apply_spell_created_delayed_triggers` pass in
-  `src/main.rs` runs once per card face, after `segment_text` has already
+  `src/segment.rs` runs once per card face, after `segment_text` has already
   attached every line's unit (mode children, P-ARN-1/P-ATQ-1 delayed-trigger
   children, granted quoted abilities), and changes `role` from `ability` to
   `delayed_trigger` **in place** — never reparenting or duplicating a unit —
@@ -772,7 +774,7 @@ When updating this document:
   ability (a different `role` entirely) — no new field was needed to keep
   the three cases distinguishable in audit output.
 
-  Regression tests added in `src/main.rs` (21 new; `cargo test`: 82 passed,
+  Regression tests added in `src/tests/` (21 new; `cargo test`: 82 passed,
   up from 61), all synthetic: the four positive temporal-scope forms (`this
   turn`, `you next cast ... this turn`, `at the beginning of combat this
   turn`, `this combat`), including the single-line no-parent case that was

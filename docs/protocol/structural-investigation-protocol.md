@@ -233,7 +233,7 @@ Whenever a change adds splits (keyword lists, nested children, new kinds):
 
 ### S12 — Required regression tests
 
-For each accepted change, `src/main.rs` tests must include: one positive
+For each accepted change, the relevant `src/tests/` module must include: one positive
 case per defect row class it fixes (synthetic text is acceptable when the
 wording is reproduced exactly), one negative case per counterexample class
 found in S8, and one nesting/indexing case if the change touches children.
@@ -272,7 +272,7 @@ docs/audits/<code>/units-export.tsv        frozen unit inventory (S3)
 docs/audits/<code>/units-annotated.tsv     dispositions (S5), one row per unit
 docs/audits/<code>/metrics.json            audit_metrics.py output (S14)
 docs/findings/<code>-structural-audit.md   hypotheses, baseline, findings, proposals, reproduction
-src/main.rs tests                          only if a change was accepted (S12)
+src/tests/ tests                           only if a change was accepted (S12)
 docs/current-state.md                      refreshed only if the corpus baseline changed
 ```
 

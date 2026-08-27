@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-This repository is an empirical MTG Oracle-text research workbench. The Rust CLI lives in `src/main.rs` as the `mtg-discover` binary. Python ingestion and lookup tools live in `scripts/python/`: `mtg_card_pipeline.py` fetches Scryfall data, builds `cards.sqlite`, and runs the original template baseline; `mtg_search.py` is a human-oriented card lookup tool. Research handoffs and findings live in `docs/`, especially `docs/current-state.md`, `docs/RESEARCH_NOTES.md`, and `docs/findings/`. `Magic-Comprehensive_Rules.md` is tracked source data. Generated local artifacts such as `cards.sqlite`, `oracle-cards.jsonl.gz`, `rulings.jsonl.gz`, `default-cards.jsonl.gz`, and `target/` must not be committed.
+This repository is an empirical MTG Oracle-text research workbench. The Rust `mtg-discover` CLI is split by function under `src/`: `main.rs` dispatches commands, `cli.rs` defines arguments, and the card, rules, segmentation, and audit modules own their respective behavior. Python ingestion and lookup tools live in `scripts/python/`: `mtg_card_pipeline.py` fetches Scryfall data, builds `cards.sqlite`, and runs the original template baseline; `mtg_search.py` is a human-oriented card lookup tool. Research handoffs and findings live in `docs/`, especially `docs/current-state.md`, `docs/RESEARCH_NOTES.md`, and `docs/findings/`. `Magic-Comprehensive_Rules.md` is tracked source data. Generated local artifacts such as `cards.sqlite`, `oracle-cards.jsonl.gz`, `rulings.jsonl.gz`, `default-cards.jsonl.gz`, and `target/` must not be committed.
 
 ## Build, Test, and Development Commands
 
@@ -11,7 +11,7 @@ Run commands from the repository root, preferably in PowerShell.
 ```powershell
 cargo build                  # development build
 cargo build --release        # optimized research CLI
-cargo test                   # Rust unit tests in src/main.rs
+cargo test                   # Rust unit tests under src/tests/
 cargo fmt -- --check         # formatting check
 cargo clippy --all-targets -- -D warnings
 python scripts/python/mtg_card_pipeline.py all
@@ -38,7 +38,7 @@ Read `docs/current-state.md` before research work and the newest relevant file i
 
 ## Rust MCP Tooling
 
-This repo has a `rust-analyzer`-backed MCP server configured (`rust-analyzer-mcp`, see `.vscode/mcp.json` and `.mcp.json`). When it is connected and trusted, prefer its tools — get symbols, go to definition, find references, hover — over grep/text search when navigating `src/main.rs`, since it is a single ~3,800-line file and semantic navigation is more reliable than pattern matching for tracing callers of shared machinery like `segment_text`, `build_unit`, `classify_kind`, and `normalize_text`. If the MCP tools aren't available in a given session, fall back to grep/glob. Install or reinstall locally with:
+This repo has a `rust-analyzer`-backed MCP server configured (`rust-analyzer-mcp`, see `.vscode/mcp.json` and `.mcp.json`). When it is connected and trusted, prefer its tools — get symbols, go to definition, find references, hover — over grep/text search when tracing code across the functional modules under `src/`. If the MCP tools aren't available in a given session, fall back to grep/glob. Install or reinstall locally with:
 
 ```powershell
 rustup component add rust-analyzer

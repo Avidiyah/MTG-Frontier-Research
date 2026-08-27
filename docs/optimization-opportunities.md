@@ -91,7 +91,7 @@ templates, every reported template/count, and the coverage curve.
 
 ## O2 — Reuse card-name normalization context
 
-**Target:** `src/main.rs::normalize_text` and the `segment_text` call tree  
+**Target:** `src/segment.rs::normalize_text` and the `segment_text` call tree
 **Status:** deferred pending benchmark  
 **Risk:** medium
 
@@ -162,7 +162,7 @@ A prototype must be benchmarked before acceptance.
 
 ## O3 — Avoid normalized-string clones in Rust template counting
 
-**Target:** `src/main.rs::command_templates`  
+**Target:** `src/segment.rs::command_templates`
 **Status:** deferred pending comparative benchmark  
 **Risk:** low to medium, depending on implementation
 
@@ -240,4 +240,3 @@ For each option:
    measured bottleneck.
 4. O2: prototype last because it touches the shared normalization instrument;
    require complete corpus equivalence and a material gain.
-
