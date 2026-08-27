@@ -12,7 +12,8 @@ out = []
 def P(s=""): out.append(s)
 
 dt = [r for r in printed if r["role"] == "delayed_trigger"]
-P(f"# Over-segmentation check: delayed-trigger splits (commit af150b0)\n")
+LABEL = sys.argv[3] if len(sys.argv) > 3 else "HEAD"
+P(f"# Over-segmentation check: delayed-trigger splits (commit {LABEL})\n")
 P(f"Printed units: {len(printed)}; delayed_trigger children: {len(dt)}/{len(printed)}")
 pairs = []
 for c in dt:

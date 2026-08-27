@@ -1,7 +1,7 @@
 """Dump every structural unit of every first-printing set via `audit export` into one JSONL."""
 import json, subprocess, sys, os, time
 WT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-M = os.path.join(WT, "target", "release", "mtg-discover.exe")
+M = os.environ.get("MTG_DISCOVER") or os.path.join(WT, "target", "release", "mtg-discover.exe")
 OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(WT, "corpus-units.jsonl")
 os.chdir(WT)
 def run(*args):
