@@ -49,6 +49,25 @@ Every successful command prints one JSON document to stdout; errors go to stderr
 - `scripts/python/mtg_card_pipeline.py` — builds the data: fetches Scryfall bulk data (`oracle-cards.jsonl.gz`, `rulings.jsonl.gz`), loads into `cards.sqlite` (`cards` keyed by `oracle_id`; `rulings` indexed on `oracle_id`; JSON-text columns for keywords/colors/legalities). Double-faced cards get face texts joined with `//` and `is_dfc = 1`.
 - The normalizer/segmenter is deliberately crude — a measurement instrument, not a parser. Do not present its output as semantic parsing.
 
+## Rust MCP tooling
+
+This repo has a `rust-analyzer`-backed MCP server configured (`rust-analyzer-mcp`,
+see `.vscode/mcp.json` and `.mcp.json`). When it is connected and trusted,
+prefer its tools — get symbols, go to definition, find references, hover —
+over grep/text search for navigating `src/main.rs`. It's a single ~3,800-line
+file, and semantic navigation is more reliable than pattern matching for
+tracing callers of shared machinery like `segment_text`, `build_unit`,
+`classify_kind`, and `normalize_text`.
+
+If the MCP tools aren't available in a given session (server not installed or
+not trusted), fall back to grep/glob as usual. To install or reinstall it
+locally:
+
+```powershell
+rustup component add rust-analyzer
+cargo install rust-analyzer-mcp
+```
+
 ## Rules for this repo
 
 - `cards.sqlite`, `*.jsonl.gz`, and `target/` are regenerable local artifacts and gitignored — never commit them. `Magic-Comprehensive_Rules.md` is a tracked source file.

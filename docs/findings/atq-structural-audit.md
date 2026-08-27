@@ -206,6 +206,7 @@ vanish, no bare-condition templates remain top-level.
 
 ### P-ATQ-1 implementation disposition (2026-08-26)
 
+*(Superseded: accepted under S10 — see the acceptance record below and §8.)*
 **Implemented, not yet accepted under protocol S10.** `delayed_trigger_split`
 in `src/main.rs` was narrowed to the two proposed cases (sentence-level
 generic/inverted `next`/`at end of combat`, and scoped `When`/`Whenever ...
@@ -314,6 +315,7 @@ prevention effects by *preventing* damage).
 
 ### P-ATQ-2 implementation disposition (2026-08-26)
 
+*(Superseded: accepted under S10 in the post-merge acceptance pass, §8.)*
 **Implemented, not yet accepted under protocol S10.** `classify_kind` in
 `src/main.rs` gained a `prevention_prohibition` regex
 (`can(?:'|’)?t be prevented|cannot be prevented`, checked against the same
@@ -545,7 +547,9 @@ audit signal (flagging a unit whose prefix was extracted, for reviewer
 triage) would be useful — deferred rather than added speculatively, per the
 task's instruction not to introduce a large prefix ontology at this stage.
 
-**7. Acceptance status.** **Implemented, not yet accepted under protocol
+**7. Acceptance status.** *(Superseded: the searches named here were run at
+`8e83221`; P-ATQ-3 is accepted within its measured scope, §8.)*
+**Implemented, not yet accepted under protocol
 S10/S11.** A later session with data access must run
 `dump_corpus_units.py` and `check_kind_rules.py`/`check_kind_rules_part2.py`,
 confirm the actual before/after `prevention_effect`/`triggered_ability`
@@ -756,7 +760,9 @@ found; and the unscoped `When …` embedded-delayed-trigger class (Tawnos's
 Coffin, Animate Dead) remains explicitly out of scope, unchanged by this
 session, per task step 27.
 
-**7. Acceptance status.** **Implemented, not yet accepted under protocol
+**7. Acceptance status.** *(Superseded: the full instant/sorcery-face S8
+sweep was run at `8e83221`; P-ATQ-4 is accepted under S10, §8.)*
+**Implemented, not yet accepted under protocol
 S10/S11.** A later session with data access must run
 `dump_corpus_units.py` and `check_kind_rules_part2.py`, confirm the actual
 before/after role distribution and the historical ~30-unit comparison
@@ -809,7 +815,9 @@ exactly the five rule-(c) fragment pairs (Cockatrice, Thicket Basilisk, Rukh
 Egg, Nafs Asp, Battering Ram — parents already `over`/`defect`); no unchanged
 row changes, so no accepted row becomes a non-accept result. The committed
 exports/annotations/`metrics.json` are left at their pre-merge state pending the
-lead's re-annotation of those five rows (`under`, `missed = 1`).
+lead's re-annotation of those five rows (`under`, `missed = 1`). *(Since
+done: re-annotated at `38e97f6`, exports refreshed at `d00bdcd`, metrics
+regenerated at `9c01daa`, drift 0 — see the P-ATQ-1 acceptance record.)*
 
 **Decision: P-ATQ-1 accepted** (2026-08-26, technical validator; S10 items 1–7
 present). *Evidence:* report §4 — 121 → 0 comma/colon children, 3 → 0 in-quote

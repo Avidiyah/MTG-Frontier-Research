@@ -3,6 +3,7 @@
 - Status: **not started — intentionally empty preregistered outline**
 - Preregistration: `docs/findings/leg-structural-audit-preregistration.md`
 - Gate readiness: `docs/gates/gate-1-readiness-matrix.md`
+- Entry checklist record: `docs/gates/legends-entry-record.md`
 
 Do not populate this document until the preregistration section 12 entry
 checklist passes. No individual Legends card has been inspected, quoted,

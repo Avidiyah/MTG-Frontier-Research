@@ -112,6 +112,25 @@ than treated as SQL wildcards. `card` requires an exact name or `oracle_id`.
 Set filters refer to the derived first printing, not an arbitrary printing in
 the Oracle Cards file.
 
+## Rust MCP tooling
+
+This repo has a `rust-analyzer`-backed MCP server configured
+(`rust-analyzer-mcp`, see `.vscode/mcp.json` and `.mcp.json`). When it is
+connected and trusted, prefer its tools — get symbols, go to definition, find
+references, hover — over grep/text search for navigating `src/main.rs`. It is
+a single ~3,800-line file, and semantic navigation is more reliable than
+pattern matching for tracing callers of shared machinery like `segment_text`,
+`build_unit`, `classify_kind`, and `normalize_text`.
+
+If the MCP tools aren't available in a given session (server not installed or
+not trusted), fall back to grep/glob as usual. To install or reinstall it
+locally:
+
+```powershell
+rustup component add rust-analyzer
+cargo install rust-analyzer-mcp
+```
+
 ## Repository-specific conventions
 
 - Treat the current segmenter and normalizer as measurement instruments, not a

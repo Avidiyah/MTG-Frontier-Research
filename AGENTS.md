@@ -35,3 +35,12 @@ Recent commits use short, imperative summaries with optional scope context, for 
 ## Agent-Specific Instructions
 
 Read `docs/current-state.md` before research work and the newest relevant file in `docs/findings/`. Treat the current segmenter and normalizer as measurement tools, not a parser or semantic engine. Follow the evidence hierarchy: Comprehensive Rules, Oracle text, official rulings, corpus measurements, literature, then agent interpretation.
+
+## Rust MCP Tooling
+
+This repo has a `rust-analyzer`-backed MCP server configured (`rust-analyzer-mcp`, see `.vscode/mcp.json` and `.mcp.json`). When it is connected and trusted, prefer its tools — get symbols, go to definition, find references, hover — over grep/text search when navigating `src/main.rs`, since it is a single ~3,800-line file and semantic navigation is more reliable than pattern matching for tracing callers of shared machinery like `segment_text`, `build_unit`, `classify_kind`, and `normalize_text`. If the MCP tools aren't available in a given session, fall back to grep/glob. Install or reinstall locally with:
+
+```powershell
+rustup component add rust-analyzer
+cargo install rust-analyzer-mcp
+```
