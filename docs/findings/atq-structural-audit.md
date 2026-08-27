@@ -722,7 +722,90 @@ P-ATQ-3 reduced the 8 recorded prefix-related prevention candidates to 3
 measurement does not adjudicate whether those three are remaining defects or
 correct post-prefix classifications. P-ATQ-3 therefore remains pending lead
 review, as do the protocol-required re-annotation and acceptance decisions for
-all four implementations.
+all four implementations. *(Superseded by the post-merge acceptance pass
+recorded in the next subsection.)*
+
+### Post-merge acceptance pass (2026-08-26, commit `8e83221`) — S10 dispositions
+
+Evidence: `docs/audits/corpus-checks/2026-08-26-post-patq-merge.md` (summary,
+frozen inputs, before/after totals, regression) and
+`docs/audits/corpus-checks/2026-08-26-patq-s8-search.md` (raw output of the new
+`scripts/python/corpus_checks/check_patq_s8.py`, which restates the P-ATQ-3/4
+patterns for a corpus search, cross-checks them against the binary on 3,340
+units with 0 mismatches, and carries a `--self-test`). Build at `8e83221`:
+`cargo test` 82 passed, `cargo fmt --check` and `cargo clippy -D warnings` clean;
+`cards.sqlite` sha256 `d1c88cb9…95c4` from the 2026-08-25 Scryfall drop. The
+before/after comparison used a second binary built from `8c0f229`. Corpus-wide:
+71,682 → 71,563 printed units, 37,344 → 37,299 templates, top-100 coverage 26.85
+→ 26.90 %, delayed-trigger roles 982 → 891 (861 children + 30 top-level),
+`prevention_effect` 181 → 166, triggered 17,503 → 19,214. Regression: fresh
+exports of `lea`/`leb`/`arn`/`atq` drift from the committed annotations in
+exactly the five rule-(c) fragment pairs (Cockatrice, Thicket Basilisk, Rukh
+Egg, Nafs Asp, Battering Ram — parents already `over`/`defect`); no unchanged
+row changes, so no accepted row becomes a non-accept result. The committed
+exports/annotations/`metrics.json` are left at their pre-merge state pending the
+lead's re-annotation of those five rows (`under`, `missed = 1`).
+
+**Decision: P-ATQ-1 accepted** (2026-08-26, technical validator; S10 items 1–7
+present). *Evidence:* report §4 — 121 → 0 comma/colon children, 3 → 0 in-quote
+splits, 0 bare condition/cost templates at top level, all 121 fragments merged
+back (116 carry `delayed_trigger_unattached_candidate`; the 5 without it hold
+the phrase inside a quoted granted ability), sentence-level sample 30 / 30.
+*Options considered:* guard rule (c) instead of deleting it — rejected in §6
+already. *What would reverse it:* a sentence-level split producing a
+non-reference-unit fragment, or a comma/colon child reappearing corpus-wide.
+*Affected documents:* `docs/current-state.md`, `docs/roadmap.md` D15, the five
+annotation rows above (lead).
+
+**Decision: P-ATQ-2 accepted** (2026-08-26). *Evidence:* report §5 — 35
+prohibition units corpus-wide (straight apostrophe only; `cannot` 0), 0
+labelled `prevention_effect`, 0 units where a genuine prevention is excluded
+alongside the idiom, 4 nearest-wording units (`can't be regenerated/countered`
+next to `prevent`) unaffected; 181 → 166 accounted for unit-by-unit.
+*What would reverse it:* a CR 615.1a static containing the idiom that must
+remain `prevention_effect`. *Affected:* `docs/current-state.md`, D16.
+
+**Decision: P-ATQ-3 — technical acceptance evidence complete; S10 acceptance
+withheld pending Codex's adjudication of the three residual rows.** *Evidence:*
+report §6 — 3,572 firings (chapters 624 / 624 `triggered_ability`; ability words
+1,406, parsed from CR 207.2c; named modes 239; flavor words and labels 1,301),
+2,053 kind changes of which 1,786 recover a hidden trigger word and 5 are the
+audit's fix rows; binary cross-check 0 mismatches. *Counterexamples recorded
+(bounded, none card-specific):* structural false positives — Prototype's
+keyword syntax (21), spree `+ {M} —` cost labels (51, kind unchanged),
+die-roll/bounty/sticker table labels (264), one inline `Choose one —`, one short
+`villainous choice —`; false negatives — 2 flavor words containing sentence
+punctuation (The Eleventh Doctor, Captain America, First Avenger) keep a trigger
+word hidden; side effect — 210 stripped bodies now reach `is_keyword_line`,
+141 of them wrongly labelled `keyword_ability` (all funny/token set types) and
+44 correctly. *Residuals for Codex:* Urza's Science Fair Project #0:2 (a die-roll
+result row of an activated ability; boundary question), Khârn the Betrayer #0:2
+and Diamond Weapon #0:2 (flavor-word prevention statics; rulings quoted in the
+report). *Placeholder:* **[Codex adjudication of the three residual P-ATQ-3
+candidates: not yet supplied — accept/defect disposition and rationale to be
+inserted here without altering the measurements above.]** *What would reverse
+it:* Codex finding a defect in the prefix rule itself (as opposed to the
+pre-existing keyword heuristic) or a prefix class whose stripping changes a
+correct kind to a wrong one in a walk-eligible set type. *Affected:* D17,
+`docs/current-state.md`.
+
+**Decision: P-ATQ-4 accepted** (2026-08-26). *Evidence:* report §7 — full
+12,466-unit instant/sorcery-face population searched, not only the 111
+previously flagged units; 30 positives (28 non-pool inspected, all CR 603.7d;
+0 false positives), 85 negatives inspected by class, predicate vs role 0
+disagreements. *Counterexample classes outside the proposal's stated pattern,
+recorded not fixed:* Ertai's Meddling (recurring delayed trigger with no stated
+duration; CR 603.7b makes the duration optional), 45 whole-unit inverted cantrip
+lines (`Draw a card at the beginning of the next turn's upkeep.`), 2
+duration-first and 7 comma-led delayed triggers inside spell text, 2
+sentence-initial `At the beginning of combat this turn` forms (D5 residue).
+*What would reverse it:* a positive that is an off-stack or cast/resolution
+trigger, or a decision to widen the pattern to duration-less forms (a new
+proposal, not this one). *Affected:* D18, `docs/current-state.md`.
+
+Legends is **not started**; its prerequisite (an accepted Antiquities baseline)
+is met for P-ATQ-1/2/4 and blocked on the P-ATQ-3 adjudication above. D19 (the
+unscoped `When …` class) remains a separate deferred question.
 
 ## 9. Measurements (protocol §4.5; `docs/audits/atq/metrics.json`)
 

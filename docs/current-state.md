@@ -277,8 +277,8 @@ hit is not proof that the rule completely determines a card's behavior.
   reference near a graveyard/exile/discard zone word; CR 113.6b) or is
   about the spell's own casting or resolution gets `role = delayed_trigger`
   in place, per CR 603.7d, rather than the default `role = ability`; `kind`
-  stays `triggered_ability` (P-ATQ-4, implemented, not yet
-  corpus-validated). It stays top-level (no `parent_index`), distinguishing
+  stays `triggered_ability` (P-ATQ-4, accepted 2026-08-26 after a full
+  instant/sorcery-face S8 sweep; 30 such units corpus-wide). It stays top-level (no `parent_index`), distinguishing
   it from a `delayed_trigger` *child* produced by the existing
   cross-line/sentence-boundary split (P-ARN-1/P-ATQ-1), which always has a
   parent.
@@ -291,8 +291,12 @@ hit is not proof that the rule completely determines a card's behavior.
   chapter symbol, or named mode/label; em dash, no period, no colon, ≤ 45
   characters) is detected and stripped before classification, and recorded
   on a new `prefix` field, so it can no longer hide the trigger word (or
-  other classification evidence) that follows it (P-ATQ-3, implemented, not
-  yet corpus-validated); a Saga chapter symbol (pure Roman numerals on a
+  other classification evidence) that follows it (P-ATQ-3, corpus-validated
+  2026-08-26 — 3,572 firings, 0 binary/search mismatches; S10 acceptance
+  pending Codex's adjudication of 3 residual prevention rows; known bounded
+  counterexamples: Prototype/spree/table-label prefixes, 2 flavor words
+  containing sentence punctuation, and 141 short stripped bodies on funny/token
+  sets that `is_keyword_line` now labels keywords); a Saga chapter symbol (pure Roman numerals on a
   Saga type line) is classified `triggered_ability` per CR 714.2b regardless
   of its effect text's leading verb, rather than by classifying the
   stripped body; CDA detection covers the `~'s power and toughness are each
@@ -340,19 +344,26 @@ hit is not proof that the rule completely determines a card's behavior.
   (under 1, over 1), kind 123 / 123, unit novelty 96 / 125 and template
   novelty 95 / 114 against the three earlier sets. The `over` rows are
   condition-only parents produced by the single-sentence split rule (c),
-  rejected in review (P-ATQ-1). P-ATQ-1..4 are now implemented, so these
-  annotation metrics describe the pre-change export and await research-lead
-  re-annotation. Fresh exports contain 415 Alpha units, 110 Arabian Nights
-  units, and 124 Antiquities units. These are development and regression sets,
-  not gold sets and not evidence about the corpus.
+  rejected in review (P-ATQ-1). After the P-ATQ merge, fresh exports (415
+  Alpha, 2 Beta, 110 Arabian Nights, 124 Antiquities units) drift from the
+  committed annotations in exactly those five rule-(c) rows and nothing else
+  (`docs/audits/corpus-checks/2026-08-26-post-patq-merge.md` §8); the
+  committed exports, annotations and `metrics.json` are kept at their
+  pre-merge state until the research lead re-annotates those five rows as
+  `under`. These are development and regression sets, not gold sets and not
+  evidence about the corpus.
 - Corpus-wide S11 checks of the P-ARN and P-ATQ rules are scripted
-  (`scripts/python/corpus_checks/`, reports in `docs/audits/corpus-checks/`):
-  after P-ATQ-1, all 861 nested delayed-trigger children are sentence-level and
-  no comma/colon fragments remain; after P-ATQ-2, no `can't be prevented`
-  prohibition is labelled `prevention_effect`; P-ATQ-3 reduces the 8 recorded
-  prefix-related prevention candidates to 3, which still require lead
-  adjudication; P-ATQ-4 assigns `role = delayed_trigger` to exactly 30
-  qualifying top-level instant/sorcery units.
+  (`scripts/python/corpus_checks/`, reports in `docs/audits/corpus-checks/`).
+  The post-merge acceptance pass at `8e83221`
+  (`2026-08-26-post-patq-merge.md`, S8 search `2026-08-26-patq-s8-search.md`)
+  accepted P-ATQ-1 (982 → 861 sentence-level children, 0 comma/colon or
+  in-quote fragments), P-ATQ-2 (35 prohibition units, 0 labelled
+  `prevention_effect`, 0 genuine prevention excluded) and P-ATQ-4 (30 positives
+  over the full 12,466-unit instant/sorcery-face population, 0 false
+  positives; Ertai's Meddling-class duration-less and inverted-cantrip forms
+  recorded as out of pattern). P-ATQ-3 is corpus-validated with its
+  counterexample classes recorded; its acceptance waits on Codex's
+  adjudication of the 3 residual prefix-related prevention rows.
 - A held-out pool is frozen (protocol §6.3: `oracle_id` prefix `f`,
   non-fallback, excluding `lea`/`leb`/`arn`; 2,096 cards) but not yet sampled
   or annotated.
@@ -419,11 +430,14 @@ Unless new evidence changes priorities:
    Beta (`leb`) are audited (`docs/findings/arn-structural-audit.md`);
    P-ARN-1..4 are implemented and reviewed (rule (c) rejected). Antiquities
    is audited and adjudicated (`docs/findings/atq-structural-audit.md`).
-   P-ATQ-1..4 are implemented and corpus-measured, pending research-lead
-   re-annotation and acceptance; P-ATQ-3 has 3 residual prefix-related
-   prevention candidates requiring adjudication. Legends (`leg`, 310 cards,
-   290 with text — the last set below the 400-card exhaustive threshold
-   before Ice Age) is next.
+   P-ATQ-1, P-ATQ-2 and P-ATQ-4 are accepted under S10 (2026-08-26,
+   `docs/audits/corpus-checks/2026-08-26-post-patq-merge.md`); P-ATQ-3 is
+   corpus-validated and waits on Codex's adjudication of 3 residual
+   prefix-related prevention rows; the five rule-(c) annotation rows await
+   the lead's `under` re-annotation. Legends (`leg`, 310 cards, 290 with
+   text — the last set below the 400-card exhaustive threshold before Ice
+   Age) is next and has **not** started; its prerequisite is the accepted
+   Antiquities baseline, complete except for the P-ATQ-3 adjudication.
 2. **Normalization ablations:** measure one reversible transformation at a time
    rather than applying increasingly lossy normalization as a bundle.
 3. **Typed-slot discovery:** test candidate roles for numbers, mana, objects,
@@ -827,3 +841,15 @@ When updating this document:
   P-ATQ-3 reduced the 8 recorded prefix-related prevention candidates to 3;
   these remain for research-lead adjudication. All four implementations remain
   pending the protocol-required re-annotation and acceptance decision.
+- Post-merge acceptance pass at `8e83221` (technical validator; 82 tests, fmt
+  and clippy clean; snapshot sha256 recorded): regenerated every corpus check
+  with a second binary built from `8c0f229` for unit-level before/after
+  diffs, ran the protocol's missing S8 searches with the new
+  `scripts/python/corpus_checks/check_patq_s8.py` (binary cross-check 3,340
+  units, 0 mismatches), and re-ran `audit_metrics.py` on fresh exports of all
+  four audited sets (drift = the five rule-(c) rows only). **Accepted P-ATQ-1,
+  P-ATQ-2, P-ATQ-4**; P-ATQ-3's acceptance is withheld only for Codex's
+  adjudication of Urza's Science Fair Project, Khârn the Betrayer and Diamond
+  Weapon, with its counterexample classes recorded (Prototype/spree/table
+  labels; 2 punctuated flavor words; 141 funny/token-set bodies newly labelled
+  keywords). Legends not started.
