@@ -1,0 +1,130 @@
+{
+  "schema_version": "mtg-experiment-manifest-v1",
+  "manifest_type": "experiment",
+  "experiment_id": "pre-legends-export-gate-2026-08-26",
+  "question": "For the frozen snapshot and current measurement code, are repeated Legends development exports byte-identical, free of protocol 6.3 held-out identities before serialization, and valid under the stable key (oracle_id, face, unit_index)?",
+  "snapshot_manifest": {
+    "path": "docs/manifests/snapshot-scryfall-2026-08-25.json",
+    "bytes": 3673,
+    "sha256": "aa67c0c97771c21cfe79bffb1049a35152f12005cd8fc4af49f5a88c989ed9c3"
+  },
+  "partition": {
+    "policy": "protocol-v1.0-section-6.3-2026-08-26",
+    "protocol_path": "docs/protocol/structural-investigation-protocol.md",
+    "protocol_sha256": "1b388f98e48b25a33fc9f44d893835a8be6c2f4505c4cb12ae21faf1b1fdc375",
+    "heldout_identity_count": 2096,
+    "heldout_identity_sha256": "377e12bdf80e0263c361f48ff2be241f600efd854b6eaa4f916d239a83067fc7",
+    "incident_registry": "docs/gates/legends-entry-record.md section 3 item 7",
+    "identities_disclosed": false
+  },
+  "commands": [
+    {
+      "argv": [
+        "python",
+        "scripts/python/verify_export_safety.py",
+        "leg",
+        "--mtg",
+        ".\\target\\release\\mtg-discover.exe",
+        "--runs",
+        "2"
+      ],
+      "runs": 1,
+      "exit_status": 0,
+      "output_policy": "aggregate counts and hashes only; no export row is printed"
+    },
+    {
+      "argv": [
+        ".\\target\\release\\mtg-discover.exe",
+        "audit",
+        "export",
+        "leg",
+        "--exclude-heldout"
+      ],
+      "runs": 2,
+      "exit_status": 0,
+      "output_policy": "captured internally by verifier; not retained or displayed"
+    },
+    {
+      "argv": [
+        "python",
+        "scripts/python/export_units.py",
+        "leg",
+        "--mtg",
+        ".\\target\\release\\mtg-discover.exe",
+        "--exclude-heldout"
+      ],
+      "runs": 2,
+      "exit_status": 0,
+      "output_policy": "captured internally by verifier; not retained or displayed"
+    }
+  ],
+  "repository": {
+    "head_commit": "2355b6c3d84bfc47eceea1013417945d19fd2c05",
+    "working_tree_dirty": true,
+    "dirty_state_note": "The implementation is an uncommitted handoff; exact participating source contents are bound below. Concurrent pre-existing gate-document edits are outside the experiment executable.",
+    "source_files": [
+      {
+        "path": "src/main.rs",
+        "bytes": 150141,
+        "sha256": "65f762cfe445c39398760d09817e5b8c8d05de0e8fb99ac7cbc94fa1ac15b5cc"
+      },
+      {
+        "path": "scripts/python/export_units.py",
+        "bytes": 6056,
+        "sha256": "6b6157cc1c84bcb34c17e5cc505afb3f7cf0bc0814b0a64dba7ae6f5742dd692"
+      },
+      {
+        "path": "scripts/python/verify_export_safety.py",
+        "bytes": 6364,
+        "sha256": "7b7784237e29932a98a7c4841408bdcec6fb110c0aaf066491bf122c66d29772"
+      }
+    ]
+  },
+  "environment": {
+    "os": "Microsoft Windows NT 10.0.26200.0",
+    "architecture": "x86_64",
+    "rustc": "rustc 1.96.0 (ac68faa20 2026-05-25)",
+    "cargo": "cargo 1.96.0 (30a34c682 2026-05-25)",
+    "python": "Python 3.13.7",
+    "mtg_discover": "0.1.0",
+    "random_seed": null
+  },
+  "started_at_utc": "2026-08-27T03:01:18.908Z",
+  "ended_at_utc": "2026-08-27T03:01:21.217Z",
+  "exit_status": 0,
+  "outputs": [
+    {
+      "format": "native pretty JSON",
+      "schema_version": "audit-export-v1",
+      "retained": false,
+      "bytes": 345685,
+      "sha256": "c2675a5837e5085e942584d3b9f777a18f70123092420b9e0ba70abcede1cf2a",
+      "records": 426
+    },
+    {
+      "format": "protocol UTF-8 TSV",
+      "schema_version": "structural-protocol-v1.0-section-4.1",
+      "retained": false,
+      "bytes": 111725,
+      "sha256": "ca7f95e55a20916dd15e1107a2951b4138e93edb3c2a1babf90e4e5dba8a1202",
+      "records": 426
+    }
+  ],
+  "verification": {
+    "selected_cards_before_exclusion": 310,
+    "selected_cards_with_text_before_exclusion": 290,
+    "heldout_cards_excluded": 17,
+    "fallback_cards_before_exclusion": 0,
+    "cards_after_exclusion": 293,
+    "cards_with_text_after_exclusion": 273,
+    "heldout_export_records": 0,
+    "stable_key_rows": 426,
+    "stable_key_unique": 426,
+    "json_tsv_stable_key_sequence_identical": true,
+    "byte_identical_repeated_exports": true,
+    "runs_per_format": 2
+  },
+  "reviewer": "Codex technical measurement owner",
+  "interpretation_document": "docs/gates/legends-entry-record.md",
+  "stderr_artifacts_retained": false
+}

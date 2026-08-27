@@ -12,6 +12,10 @@ use serde_json::{Value, json};
 
 const DEFAULT_DB: &str = "cards.sqlite";
 const DEFAULT_RULES: &str = "Magic-Comprehensive_Rules.md";
+const HELD_OUT_POLICY: &str = "protocol-v1.0-section-6.3-2026-08-26";
+const HELD_OUT_SQL: &str = "oracle_text IS NOT NULL AND oracle_text != '' \
+    AND lower(substr(oracle_id, 1, 1)) = 'f' AND first_is_fallback = 0 \
+    AND lower(coalesce(first_set, '')) NOT IN ('lea', 'leb', 'arn')";
 
 #[derive(Parser)]
 #[command(version, about)]
@@ -72,6 +76,10 @@ struct CardSearchArgs {
     /// Restrict to cards whose first printing is this set code (e.g. lea).
     #[arg(long)]
     set: Option<String>,
+
+    /// Exclude the frozen protocol 6.3 held-out pool before returning rows.
+    #[arg(long)]
+    exclude_heldout: bool,
 }
 
 #[derive(Args)]
@@ -124,6 +132,10 @@ struct SegmentArgs {
     /// Card or face type line used for type-aware classification with --text.
     #[arg(long, requires = "text")]
     type_line: Option<String>,
+
+    /// Exclude the frozen protocol 6.3 held-out pool from --card lookup.
+    #[arg(long, requires = "card")]
+    exclude_heldout: bool,
 }
 
 #[derive(Args)]
@@ -167,6 +179,10 @@ enum AuditCommand {
 struct SetAuditArgs {
     /// First-printing set code to audit, such as lea.
     set: String,
+
+    /// Exclude the frozen protocol 6.3 held-out pool before segmentation.
+    #[arg(long)]
+    exclude_heldout: bool,
 }
 
 #[derive(Args, Clone)]
@@ -310,6 +326,7 @@ struct AuditCard {
 struct AuditRecord {
     oracle_id: String,
     card_name: String,
+    type_line: Option<String>,
     first_set: String,
     first_released_at: Option<String>,
     first_is_fallback: bool,
@@ -468,11 +485,12 @@ fn command_cards(db_path: &Path, args: CardSearchArgs) -> Result<Value> {
         _ => unreachable!(),
     };
     let set_filter = set_predicate("?5");
+    let held_out_filter = held_out_exclusion_predicate("?6");
     let sql = format!(
         "SELECT oracle_id, name, mana_cost, cmc, type_line, oracle_text, power, \
          toughness, loyalty, keywords, colors, color_identity, legalities, is_dfc, \
          first_set, first_set_name, first_set_type, first_released_at, first_is_fallback \
-         FROM cards WHERE {predicate}{set_filter} \
+         FROM cards WHERE {predicate}{set_filter}{held_out_filter} \
          ORDER BY CASE WHEN lower(name) = lower(?2) THEN 0 \
                        WHEN lower(name) LIKE lower(?2) || '%' THEN 1 ELSE 2 END, \
                   length(name), name LIMIT ?3 OFFSET ?4"
@@ -485,7 +503,8 @@ fn command_cards(db_path: &Path, args: CardSearchArgs) -> Result<Value> {
                 args.query,
                 args.limit,
                 args.offset,
-                args.set.as_deref().unwrap_or("").to_lowercase()
+                args.set.as_deref().unwrap_or("").to_lowercase(),
+                args.exclude_heldout
             ],
             card_from_row,
         )?
@@ -495,6 +514,7 @@ fn command_cards(db_path: &Path, args: CardSearchArgs) -> Result<Value> {
         "query": args.query,
         "field": args.field,
         "set": args.set,
+        "heldout_exclusion": held_out_exclusion_metadata(args.exclude_heldout),
         "limit": args.limit,
         "offset": args.offset,
         "count": cards.len(),
@@ -686,19 +706,21 @@ fn parse_rules(text: &str) -> Vec<RuleEntry> {
 }
 
 fn command_segment(db_path: &Path, args: SegmentArgs) -> Result<Value> {
+    let exclude_heldout = args.exclude_heldout;
     let (name, text, type_line) = if let Some(card_name) = args.card {
         let conn = open_db(db_path)?;
-        conn.query_row(
-            "SELECT name, oracle_text, type_line FROM cards WHERE lower(name) = lower(?1) LIMIT 1",
-            [&card_name],
-            |row| {
-                Ok((
-                    row.get::<_, String>(0)?,
-                    row.get::<_, Option<String>>(1)?,
-                    row.get::<_, Option<String>>(2)?,
-                ))
-            },
-        )
+        let held_out_filter = held_out_exclusion_predicate("?2");
+        let sql = format!(
+            "SELECT name, oracle_text, type_line FROM cards \
+             WHERE lower(name) = lower(?1){held_out_filter} LIMIT 1"
+        );
+        conn.query_row(&sql, params![card_name, exclude_heldout], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, Option<String>>(1)?,
+                row.get::<_, Option<String>>(2)?,
+            ))
+        })
         .with_context(|| format!("card not found: {card_name:?}"))?
     } else {
         (args.name.unwrap_or_default(), args.text, args.type_line)
@@ -713,6 +735,7 @@ fn command_segment(db_path: &Path, args: SegmentArgs) -> Result<Value> {
         "name": if name.is_empty() { Value::Null } else { Value::String(name) },
         "type_line": type_line,
         "source_text": text,
+        "heldout_exclusion": held_out_exclusion_metadata(exclude_heldout),
         "count": segments.len(),
         "total_units": total_units,
         "segments": segments
@@ -1498,11 +1521,22 @@ fn command_audit(db_path: &Path, command: AuditCommand) -> Result<Value> {
 
 fn command_audit_export(db_path: &Path, args: SetAuditArgs) -> Result<Value> {
     let conn = open_db(db_path)?;
-    let cards = load_audit_cards(&conn, &args.set)?;
-    let records = audit_records(&cards);
+    let cards = load_audit_cards(&conn, &args.set, args.exclude_heldout)?;
+    audit_export_payload(&args.set, &cards, args.exclude_heldout)
+}
+
+fn audit_export_payload(set: &str, cards: &[AuditCard], exclude_heldout: bool) -> Result<Value> {
+    ensure_held_out_excluded(cards, exclude_heldout)?;
+    let records = audit_records(cards);
+    validate_audit_records(&records)?;
     Ok(json!({
-        "set": args.set.to_lowercase(),
+        "schema_version": "audit-export-v1",
+        "set": set.to_lowercase(),
         "ordering": "card name, oracle_id, face, pre-order unit_index",
+        "stable_key": ["oracle_id", "face", "unit_index"],
+        "heldout_exclusion": held_out_exclusion_metadata(exclude_heldout),
+        "cards": cards.len(),
+        "cards_with_text": cards.iter().filter(|card| card.oracle_text.as_ref().is_some_and(|text| !text.is_empty())).count(),
         "count": records.len(),
         "records": records
     }))
@@ -1510,11 +1544,12 @@ fn command_audit_export(db_path: &Path, args: SetAuditArgs) -> Result<Value> {
 
 fn command_audit_summary(db_path: &Path, args: SetAuditArgs) -> Result<Value> {
     let conn = open_db(db_path)?;
-    let cards = load_audit_cards(&conn, &args.set)?;
+    let cards = load_audit_cards(&conn, &args.set, args.exclude_heldout)?;
+    ensure_held_out_excluded(&cards, args.exclude_heldout)?;
     let summary = summarize_audit(&cards);
     Ok(json!({
         "set": args.set.to_lowercase(),
-        "inclusion_policy": audit_inclusion_policy(),
+        "inclusion_policy": audit_inclusion_policy(args.exclude_heldout),
         "cards": summary.cards,
         "cards_with_text": summary.cards_with_text,
         "printed_units": summary.printed_units,
@@ -1534,7 +1569,7 @@ fn command_audit_summary(db_path: &Path, args: SetAuditArgs) -> Result<Value> {
 fn command_audit_novelty(db_path: &Path, args: NoveltyAuditArgs) -> Result<Value> {
     let conn = open_db(db_path)?;
     let set = args.set.to_lowercase();
-    let selected = load_audit_cards(&conn, &set)?;
+    let selected = load_audit_cards(&conn, &set, false)?;
     let selected_release = selected_set_release(&selected);
     let mut earlier_set_codes: Vec<String> =
         args.earlier.iter().map(|set| set.to_lowercase()).collect();
@@ -1580,7 +1615,8 @@ fn command_audit_novelty(db_path: &Path, args: NoveltyAuditArgs) -> Result<Value
 
 fn command_audit_signals(db_path: &Path, args: SetAuditArgs) -> Result<Value> {
     let conn = open_db(db_path)?;
-    let cards = load_audit_cards(&conn, &args.set)?;
+    let cards = load_audit_cards(&conn, &args.set, args.exclude_heldout)?;
+    ensure_held_out_excluded(&cards, args.exclude_heldout)?;
     let records: Vec<_> = audit_records(&cards)
         .into_iter()
         .filter(|record| !record.signals.is_empty())
@@ -1593,6 +1629,7 @@ fn command_audit_signals(db_path: &Path, args: SetAuditArgs) -> Result<Value> {
     }
     Ok(json!({
         "set": args.set.to_lowercase(),
+        "heldout_exclusion": held_out_exclusion_metadata(args.exclude_heldout),
         "signal_policy": "Signals are surface-form audit candidates, not parser errors or ground-truth labels.",
         "signal_definitions": signal_definitions(),
         "signal_histogram": counts,
@@ -1601,15 +1638,17 @@ fn command_audit_signals(db_path: &Path, args: SetAuditArgs) -> Result<Value> {
     }))
 }
 
-fn load_audit_cards(conn: &Connection, set: &str) -> Result<Vec<AuditCard>> {
+fn load_audit_cards(conn: &Connection, set: &str, exclude_heldout: bool) -> Result<Vec<AuditCard>> {
     let set = set.to_lowercase();
-    let mut statement = conn.prepare(
+    let held_out_filter = held_out_exclusion_predicate("?2");
+    let sql = format!(
         "SELECT oracle_id, name, type_line, first_set, first_released_at, first_is_fallback, oracle_text \
-         FROM cards WHERE lower(first_set) = ?1 \
-         ORDER BY lower(name), name, oracle_id",
-    )?;
+         FROM cards WHERE lower(first_set) = ?1{held_out_filter} \
+         ORDER BY lower(name), name, oracle_id"
+    );
+    let mut statement = conn.prepare(&sql)?;
     let cards = statement
-        .query_map([&set], audit_card_from_row)?
+        .query_map(params![set, exclude_heldout], audit_card_from_row)?
         .collect::<rusqlite::Result<Vec<_>>>()?;
     if cards.is_empty() {
         bail!("no cards found for first-printing set {:?}", set);
@@ -1695,6 +1734,7 @@ fn flatten_audit_segment(
     let mut record = AuditRecord {
         oracle_id: card.oracle_id.clone(),
         card_name: card.name.clone(),
+        type_line: card.type_line.clone(),
         first_set: card.first_set.clone(),
         first_released_at: card.first_released_at.clone(),
         first_is_fallback: card.first_is_fallback,
@@ -1731,6 +1771,83 @@ fn source_line_lookup(text: &str) -> BTreeMap<usize, String> {
         .enumerate()
         .map(|(index, line)| (index + 1, line.trim().to_owned()))
         .collect()
+}
+
+fn validate_audit_records(records: &[AuditRecord]) -> Result<()> {
+    let keys: HashSet<(&str, usize, usize)> = records
+        .iter()
+        .map(|record| (record.oracle_id.as_str(), record.face, record.unit_index))
+        .collect();
+    if keys.len() != records.len() {
+        bail!(
+            "audit export contains duplicate stable keys: {} rows, {} unique keys",
+            records.len(),
+            keys.len()
+        );
+    }
+
+    for record in records {
+        if let Some(parent_index) = record.parent_index {
+            if parent_index >= record.unit_index {
+                bail!("audit export contains a non-preorder parent reference");
+            }
+            if !keys.contains(&(record.oracle_id.as_str(), record.face, parent_index)) {
+                bail!("audit export contains a parent outside the stable card/face identity");
+            }
+        }
+    }
+
+    if records
+        .windows(2)
+        .any(|pair| audit_record_sort_key(&pair[0]) > audit_record_sort_key(&pair[1]))
+    {
+        bail!("audit export records do not satisfy the declared deterministic ordering");
+    }
+    Ok(())
+}
+
+fn audit_record_sort_key(record: &AuditRecord) -> (String, &str, &str, usize, usize) {
+    (
+        record.card_name.to_lowercase(),
+        record.card_name.as_str(),
+        record.oracle_id.as_str(),
+        record.face,
+        record.unit_index,
+    )
+}
+
+fn is_held_out_identity(
+    oracle_id: &str,
+    oracle_text: Option<&str>,
+    first_is_fallback: bool,
+    first_set: &str,
+) -> bool {
+    oracle_text.is_some_and(|text| !text.is_empty())
+        && oracle_id
+            .chars()
+            .next()
+            .is_some_and(|prefix| prefix.eq_ignore_ascii_case(&'f'))
+        && !first_is_fallback
+        && !matches!(
+            first_set.to_ascii_lowercase().as_str(),
+            "lea" | "leb" | "arn"
+        )
+}
+
+fn ensure_held_out_excluded(cards: &[AuditCard], exclusion_enabled: bool) -> Result<()> {
+    if exclusion_enabled
+        && cards.iter().any(|card| {
+            is_held_out_identity(
+                &card.oracle_id,
+                card.oracle_text.as_deref(),
+                card.first_is_fallback,
+                &card.first_set,
+            )
+        })
+    {
+        bail!("held-out exclusion invariant failed before audit serialization");
+    }
+    Ok(())
 }
 
 fn summarize_audit(cards: &[AuditCard]) -> AuditSummary {
@@ -1918,13 +2035,23 @@ fn is_short_punctuation_free(text: &str) -> bool {
         && !text.starts_with('\u{2022}')
 }
 
-fn audit_inclusion_policy() -> Value {
+fn audit_inclusion_policy(exclude_heldout: bool) -> Value {
     json!({
         "set_selection": "cards whose derived first_set matches the selected set code",
         "card_count": "all cards in the selected first_set, including cards without Oracle text",
         "unit_count": "same as templates: printed units with non-empty normalized text; rules_supplied units counted separately",
         "fallback_first_printings": "included, matching existing sets/templates behavior; records expose first_is_fallback through the source database policy but audit rows are selected by first_set",
+        "heldout_exclusion": held_out_exclusion_metadata(exclude_heldout),
         "ordering": "card name, oracle_id, face, pre-order unit_index"
+    })
+}
+
+fn held_out_exclusion_metadata(enabled: bool) -> Value {
+    json!({
+        "enabled": enabled,
+        "policy": HELD_OUT_POLICY,
+        "stable_identity_scope": "oracle_id (all faces excluded together)",
+        "enforcement": "database predicate before card rows are segmented or serialized"
     })
 }
 
@@ -1961,6 +2088,13 @@ fn histogram<K: Serialize>(map: BTreeMap<K, u64>) -> Value {
 /// an empty string (no set requested) matches every row.
 fn set_predicate(param: &str) -> String {
     format!(" AND ({param} = '' OR lower(first_set) = {param})")
+}
+
+/// SQL fragment that removes protocol 6.3 pool rows when `param` is true.
+/// Applying it in the database query prevents held-out identities and text
+/// from reaching segmentation or any auditor-visible serializer.
+fn held_out_exclusion_predicate(param: &str) -> String {
+    format!(" AND ({param} = 0 OR NOT ({HELD_OUT_SQL}))")
 }
 
 fn command_sets(db_path: &Path, args: SetsArgs) -> Result<Value> {
@@ -3355,6 +3489,13 @@ mod tests {
     }
 
     #[test]
+    fn held_out_predicate_is_gated_by_its_parameter() {
+        let predicate = held_out_exclusion_predicate("?6");
+        assert!(predicate.contains("?6 = 0"));
+        assert!(predicate.contains(HELD_OUT_SQL));
+    }
+
+    #[test]
     fn like_metacharacters_are_escaped() {
         assert_eq!(escape_like(r"100%_real\value"), r"100\%\_real\\value");
     }
@@ -3418,6 +3559,101 @@ mod tests {
         assert_eq!(zombie_child.parent_index, Some(0));
         assert_eq!(zombie_child.depth, 1);
         assert_eq!(zombie_child.normalized, "{M}: Regenerate ~.");
+        validate_audit_records(&records).expect("valid stable keys and parents");
+    }
+
+    #[test]
+    fn audit_export_is_byte_deterministic_for_reordered_input_cards() {
+        let mut cards = vec![
+            audit_card("Zulu", "tst", "2000-01-01", Some("Flying")),
+            audit_card("alpha", "tst", "2000-01-01", Some("Draw a card.")),
+            audit_card("Alpha", "tst", "2000-01-01", Some("Trample")),
+        ];
+        let first = serde_json::to_vec_pretty(
+            &audit_export_payload("TST", &cards, false).expect("first export"),
+        )
+        .expect("serialize first export");
+        cards.reverse();
+        let second = serde_json::to_vec_pretty(
+            &audit_export_payload("tst", &cards, false).expect("second export"),
+        )
+        .expect("serialize second export");
+
+        assert_eq!(first, second);
+    }
+
+    #[test]
+    fn audit_export_rejects_duplicate_stable_keys() {
+        let mut records =
+            audit_records(&[audit_card("Duplicate", "tst", "2000-01-01", Some("Flying"))]);
+        records.push(records[0].clone());
+
+        let error = validate_audit_records(&records).expect_err("duplicate key must fail");
+        assert!(error.to_string().contains("duplicate stable keys"));
+    }
+
+    #[test]
+    fn held_out_definition_keeps_historical_exceptions_and_fallbacks_out_of_pool() {
+        assert!(is_held_out_identity(
+            "f0000000-0000-0000-0000-000000000000",
+            Some("Synthetic text."),
+            false,
+            "dev"
+        ));
+        assert!(!is_held_out_identity(
+            "f0000000-0000-0000-0000-000000000000",
+            Some("Synthetic text."),
+            false,
+            "lea"
+        ));
+        assert!(!is_held_out_identity(
+            "f0000000-0000-0000-0000-000000000000",
+            Some("Synthetic text."),
+            true,
+            "dev"
+        ));
+        assert!(!is_held_out_identity(
+            "f0000000-0000-0000-0000-000000000000",
+            None,
+            false,
+            "dev"
+        ));
+    }
+
+    #[test]
+    fn audit_query_excludes_held_out_cards_before_segmentation() {
+        let conn = Connection::open_in_memory().expect("in-memory database");
+        conn.execute_batch(
+            "CREATE TABLE cards (
+                oracle_id TEXT PRIMARY KEY,
+                name TEXT,
+                type_line TEXT,
+                first_set TEXT,
+                first_released_at TEXT,
+                first_is_fallback INTEGER,
+                oracle_text TEXT
+            );",
+        )
+        .expect("test schema");
+        for row in [
+            ("a-safe", "Safe", 0, Some("Flying")),
+            ("f-held", "Held", 0, Some("Trample")),
+            ("f-fallback", "Fallback", 1, Some("Haste")),
+            ("f-empty", "No Text", 0, None),
+        ] {
+            conn.execute(
+                "INSERT INTO cards VALUES (?1, ?2, NULL, 'dev', '2000-01-01', ?3, ?4)",
+                params![row.0, row.1, row.2, row.3],
+            )
+            .expect("insert test card");
+        }
+
+        let unfiltered = load_audit_cards(&conn, "dev", false).expect("unfiltered cards");
+        let filtered = load_audit_cards(&conn, "dev", true).expect("filtered cards");
+        assert_eq!(unfiltered.len(), 4);
+        assert_eq!(filtered.len(), 3);
+        ensure_held_out_excluded(&filtered, true).expect("held-out postcondition");
+        assert!(audit_export_payload("dev", &unfiltered, true).is_err());
     }
 
     #[test]

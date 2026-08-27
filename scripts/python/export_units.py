@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
 """Export every structural unit of one first-printing set as a flat TSV.
 
-Interim research tool: it drives the existing ``mtg-discover`` CLI (``cards
---set`` to enumerate the set, ``segment --card`` per card) and flattens the
-segment tree so that each unit is one row with a parent pointer. It exists so
-that a set's audit inventory is reproducible and diffable. It adds no
-segmentation logic of its own; when the CLI grows a native export, prefer that.
+This script is the protocol TSV view over the native ``audit export`` JSON.
+The native query performs optional held-out exclusion before segmentation;
+this layer validates the stable keys and parent references before writing any
+auditor-visible row. It adds no segmentation logic of its own.
 
 Usage (from the repository root, after ``cargo build --release``):
 
     python scripts/python/export_units.py lea > docs/audits/lea/units-export.tsv
     python scripts/python/export_units.py lea --mtg path/to/mtg-discover.exe
+    python scripts/python/export_units.py leg --exclude-heldout > output.tsv
 
-Rows are sorted by card name, then pre-order unit index, so the output is
-deterministic for a fixed database and segmenter. Standard library only.
+Rows are sorted by card name, Oracle ID, face, then pre-order unit index, so
+the output is deterministic for a fixed database and segmenter. Standard
+library only.
 """
 
 import argparse
@@ -42,36 +43,82 @@ def run_json(mtg, db, args):
     return json.loads(proc.stdout)
 
 
-def list_set(mtg, db, set_code, page=200):
-    cards, offset = [], 0
-    while True:
-        batch = run_json(mtg, db, ["cards", "", "--set", set_code, "--limit", str(page), "--offset", str(offset)])
-        cards.extend(batch["cards"])
-        if batch["count"] < page:
-            return cards
-        offset += page
+def stable_key(record):
+    return record["oracle_id"], record["face"], record["unit_index"]
 
 
-def flatten(card, set_code, segments, parent_index=None, depth=0):
-    for seg in segments:
-        yield {
+def is_held_out_record(record):
+    return (
+        record["oracle_id"][:1].lower() == "f"
+        and not record["first_is_fallback"]
+        and record["first_set"].lower() not in {"lea", "leb", "arn"}
+    )
+
+
+def validate_native_export(payload, require_heldout_exclusion=False):
+    if payload.get("schema_version") != "audit-export-v1":
+        raise ValueError("unsupported native audit export schema")
+    if payload.get("stable_key") != ["oracle_id", "face", "unit_index"]:
+        raise ValueError("native audit export declares an unexpected stable key")
+    exclusion = payload.get("heldout_exclusion", {})
+    if require_heldout_exclusion and not exclusion.get("enabled"):
+        raise ValueError("held-out exclusion was requested but not attested")
+
+    records = payload.get("records", [])
+    keys = [stable_key(record) for record in records]
+    if len(keys) != len(set(keys)):
+        raise ValueError("native audit export contains duplicate stable keys")
+    expected_order = sorted(
+        records,
+        key=lambda record: (
+            record["card_name"].lower(),
+            record["card_name"],
+            record["oracle_id"],
+            record["face"],
+            record["unit_index"],
+        ),
+    )
+    if records != expected_order:
+        raise ValueError("native audit export violates its declared ordering")
+    key_set = set(keys)
+    for record in records:
+        parent_index = record.get("parent_index")
+        if parent_index is None:
+            continue
+        if parent_index >= record["unit_index"]:
+            raise ValueError("native audit export contains a non-preorder parent")
+        if (record["oracle_id"], record["face"], parent_index) not in key_set:
+            raise ValueError("native audit export contains a cross-identity parent")
+    if require_heldout_exclusion and any(is_held_out_record(record) for record in records):
+        raise ValueError("native audit export exposed a held-out identity")
+    if payload.get("count") != len(records):
+        raise ValueError("native audit export row count does not match its metadata")
+    return records
+
+
+def tsv_rows(payload, require_heldout_exclusion=False):
+    records = validate_native_export(payload, require_heldout_exclusion)
+    set_code = payload["set"]
+    return [
+        {
             "set": set_code,
-            "oracle_id": card["oracle_id"],
-            "name": card["name"],
-            "type_line": card["type_line"],
-            "index": seg["index"],
-            "parent_index": "" if parent_index is None else parent_index,
-            "depth": depth,
-            "face": seg["face"],
-            "line": seg["line"],
-            "kind": seg["kind"],
-            "role": seg["role"],
-            "source": seg["source"],
-            "rule": seg.get("rule", ""),
-            "text": seg["text"],
-            "normalized": seg["normalized"],
+            "oracle_id": record["oracle_id"],
+            "name": record["card_name"],
+            "type_line": record.get("type_line") or "",
+            "index": record["unit_index"],
+            "parent_index": "" if record.get("parent_index") is None else record["parent_index"],
+            "depth": record["depth"],
+            "face": record["face"],
+            "line": record["source_line"],
+            "kind": record["kind"],
+            "role": record["role"],
+            "source": record["source"],
+            "rule": record.get("rule") or "",
+            "text": record["unit_text"],
+            "normalized": record["normalized"],
         }
-        yield from flatten(card, set_code, seg.get("children", []), seg["index"], depth + 1)
+        for record in records
+    ]
 
 
 def main():
@@ -79,21 +126,18 @@ def main():
     parser.add_argument("set_code", help="first-printing set code, e.g. lea")
     parser.add_argument("--mtg", default=DEFAULT_MTG, help="path to the mtg-discover binary")
     parser.add_argument("--db", default=None, help="path to cards.sqlite (default: CLI default)")
+    parser.add_argument(
+        "--exclude-heldout",
+        action="store_true",
+        help="exclude protocol 6.3 held-out identities before segmentation",
+    )
     args = parser.parse_args()
 
-    cards = sorted(list_set(args.mtg, args.db, args.set_code), key=lambda c: (c["name"], c["oracle_id"]))
-    rows = []
-    for card in cards:
-        if not card.get("oracle_text"):
-            continue
-        # Segment the card's own text rather than looking it up by name:
-        # `segment --card` resolves names with LIMIT 1, and names collide with
-        # token cards (Antiquities' Shapeshifter vs. Shapeshifter tokens).
-        seg_args = ["segment", "--text", card["oracle_text"], "--name", card["name"]]
-        if card.get("type_line"):
-            seg_args += ["--type-line", card["type_line"]]
-        result = run_json(args.mtg, args.db, seg_args)
-        rows.extend(flatten(card, args.set_code, result["segments"]))
+    export_args = ["audit", "export", args.set_code]
+    if args.exclude_heldout:
+        export_args.append("--exclude-heldout")
+    payload = run_json(args.mtg, args.db, export_args)
+    rows = tsv_rows(payload, args.exclude_heldout)
 
     # Oracle text contains em dashes and curly quotes; never let the console
     # codepage decide how they are written.
@@ -102,7 +146,7 @@ def main():
     out.write("\t".join(COLUMNS) + "\n")
     for row in rows:
         out.write("\t".join(str(row[c]).replace("\t", " ").replace("\n", " ") for c in COLUMNS) + "\n")
-    sys.stderr.write(f"{len(cards)} cards, {len(rows)} units\n")
+    sys.stderr.write(f"{payload['cards']} cards, {len(rows)} units\n")
 
 
 if __name__ == "__main__":

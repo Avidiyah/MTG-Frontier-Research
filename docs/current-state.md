@@ -105,6 +105,8 @@ model already exists and therefore does not solve the active frontier.
 | `docs/gates/` | One evidence package and decision record per roadmap gate (`gate-0-evidence.md`) |
 | `docs/audits/<set>/` | Per-set artifact package: frozen unit export, unit-level annotation, `metrics.json` (Alpha done) |
 | `scripts/python/export_units.py`, `scripts/python/audit_metrics.py` | Interim standard-library tools for the protocol (unit export; measurements, novelty, drift) |
+| `scripts/python/verify_export_safety.py`, `scripts/python/verify_manifests.py` | Aggregate-only T7/determinism verification and lightweight provenance validation |
+| `docs/manifests/` | Committed snapshot and experiment identities; generated bulk/database/export files remain uncommitted |
 | `scripts/python/mtg_search.py` | Human-oriented interactive card lookup |
 | `.github/copilot-instructions.md`, `CLAUDE.md` | Agent onboarding, verified commands, architecture, and repository conventions |
 | `docs/README.md` | Setup, command reference, and older pipeline documentation |
@@ -291,9 +293,11 @@ hit is not proof that the rule completely determines a card's behavior.
   chapter symbol, or named mode/label; em dash, no period, no colon, ≤ 45
   characters) is detected and stripped before classification, and recorded
   on a new `prefix` field, so it can no longer hide the trigger word (or
-  other classification evidence) that follows it (P-ATQ-3, corpus-validated
-  2026-08-26 — 3,572 firings, 0 binary/search mismatches; S10 acceptance
-  pending Codex's adjudication of 3 residual prevention rows; known bounded
+  other classification evidence) that follows it (P-ATQ-3, accepted within
+  its measured scope 2026-08-26 — 3,572 firings, 0 binary/search
+  mismatches; the 3 residual prefix-related prevention rows were
+  adjudicated correct positives by the research lead in
+  `docs/findings/p-atq-research-acceptance-assessment.md`; known bounded
   counterexamples: Prototype/spree/table-label prefixes, 2 flavor words
   containing sentence punctuation, and 141 short stripped bodies on funny/token
   sets that `is_keyword_line` now labels keywords); a Saga chapter symbol (pure Roman numerals on a
@@ -364,8 +368,12 @@ hit is not proof that the rule completely determines a card's behavior.
   flavor-word misses and 141 newly incorrect `keyword_ability` labels on
   funny/token products).
 - A held-out pool is frozen (protocol §6.3: `oracle_id` prefix `f`,
-  non-fallback, excluding `lea`/`leb`/`arn`; 2,096 cards) but not yet sampled
-  or annotated.
+  non-fallback, excluding `lea`/`leb`/`arn`; 2,096 cards) and bound to the
+  current snapshot by a non-disclosing sorted-identity digest. T7 exclusion is
+  implemented at the database query boundary for card search, database-backed
+  segmentation, and audit export; the protocol TSV exporter validates the
+  native exclusion attestation and stable keys before writing rows. The pool
+  has not yet been sampled or annotated.
 - There is no semantic annotation set and no agreed semantic operator
   inventory.
 - There is no executable equivalence test or minimal rules model.
@@ -433,9 +441,11 @@ Unless new evidence changes priorities:
    measurement at `bf9eb04`, and the combined technical evidence is in
    `docs/audits/corpus-checks/2026-08-26-post-patq-merge.md`. The five
    rule-(c) rows are re-annotated `under` with fresh exports and drift-free
-   metrics. Legends (`leg`, 310 cards, 290 with text — the last set below
-   the 400-card exhaustive threshold before Ice Age) is next and has **not**
-   started; its accepted Antiquities prerequisite is complete.
+    metrics. Legends (`leg`, 310 cards, 290 with text — the last set below
+    the 400-card exhaustive threshold before Ice Age) is next and has **not**
+    started; its accepted Antiquities prerequisite and T7 technical export
+    gate are complete. The retained freeze export, role attestations, frozen
+    input block, and program-owner authorization remain open.
 2. **Normalization ablations:** measure one reversible transformation at a time
    rather than applying increasingly lossy normalization as a bundle.
 3. **Typed-slot discovery:** test candidate roles for numbers, mana, objects,
@@ -599,9 +609,11 @@ When updating this document:
   left unchanged and still pass — none of their fixtures used the
   prohibition wording. `cargo fmt -- --check`, `cargo test` (47 passed),
   `cargo clippy --all-targets -- -D warnings`, and `cargo build --release`
-  all pass. **Not yet done, same blocker as P-ATQ-1:** this session's
-  network egress policy again returns 403 for `api.scryfall.com`, so
-  `cards.sqlite` could not be (re)generated and neither
+  all pass. *(The remainder of this entry is superseded: P-ATQ-2 was
+  accepted under S10 in the post-merge acceptance pass at `8e83221`, the
+  last entry of this log.)* **Not yet done, same blocker as P-ATQ-1:** this
+  session's network egress policy again returns 403 for
+  `api.scryfall.com`, so `cards.sqlite` could not be (re)generated and neither
   `scripts/python/corpus_checks/check_kind_rules.py` (which reads
   `cards.sqlite` directly for type-line lookups) nor
   `scripts/python/corpus_checks/dump_corpus_units.py` (its required input)
@@ -669,6 +681,9 @@ When updating this document:
   passed), `cargo clippy --all-targets -- -D warnings`, and `cargo build
   --release` all pass.
 
+  *(The remainder of this entry is superseded: the S8 search and S11
+  inventory it names were run at `8e83221` and P-ATQ-3 was accepted
+  within its measured scope — see the last entry of this log.)*
   **Not yet done:** this session's network egress policy again returns 403
   for `api.scryfall.com` (re-confirmed this session) and no `cards.sqlite`
   exists, the same blocker recorded against P-ATQ-1 and P-ATQ-2. The
@@ -780,6 +795,9 @@ When updating this document:
   `cargo fmt -- --check`, `cargo test` (82 passed), `cargo clippy
   --all-targets -- -D warnings`, and `cargo build --release` all pass.
 
+  *(The remainder of this entry is superseded: the full instant/sorcery-face
+  S8 sweep was run at `8e83221` and P-ATQ-4 was accepted under S10 — see
+  the last entry of this log.)*
   **Partial corpus cross-check, not a full S8/S11 pass:** this session's
   network egress policy again returns 403 for `api.scryfall.com`
   (re-confirmed), so `cards.sqlite` does not exist and neither
@@ -835,6 +853,9 @@ When updating this document:
   P-ATQ-3 reduced the 8 recorded prefix-related prevention candidates to 3;
   these remain for research-lead adjudication. All four implementations remain
   pending the protocol-required re-annotation and acceptance decision.
+  *(Superseded the same day by the two entries below: all four are accepted,
+  the three residuals are adjudicated correct positives, and the
+  re-annotation is committed at drift 0.)*
 - Accepted P-ATQ-1 under protocol S10 (decider: research lead, per
   `docs/findings/p-atq-research-acceptance-assessment.md`; technical package
   on branch `claude/p-atq-1-acceptance`). The rule (c) retraction was
@@ -860,3 +881,23 @@ When updating this document:
   bodies newly labelled keywords). The five rule-(c) rows were subsequently
   re-annotated and regenerated at drift 0. D19 and D14 remain open; Legends
   has not started.
+- Post-merge reconciliation at `2355b6c` (technical validator): the P-ATQ
+  technical package is complete and merged (`bcf9eaa`); stale
+  "pending"/"not yet accepted" wording in this document,
+  `docs/gates/gate-1-readiness-matrix.md` and
+  `docs/findings/atq-structural-audit.md` was marked superseded rather than
+  rewritten. The Legends entry-checklist completion record and the
+  annotator/adjudicator/program-owner templates are in
+  `docs/gates/legends-entry-record.md`. Legends remains closed: the
+  held-out-safe export (protocol T7 is not implemented at `2355b6c`), the
+  frozen-inputs
+  block, the annotator/adjudicator assignments and attestations, and the
+  program-owner authorization are still outstanding.
+- Closed the pre-Legends T7 technical gate without displaying card rows:
+  held-out exclusion now occurs in SQLite before segmentation/serialization;
+  JSON and TSV exports validate `(oracle_id, face, unit_index)` uniqueness and
+  parent integrity; two aggregate-only repeated runs were byte-identical with
+  17 held-out identities excluded and 0 held-out export records. Added
+  validated snapshot/experiment manifests under `docs/manifests/`. The final
+  retained freeze export and governance sign-offs remain open; Legends has not
+  started.

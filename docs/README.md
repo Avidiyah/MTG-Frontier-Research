@@ -38,15 +38,19 @@ they drive the release build of `mtg-discover`.
 
 ```
 python scripts/python/export_units.py lea > docs/audits/lea/units-export.tsv
+python scripts/python/export_units.py leg --exclude-heldout > units-export.tsv
 python scripts/python/audit_metrics.py docs/audits/lea/units-annotated.tsv --export docs/audits/lea/units-export.tsv
 python scripts/python/audit_metrics.py docs/audits/arn/units-annotated.tsv --earlier docs/audits/lea/units-export.tsv
+python scripts/python/verify_export_safety.py leg --mtg .\target\release\mtg-discover.exe --runs 2
 ```
 
-`export_units.py` enumerates a set with `cards "" --set <code>`, segments
-each card's own Oracle text with `segment --text/--name/--type-line` (name
-lookup is ambiguous for cards that share a name with tokens), and writes one
-row per unit with a parent pointer (columns defined in
-`docs/protocol/structural-investigation-protocol.md` §4.1).
+`export_units.py` projects native `audit export` JSON into the protocol TSV
+columns defined in `docs/protocol/structural-investigation-protocol.md` §4.1.
+With `--exclude-heldout`, the database query excludes protocol §6.3 identities
+before segmentation, and the script validates the exclusion attestation,
+stable-key uniqueness, parent integrity, and ordering before writing a row.
+`verify_export_safety.py` repeats both JSON and TSV exports internally and
+prints only aggregate counts and hashes.
 
 `scripts/python/corpus_checks/` holds the corpus-wide S11 checks run after a
 segmenter change: `dump_corpus_units.py <out.jsonl>` writes every unit of
@@ -93,6 +97,7 @@ Available discovery operations:
 & $mtg templates --set lea                     # restrict to one first-printing set
 & $mtg cards "Regenerate" --field text --set lea
 & $mtg audit export lea                        # flattened structural units for one set
+& $mtg audit export leg --exclude-heldout      # T7-safe export, filtered before segmentation
 & $mtg audit summary lea                       # set-level audit measurements
 & $mtg audit novelty arn --earlier lea,leb     # compare to earlier audited sets
 & $mtg audit signals lea                       # surface-form audit candidates
@@ -132,7 +137,11 @@ Oracle ID, card name, first set, release date, fallback flag, face, source
 line, pre-order unit index, parent index, depth, raw source line, unit text,
 normalized template, kind, role, source, optional CR citation, and any
 surface-form signals. Ordering is deterministic: card name, Oracle ID, face,
-then unit index. `audit summary <set>` uses the same printed-unit inclusion
+then unit index. It validates the stable key `(oracle_id, face, unit_index)`
+and parent references before serialization. `--exclude-heldout` is also
+available on `cards`, database-backed `segment --card`, `audit summary`, and
+`audit signals`; each applies the frozen pool predicate in SQLite before rows
+reach the command's output layer. `audit summary <set>` uses the same printed-unit inclusion
 rules as `templates` and reports cards, cards with text, printed units,
 rules-supplied units, distinct and singleton templates, kind/role/source
 histograms, multi-sentence units, residual spell/static units, and uncited
