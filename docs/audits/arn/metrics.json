@@ -2,53 +2,53 @@
   "annotated_file": "docs/audits/arn/units-annotated.tsv",
   "cards": 77,
   "units": {
-    "all": 112,
-    "printed": 112,
+    "all": 110,
+    "printed": 110,
     "rules_supplied": 0,
     "printed_top_level": 107,
-    "printed_children": 5
+    "printed_children": 3
   },
   "boundary": {
     "precision": {
-      "numerator": 110,
-      "denominator": 112,
-      "value": 0.9821
+      "numerator": 108,
+      "denominator": 110,
+      "value": 0.9818
     },
     "recall": {
-      "numerator": 110,
+      "numerator": 108,
       "denominator": 110,
-      "value": 1.0
+      "value": 0.9818
     },
     "by_value": {
-      "ok": 110,
-      "over": 2
+      "ok": 108,
+      "under": 2
     },
-    "missed_boundaries": 0,
+    "missed_boundaries": 2,
     "unsure": 0
   },
   "kind_accuracy": {
-    "numerator": 108,
-    "denominator": 108,
+    "numerator": 106,
+    "denominator": 106,
     "value": 1.0
   },
   "kind_not_applicable_or_unsure": 2,
   "role_accuracy": {
+    "numerator": 108,
+    "denominator": 108,
+    "value": 1.0
+  },
+  "source_accuracy": {
     "numerator": 110,
     "denominator": 110,
     "value": 1.0
   },
-  "source_accuracy": {
-    "numerator": 112,
-    "denominator": 112,
-    "value": 1.0
-  },
   "dispositions": {
-    "accept": 110,
+    "accept": 108,
     "defect": 2
   },
   "context_required": {
     "none": 87,
-    "cr": 24,
+    "cr": 22,
     "type_line": 1
   },
   "structure_tags": {
@@ -79,9 +79,8 @@
     "remembered_choice": 3,
     "counter_each": 1,
     "mana_restriction": 1,
-    "delayed_trigger_parent": 3,
-    "delayed_trigger_inverted": 2,
     "multi_clause": 1,
+    "delayed_trigger_inverted": 2,
     "optional_untap_static": 1,
     "duration_until_leaves": 1,
     "instruction_in_effect": 1,
@@ -91,6 +90,7 @@
     "mode": 2,
     "instead_in_mode": 1,
     "outside_the_game": 1,
+    "delayed_trigger_parent": 1,
     "delayed_trigger_when": 1,
     "stated_duration": 1,
     "subgame": 1,
@@ -105,28 +105,28 @@
   "kind_expected_when_wrong": {},
   "annotators": {
     "fable-pass1": 103,
-    "fable-pass1;codex-accepted-2026-08-26;fable-review-2026-08-26": 7,
-    "fable-pass1;codex-accepted-2026-08-26;fable-review-2026-08-26;adjudicated-2026-08-26": 2
+    "fable-pass1;codex-accepted-2026-08-26;fable-review-2026-08-26": 5,
+    "fable-pass1;codex-accepted-2026-08-26;fable-review-2026-08-26;adjudicated-2026-08-26;fable-reannotation-p-atq-1-2026-08-26": 2
   },
   "templates": {
-    "distinct": 95,
-    "singletons": 86
+    "distinct": 93,
+    "singletons": 84
   },
   "novelty": {
     "earlier_files": [
       "docs/audits/lea/units-export.tsv",
       "docs/audits/leb/units-export.tsv"
     ],
-    "earlier_distinct_templates": 295,
+    "earlier_distinct_templates": 294,
     "unit_novelty": {
-      "numerator": 80,
-      "denominator": 112,
-      "value": 0.7143
+      "numerator": 78,
+      "denominator": 110,
+      "value": 0.7091
     },
     "template_novelty": {
-      "numerator": 79,
-      "denominator": 95,
-      "value": 0.8316
+      "numerator": 77,
+      "denominator": 93,
+      "value": 0.828
     }
   },
   "drift": {

@@ -2,56 +2,55 @@
   "annotated_file": "docs/audits/lea/units-annotated.tsv",
   "cards": 275,
   "units": {
-    "all": 417,
-    "printed": 403,
+    "all": 415,
+    "printed": 401,
     "rules_supplied": 14,
     "printed_top_level": 384,
-    "printed_children": 19
+    "printed_children": 17
   },
   "boundary": {
     "precision": {
-      "numerator": 398,
-      "denominator": 402,
+      "numerator": 396,
+      "denominator": 400,
       "value": 0.99
     },
     "recall": {
-      "numerator": 398,
+      "numerator": 396,
       "denominator": 400,
-      "value": 0.995
+      "value": 0.99
     },
     "by_value": {
-      "ok": 398,
-      "under": 2,
-      "over": 2,
+      "ok": 396,
+      "under": 4,
       "unsure": 1
     },
-    "missed_boundaries": 2,
+    "missed_boundaries": 4,
     "unsure": 1
   },
   "kind_accuracy": {
-    "numerator": 390,
-    "denominator": 391,
+    "numerator": 388,
+    "denominator": 389,
     "value": 0.9974
   },
   "kind_not_applicable_or_unsure": 7,
   "role_accuracy": {
-    "numerator": 396,
-    "denominator": 396,
+    "numerator": 394,
+    "denominator": 394,
     "value": 1.0
   },
   "source_accuracy": {
-    "numerator": 417,
-    "denominator": 417,
+    "numerator": 415,
+    "denominator": 415,
     "value": 1.0
   },
   "dispositions": {
-    "accept": 409,
+    "accept": 407,
     "defect": 5,
     "adjudicate": 2,
     "ambiguous": 1
   },
   "context_required": {
-    "cr": 103,
+    "cr": 101,
     "none": 293,
     "type_line": 19,
     "game_state": 2
@@ -66,7 +65,7 @@
     "rules_supplied": 14,
     "one_off_candidate": 8,
     "cast_restriction": 5,
-    "delayed_trigger_parent": 7,
+    "delayed_trigger_parent": 5,
     "delayed_trigger_next": 2,
     "enters_replacement": 9,
     "mode_header": 3,
@@ -106,11 +105,11 @@
   },
   "annotators": {
     "fable-pass1": 403,
-    "fable-pass1;codex-accepted-2026-08-26;fable-review-2026-08-26": 12,
-    "fable-pass1;codex-accepted-2026-08-26;fable-review-2026-08-26;adjudicated-2026-08-26": 2
+    "fable-pass1;codex-accepted-2026-08-26;fable-review-2026-08-26": 10,
+    "fable-pass1;codex-accepted-2026-08-26;fable-review-2026-08-26;adjudicated-2026-08-26;fable-reannotation-p-atq-1-2026-08-26": 2
   },
   "templates": {
-    "distinct": 294,
+    "distinct": 293,
     "singletons": 267
   },
   "drift": {
