@@ -3,7 +3,7 @@
 - Date: 2026-08-26
 - Research decision basis: repository state at commit `8e83221`
 - Decision scope: P-ATQ-1 through P-ATQ-4
-- Status: research-side acceptance complete; technical S10 validation package pending
+- Status: research and technical S10 acceptance complete
 - Prepared by: Codex, acting as research lead for evidence interpretation and proposal adjudication
 
 ## Executive decision
@@ -11,10 +11,8 @@
 - **Another full Antiquities audit:** NO.
 - **Bounded acceptance pass sufficient:** YES.
 - **Research prerequisite for Legends:** PASSED.
-- **Remaining gate condition:** Claude's post-merge technical validation must
-  complete successfully before the Legends audit opens. That package is expected
-  to contain the fresh S8 searches, earlier-set regression metrics, corpus
-  histograms, and S10 evidence record.
+- **Remaining gate condition:** none for ATQ; Legends must still follow its
+  preregistered baseline-freeze and held-out-safe entry procedure.
 - **Research-side blocking items:** none.
 
 P-ATQ-1 through P-ATQ-4 are accepted on the research evidence. The technical
@@ -23,11 +21,10 @@ counterexample, unexplained regression, or measurement conflict. They do not
 justify another full Antiquities audit unless they reveal evidence substantially
 broader than any currently recorded class.
 
-No Claude-authored post-merge validation report was present in the repository at
-the final check for this assessment. The latest technical evidence available to
-this review was commit `8e83221`, including the combined corpus measurements
-recorded in `docs/current-state.md` and
-`docs/findings/atq-structural-audit.md`.
+The subsequent technical package is recorded in
+`docs/audits/corpus-checks/2026-08-26-post-patq-merge.md` and
+`docs/audits/corpus-checks/2026-08-26-patq-s8-search.md`. The final
+reconciliation retains all four acceptances within their stated bounds.
 
 ## Scope and method
 
@@ -364,11 +361,12 @@ positives.
 
 ### Remaining uncertainty
 
-The full corpus inventory of short, punctuation-clean em-dash constructions has
-not yet been packaged in the findings. Claude's technical S8 record should show
-which units fire the generic extraction rule and identify any construction that
-is not a structural label. A discovered non-label collision would support a
-bounded refinement of the prefix pattern, not a broad second ATQ audit.
+The completed S8 inventory records 3,572 firings. It found bounded structural
+false positives, two punctuated flavor-word false negatives, and 141 newly
+incorrect `keyword_ability` labels on funny/token products through the
+pre-existing `is_keyword_line` heuristic. No newly incorrect keyword labels
+occur in expansion/core/commander products. These limitations remain visible;
+a later refinement would be a bounded proposal, not a broad second ATQ audit.
 
 ### Evidence
 
@@ -485,11 +483,12 @@ spell-created delayed trigger lacking `this turn`, `this combat`, or `next`
 could remain role=`ability`. Other self-zone phrasings outside the implemented
 zone vocabulary may also exist.
 
-These are explicit unsupported recall classes. Claude's S8 search should inspect
-nearest non-matching temporal wordings across the full instant/sorcery-face
-population. If it finds a concrete current-corpus example that clearly belongs
-to the intended class, only P-ATQ-4's bounded temporal or exclusion pattern
-needs revision.
+The completed S8 search inspected the full instant/sorcery-face population.
+Recorded out-of-pattern classes include Ertai's Meddling, 45 whole-unit
+inverted cantrip lines, duration-first forms, comma-led forms, and two
+sentence-initial combat forms. They are explicit unsupported recall classes;
+widening coverage requires a separate bounded proposal rather than reopening
+the accepted P-ATQ-4 class.
 
 ### Disposition
 
@@ -615,7 +614,7 @@ changes to the existing structural measurement baseline.
 > semantic interpretation, and frozen held-out evaluation remain separate and
 > non-blocking.
 
-Claude's technical record should additionally:
+Claude's completed technical record:
 
 1. attach the fresh `lea`/`leb`/`arn`/`atq` regression metrics and explain each
    legitimate export change;
@@ -633,8 +632,9 @@ Claude's technical record should additionally:
 
 ## Legends transition recommendation
 
-Legends may begin after Claude's technical checks pass. No second ATQ audit is a
-research prerequisite.
+The ATQ acceptance gate is closed. Legends is the next authorized structural
+audit after its preregistered baseline-freeze and held-out-safe entry checks.
+No second ATQ audit is a research prerequisite.
 
 The following constraints must carry forward:
 
@@ -653,10 +653,8 @@ The following constraints must carry forward:
 - exclude Combust, Malignus, Lava Burst, and Wild Slash from all later held-out
   samples because of the incident logged above.
 
-If Claude's technical package passes without a material contradiction, the ATQ
-acceptance gate is closed and Legends is the next authorized structural audit.
-If a contradiction appears, reopen only the affected proposal with the smallest
-bounded measurement needed to decide it.
+If future evidence produces a contradiction, reopen only the affected proposal
+with the smallest bounded measurement needed to decide it.
 
 ## Evidence index
 
@@ -681,6 +679,10 @@ bounded measurement needed to decide it.
   - former delayed-trigger fragment population and sentence-level sample.
 - `docs/audits/corpus-checks/2026-08-26-kind-rules-check.md`
   - prevention prohibitions, prefix cases, and instant/sorcery trigger classes.
+- `docs/audits/corpus-checks/2026-08-26-post-patq-merge.md`
+  - frozen post-merge inputs, before/after histograms, and regression evidence.
+- `docs/audits/corpus-checks/2026-08-26-patq-s8-search.md`
+  - complete P-ATQ-3 firing inventory and P-ATQ-4 near-match search.
 - `docs/current-state.md`
   - current combined corpus baseline and implementation descriptions.
 - `docs/roadmap.md`

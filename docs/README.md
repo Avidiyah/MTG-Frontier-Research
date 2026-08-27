@@ -53,7 +53,11 @@ segmenter change: `dump_corpus_units.py <out.jsonl>` writes every unit of
 every first-printing set via `audit export` (about a minute; the output is
 gitignored), and `check_delayed_split.py` / `check_kind_rules.py` /
 `check_kind_rules_part2.py <dump.jsonl> <report.md>` produce the reports kept
-under `docs/audits/corpus-checks/`. `audit_metrics.py` reads the annotated table, prints every ratio with
+under `docs/audits/corpus-checks/`; `check_patq_s8.py <dump.jsonl> <report.md>
+[--pre <pre-change dump>] [--mtg <binary>]` is the protocol S8 search for the
+P-ATQ-3 prefix rule and P-ATQ-4 spell-created delayed triggers (before/after
+transitions, a binary cross-check of its restated patterns, and a
+`--self-test`). `audit_metrics.py` reads the annotated table, prints every ratio with
 its numerator and denominator, computes unit/template novelty against earlier
 sets' exports, and reports drift when the annotated unit text no longer
 matches a fresh export.
