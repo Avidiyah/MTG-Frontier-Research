@@ -85,24 +85,23 @@ fully demonstrated; **missing** — the artifact or act does not yet exist.
 | 1 | Claude's technical P-ATQ package passes and is incorporated into the acceptance record. | `docs/audits/corpus-checks/2026-08-26-post-patq-merge.md`; `…-patq-s8-search.md`; `docs/findings/atq-structural-audit.md` §8; `docs/findings/p-atq-research-acceptance-assessment.md` ("The subsequent technical package is recorded in …"); merge `bcf9eaa` | **satisfied** | — |
 | 2 | Any contradiction is adjudicated without silently changing P-ATQ dispositions. | §1 above; `p-atq-research-acceptance-assessment.md` "Residual adjudications" and "Text for Claude's S10 decision record" item 4; `atq-structural-audit.md` P-ATQ-1 acceptance record ("Expected vs measured") | **satisfied** | — |
 | 3 | `docs/current-state.md` reflects the accepted live baseline. | `docs/current-state.md` §"Current segmentation and normalization baseline" (71,563 / 970 / 37,299; roles 67,045 · 2,121 · 1,506 · 891; 861 + 30 delayed) agrees with `2026-08-26-post-patq-merge.md` §3 post column; stale clauses reconciled per §2 | **satisfied** (at the commit that lands this packet) | Re-check at the freeze commit · technical measurement owner |
-| 4 | Frozen commit, data snapshots, CR, protocol, guide, and earlier export hashes are recorded. | Preregistration §3 is populated from live values. Clean measurement freeze `2e5173570077dab43cdfde2dc33d5a0e0831bd89`; governance-only role commit `b693a0c`. Snapshot manifest and final `docs/manifests/experiment-legends-freeze-2026-08-27.json` validate; final manifest sha256 `8c1d36b35f13ab8da8d45f1ee1c5fc1de009ff8b23ec59d0986722167174dc5c`. Protocol, guide, pre-population preregistration, CR, database/input, and final `lea`/`leb`/`arn`/`atq` export/annotation hashes are recorded in preregistration §3. | **satisfied** | — |
+| 4 | Frozen commit, data snapshots, CR, protocol, guide, and earlier export hashes are recorded. | Preregistration §3 is populated from live values. Clean measurement freeze `2e5173570077dab43cdfde2dc33d5a0e0831bd89`; governance-only role commit `b693a0c`. Snapshot manifest and final `docs/manifests/experiment-legends-freeze-2026-08-27.json` validate; final manifest sha256 `dfe57656f3a81b172cc76806c7afa2ebe487328ff599d9cde171b3698a433f23`. Protocol, guide, pre-population preregistration, CR, database/input, and final `lea`/`leb`/`arn`/`atq` export/annotation hashes are recorded in preregistration §3. | **satisfied** | — |
 | 5 | Build and tests pass at the frozen commit. | Clean freeze candidate `2e5173570077dab43cdfde2dc33d5a0e0831bd89`: `cargo build --release` passed; `cargo test` **88 passed, 0 failed**; `cargo fmt -- --check` passed; `cargo clippy --all-targets -- -D warnings` passed; required Python suites **20 passed, 0 failed**; snapshot manifest validated. | **satisfied** | — |
-| 6 | A held-out-safe deterministic development export exists and has been verified by aggregate counts only. | Aggregate-only verifier at freeze source bytes: 310 / 290 cards before exclusion, 17 held-out identities excluded, 293 / 273 after, 0 held-out export records, 426 / 426 unique keys, JSON/TSV key sequences identical, and two byte-identical runs per format. Expected TSV sha256 `c39a2d695b94ce33a2e16356dd93bc6dc614b7c83becfb2b2f72ad5cb298d2e3`. Retained `docs/audits/leg/units-export.tsv` and unopened pass copies match that hash; final manifest binds the file. | **satisfied** | — |
+| 6 | A held-out-safe deterministic development export exists and has been verified by aggregate counts only. | Aggregate-only verifier at freeze source bytes: 310 / 290 cards before exclusion, 17 held-out identities excluded, 293 / 273 after, 0 held-out export records, 426 / 426 unique keys, JSON/TSV key sequences identical, and two byte-identical runs per format. Expected and retained TSV sha256 `c39a2d695b94ce33a2e16356dd93bc6dc614b7c83becfb2b2f72ad5cb298d2e3`. Pass copies matched it before initialization; after adding only protocol §4.2 columns and fixed annotator ids, each has 426 rows and zero structural drift. The final manifest binds all three files. | **satisfied** | — |
 | 7 | The cumulative held-out exclusion registry, including the four named incident exclusions, is bound to the audit. | Protocol §6.3 plus Combust, Malignus, Lava Burst, and Wild Slash; preregistration §3 cites the registry. Snapshot and final experiment manifests bind the 2,096-card pool by non-disclosing digest `377e12bdf80e0263c361f48ff2be241f600efd854b6eaa4f916d239a83067fc7`; validation recomputed it from `cards.sqlite`. Research lead Avidiyah confirmed no additional incident for this freeze. | **satisfied** | — |
-| 8 | Both independent annotators and the adjudicator are assigned. | §7 below: pass 1 `claude-fable-5-pass1-2026-08-27`; pass 2 `gpt-5.6-pass2-2026-08-27`; adjudicator `copilot-cli-adjudicator-2026-08-27`; assigned and approved by Avidiyah on 2026-08-27. | **satisfied** | — |
+| 8 | Both independent annotators and the adjudicator are assigned. | §7 below: pass 1 `claude-fable-5-pass1-2026-08-27`; pass 2 `gpt-5.6-pass2-2026-08-27`; replacement adjudicator `fresh-legends-adjudicator-2026-08-27`. The original adjudicator was disqualified after the opening-control incident recorded in §7. | **satisfied** | — |
 | 9 | Neither annotator has inspected eligible Legends text before the freeze. | Two §7 annotator attestations, personally confirmed to research lead Avidiyah before export retention, bind protocol, guide, preregistration, and expected TSV hash and declare no exceptions; adjudicator note declares the same non-observation condition. | **satisfied** | — |
 | 10 | `docs/findings/leg-structural-audit.md` remains an empty outline until the baseline block is written verbatim. | File at `2355b6c` + this packet: header, placeholder comments, empty measurement table only (verified by reading the file) | **satisfied** | Keep unchanged until §3 item 4 is written verbatim · everyone |
-| 11 | The program owner authorizes the audit to begin. | None | **missing** — **hard blocker** | Sign §5.3 only after items 1–10 all read satisfied · program owner |
+| 11 | The program owner authorizes the audit to begin. | Initial §8 authorization was superseded after the adjudicator incident. §9 records Avidiyah's reauthorization with replacement adjudicator `fresh-legends-adjudicator-2026-08-27` after incident review. | **satisfied** | — |
 
-**Readiness statement:** 10 satisfied (1–10), 1 missing (11). The Legends audit is
-**not ready to open**. No eligible row may be inspected until this table shows
-eleven **satisfied** entries and §5.3 is signed.
+**Readiness statement:** all eleven items are **satisfied**. The Legends audit
+is **authorized to open as of 2026-08-27** with replacement adjudicator
+`fresh-legends-adjudicator-2026-08-27`.
 
 ## 4. Open blockers, in dependency order
 
-1. **Program-owner authorization** (item 11) — Avidiyah reviews items 1–10
-   and signs §5.3. No technical, role, export, provenance, or registry blocker
-   remains.
+No opening blocker remains. The two annotator assignments and frozen rows are
+unchanged by the adjudicator replacement.
 
 Observation outside this packet's scope, for the program owner:
 `docs/roadmap.md` still reads "Active phase: Phase 0" and §21 "Until Gate 0
@@ -296,7 +295,7 @@ Received by research lead: Avidiyah, 2026-08-27
 ```
 
 ```text
-LEGENDS ADJUDICATOR ASSIGNMENT
+LEGENDS ADJUDICATOR ASSIGNMENT — SUPERSEDED
 Adjudicator identity:      copilot-cli-adjudicator-2026-08-27
 Assigned by:               research lead Avidiyah, 2026-08-27; approved by program owner Avidiyah, 2026-08-27
 Independence:              the adjudicator is neither pass-1 nor pass-2 annotator
@@ -321,4 +320,101 @@ Exceptions to declare: none
 Signed (adjudicator): copilot-cli-adjudicator-2026-08-27
 Research lead: Avidiyah
 Program owner: Avidiyah
+```
+
+Opening-control incident, 2026-08-27: after program-owner authorization but
+before either annotator opened a pass, the technical measurement session ran
+`git diff --cached --check` over initialized TSVs. Git printed development rows
+while reporting their intentional trailing tab fields. This violated the
+adjudicator's restriction against row access before both passes were sealed.
+The session stopped immediately, did not annotate or communicate row-level
+content to either annotator, and is permanently disqualified from adjudication.
+The temporary captured command-output file was deleted. The frozen export,
+pass assignments, guide, and measurements did not change.
+
+```text
+LEGENDS REPLACEMENT ADJUDICATOR ASSIGNMENT
+Adjudicator identity:      fresh-legends-adjudicator-2026-08-27
+Date:                      2026-08-27
+Independence:              neither pass-1 nor pass-2 annotator; has not
+                           inspected eligible Legends text or rows
+Inputs the adjudicator may open, and only after both passes are sealed:
+  - sealed pass 1 docs/audits/leg/units-annotated-pass1.tsv
+  - sealed pass 2 docs/audits/leg/units-annotated-pass2.tsv
+  - the alignment/agreement report produced under preregistration §7.3
+Authority order:           Comprehensive Rules, Oracle text, official rulings,
+                           corpus evidence, interpretation
+Obligations:               preserve disagreements and unsupported/ambiguous
+                           outcomes; make no classifier proposal during
+                           adjudication
+Exceptions:                none
+
+Signed: fresh-legends-adjudicator-2026-08-27
+Assignment pending research-lead/program-owner reapproval after incident review.
+```
+
+## 8. Program-owner authorization — superseded after adjudicator incident
+
+```text
+LEGENDS STRUCTURAL AUDIT — AUTHORIZATION TO OPEN
+Program owner:             Avidiyah
+Date:                      2026-08-27
+Freeze commit:             2e5173570077dab43cdfde2dc33d5a0e0831bd89
+Frozen-input package:      48bbd42bda377c420ea7d31d9cdba3fb16a67dfb
+Entry record reviewed:     docs/gates/legends-entry-record.md, §3 shows eleven
+                           satisfied entries as of 2026-08-27
+Preregistration §3 block:  populated from live freeze values (yes)
+Build/tests at freeze:     cargo test 88 passed, 0 failed; fmt and clippy clean;
+                           required Python suites passed
+Development export:        sha256 c39a2d695b94ce33a2e16356dd93bc6dc614b7c83becfb2b2f72ad5cb298d2e3;
+                           aggregate cards before/after 310/293; 17 excluded;
+                           held-out export records = 0
+Roles:                     pass 1 claude-fable-5-pass1-2026-08-27,
+                           pass 2 gpt-5.6-pass2-2026-08-27,
+                           adjudicator copilot-cli-adjudicator-2026-08-27;
+                           attestations §7 on file
+Held-out registry bound:   protocol §6.3 pool + Combust, Malignus, Lava Burst,
+                           Wild Slash; no additional incident reported
+
+I authorize the Legends (leg) structural audit to open under protocol v1.0 and
+the preregistration named above, exhaustively over the eligible non-held-out
+development partition only. This authorization does not accept any proposal,
+does not open Gate 1 review, and does not authorize parser, IR, engine, or
+simulator work. It lapses if any preregistration §11.1 stop condition is later
+found to have been unmet at the freeze, in which case the audit closes and a
+governance issue is recorded before any further row is read.
+
+Signed: Avidiyah
+```
+
+This authorization was valid when signed but is superseded because its named
+adjudicator was subsequently disqualified before either annotation pass opened.
+No pass may open until Avidiyah reauthorizes the replacement assignment.
+
+## 9. Program-owner reauthorization after adjudicator replacement
+
+```text
+LEGENDS STRUCTURAL AUDIT — REAUTHORIZATION TO OPEN
+Program owner:             Avidiyah
+Date:                      2026-08-27
+Incident reviewed:         yes; §7 opening-control incident
+Original adjudicator:      copilot-cli-adjudicator-2026-08-27, disqualified
+Replacement adjudicator:   fresh-legends-adjudicator-2026-08-27
+Replacement attestation:   signed 2026-08-27; no row access; no exceptions
+Pass 1:                    claude-fable-5-pass1-2026-08-27
+Pass 2:                    gpt-5.6-pass2-2026-08-27
+Measurement freeze:        2e5173570077dab43cdfde2dc33d5a0e0831bd89
+Retained export sha256:    c39a2d695b94ce33a2e16356dd93bc6dc614b7c83becfb2b2f72ad5cb298d2e3
+
+The original adjudicator's exposure occurred before either annotation pass
+opened and was not communicated to either annotator. The original identity is
+excluded from annotation and adjudication. The replacement will open only the
+two sealed passes and the alignment/agreement report after both passes finish.
+All other entry evidence and frozen inputs remain unchanged.
+
+I reauthorize both independent Legends annotation passes to open under the
+existing protocol and preregistration with the replacement adjudicator named
+above.
+
+Signed: Avidiyah
 ```

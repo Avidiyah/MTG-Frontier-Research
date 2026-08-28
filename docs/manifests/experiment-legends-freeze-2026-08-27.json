@@ -73,6 +73,11 @@
         "sha256": "7b7784237e29932a98a7c4841408bdcec6fb110c0aaf066491bf122c66d29772"
       },
       {
+        "path": "scripts/python/audit_metrics.py",
+        "bytes": 19263,
+        "sha256": "f9423bb826b84442ccf638dd4f3e6edd79276552c5abc1219757b460d7ee2848"
+      },
+      {
         "path": "docs/protocol/structural-investigation-protocol.md",
         "bytes": 26164,
         "sha256": "1bc05d357b24006a2eecc692f9bed5b86d1d828f116c2d741fb75662df4913bf"
@@ -113,6 +118,24 @@
       "bytes": 112158,
       "sha256": "c39a2d695b94ce33a2e16356dd93bc6dc614b7c83becfb2b2f72ad5cb298d2e3",
       "records": 426
+    },
+    {
+      "format": "initialized pass-1 annotation TSV",
+      "schema_version": "structural-protocol-v1.0-section-4.1-plus-4.2",
+      "retained": true,
+      "path": "docs/audits/leg/units-annotated-pass1.tsv",
+      "bytes": 131026,
+      "sha256": "b405c2337cddfc1b5c6e4562f928fa5acaf1eca795ac9899f9f298d5523e0693",
+      "records": 426
+    },
+    {
+      "format": "initialized pass-2 annotation TSV",
+      "schema_version": "structural-protocol-v1.0-section-4.1-plus-4.2",
+      "retained": true,
+      "path": "docs/audits/leg/units-annotated-pass2.tsv",
+      "bytes": 128044,
+      "sha256": "b33e64fac7822163ecb9d9b20ccf8d1dcd7756b01c488e7f97285fea006c2712",
+      "records": 426
     }
   ],
   "verification": {
@@ -130,7 +153,7 @@
     "runs_per_format": 2,
     "retained_tsv_matches_verified_sha256": true
   },
-  "reviewer": "copilot-cli-adjudicator-2026-08-27",
+  "reviewer": "Copilot CLI technical measurement owner",
   "interpretation_document": "docs/gates/legends-entry-record.md",
   "stderr_artifacts_retained": false
 }

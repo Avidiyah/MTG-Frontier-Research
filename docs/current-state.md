@@ -443,11 +443,14 @@ Unless new evidence changes priorities:
    measurement at `bf9eb04`, and the combined technical evidence is in
    `docs/audits/corpus-checks/2026-08-26-post-patq-merge.md`. The five
    rule-(c) rows are re-annotated `under` with fresh exports and drift-free
-    metrics. Legends (`leg`, 310 cards, 290 with text — the last set below
-    the 400-card exhaustive threshold before Ice Age) is next and has **not**
-    started; its accepted Antiquities prerequisite and T7 technical export
-    gate are complete. The retained freeze export, role attestations, frozen
-    input block, and program-owner authorization remain open.
+    metrics.     Legends (`leg`) reached its opening authorization on 2026-08-27 for two independent passes
+    over 293 held-out-safe development cards (273 with text, 426 frozen units).
+    Its measurement freeze is `2e517357`; the retained TSV SHA-256 is
+    `c39a2d695b94ce33a2e16356dd93bc6dc614b7c83becfb2b2f72ad5cb298d2e3`.
+    Before either pass opened, a technical diff check displayed development
+    rows to the assigned adjudicator; that identity was disqualified and
+    replaced. Avidiyah reviewed the incident and reauthorized opening with the
+    replacement on 2026-08-27. Both independent passes may now begin.
 2. **Normalization ablations:** measure one reversible transformation at a time
    rather than applying increasingly lossy normalization as a bundle.
 3. **Typed-slot discovery:** test candidate roles for numbers, mana, objects,
@@ -903,3 +906,10 @@ When updating this document:
   validated snapshot/experiment manifests under `docs/manifests/`. The final
   retained freeze export and governance sign-offs remain open; Legends has not
   started.
+- Legends initially passed all eleven entry conditions on 2026-08-27. Before
+  either pass opened, `git diff --cached --check` displayed development rows to
+  the assigned adjudicator while reporting intentional TSV trailing tabs. That
+  identity was disqualified immediately and replaced by a fresh no-access
+  adjudicator. The frozen export and both independent annotator assignments are
+  unchanged; Avidiyah reviewed the incident and reauthorized opening with the
+  replacement on 2026-08-27.

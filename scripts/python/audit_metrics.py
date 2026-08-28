@@ -23,7 +23,7 @@ from collections import Counter, defaultdict
 
 
 KEY_FIELDS = ("oracle_id", "face", "index")
-STRUCTURAL_FIELDS = (
+LEGACY_STRUCTURAL_FIELDS = (
     "set",
     "oracle_id",
     "name",
@@ -40,6 +40,11 @@ STRUCTURAL_FIELDS = (
     "text",
     "normalized",
 )
+STRUCTURAL_FIELDS = (
+    *LEGACY_STRUCTURAL_FIELDS[:-2],
+    "prefix",
+    *LEGACY_STRUCTURAL_FIELDS[-2:],
+)
 JUDGEMENT_FIELDS = (
     "boundary",
     "missed",
@@ -54,6 +59,14 @@ SUPPLEMENTAL_SET_FIELDS = ("cr_ref", "structure_tags")
 SUPPLEMENTAL_TEXT_FIELDS = ("note",)
 ANNOTATION_FIELDS = (
     *STRUCTURAL_FIELDS,
+    *JUDGEMENT_FIELDS,
+    *SUPPLEMENTAL_SET_FIELDS,
+    "norm_issue",
+    "annotator",
+    *SUPPLEMENTAL_TEXT_FIELDS,
+)
+LEGACY_ANNOTATION_FIELDS = (
+    *LEGACY_STRUCTURAL_FIELDS,
     *JUDGEMENT_FIELDS,
     *SUPPLEMENTAL_SET_FIELDS,
     "norm_issue",
@@ -223,7 +236,9 @@ def drift_report(annotated, exported, export_path):
 
 
 def compute_metrics(rows, annotated_path, earlier_paths=None, exported=None, export_path=None):
-    require_fields(rows, ANNOTATION_FIELDS, annotated_path)
+    export_has_prefix = bool(exported and "prefix" in exported[0])
+    required_fields = ANNOTATION_FIELDS if export_has_prefix else LEGACY_ANNOTATION_FIELDS
+    require_fields(rows, required_fields, annotated_path)
     earlier_paths = earlier_paths or []
     printed = [row for row in rows if row["source"] == "printed"]
     supplied = [row for row in rows if row["source"] != "printed"]

@@ -110,7 +110,7 @@ Development-export command:   python scripts/python/export_units.py leg
 Development-export sha256:    c39a2d695b94ce33a2e16356dd93bc6dc614b7c83becfb2b2f72ad5cb298d2e3
 Annotator pass 1:              claude-fable-5-pass1-2026-08-27
 Annotator pass 2:              gpt-5.6-pass2-2026-08-27
-Adjudicator:                   copilot-cli-adjudicator-2026-08-27
+Adjudicator:                   fresh-legends-adjudicator-2026-08-27
 ```
 
 The set-level pre-audit baseline must then record, before any eligible card is

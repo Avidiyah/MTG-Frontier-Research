@@ -29,6 +29,7 @@ def annotation_row(oracle_id="card-a", index="0", **changes):
         "role": "ability",
         "source": "printed",
         "rule": "",
+        "prefix": "",
         "text": "Flying",
         "normalized": "Flying",
         "boundary": "ok",
@@ -225,6 +226,17 @@ class TsvReaderTests(unittest.TestCase):
 
         self.assertEqual(rows[0]["note"], "")
         self.assertEqual(rows[0]["normalized"], "Flying")
+
+    def test_current_export_requires_prefix_in_annotation(self):
+        annotated = annotation_row()
+        del annotated["prefix"]
+        with self.assertRaisesRegex(ValueError, "prefix"):
+            audit_metrics.compute_metrics(
+                [annotated],
+                "annotations.tsv",
+                exported=[annotation_row()],
+                export_path="export.tsv",
+            )
 
 
 if __name__ == "__main__":
