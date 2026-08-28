@@ -3,63 +3,44 @@
 - Date prepared: 2026-08-28
 - Prepared by: Claude Code (replacement pass-1 annotator, `human-fem-pass`)
 - Prepared for: the next Codex terminal session
-- Status: **pass 1 sealed; pass 2 not yet annotated; adjudication not started**
-- Basis: `docs/gates/fem-entry-record.md` §3.5-§3.7 (roster, restart, seal)
+- Status: **PAUSED — the assigned pass-2 identity was exposed to pass-1
+  judgements by the mandatory routing documents; pass 2 remains blank and
+  adjudication has not started**
+- Basis: `docs/gates/fem-entry-record.md` §3.8 (governance pause)
 
-## Read first
+## Current stop condition
 
-1. `docs/agent/agent-contract.md`, `docs/current-state.md`,
-   `docs/findings/index.json` — in that order.
-2. `docs/gates/fem-entry-record.md` in full, especially §3 (role history and
-   incidents) and §3.7 (pass-1 seal).
-3. `docs/findings/fem-structural-audit-preregistration.md` §6-§10 (agreement
-   measures, adjudication workflow, unsupported/ambiguous meanings, D14/D19
-   handling).
-4. `docs/protocol/structural-annotation-guide-v1.0.md` (frozen v1.0) if you
-   have not already internalized it for this audit.
+The previous version of this handoff instructed
+`copilot-pass2-2026-08-28` to read `docs/findings/index.json` and
+`docs/gates/fem-entry-record.md` in full. Both disclosed sealed pass-1
+judgements; §3.7 of the entry record also disclosed field outcomes and named
+row-level cases while simultaneously forbidding pass-2 access. The assigned
+pass-2 identity stopped before opening either TSV or the frozen export.
 
-## What is already done (do not redo)
+Hash-only verification at `2026-08-28T16:19:31-05:00` confirmed:
 
-- The audit is **open**. Roster: pass 1 `human-fem-pass` (sealed), pass 2
-  `copilot-pass2-2026-08-28` (restarted, not yet sealed), adjudicator
-  `fresh-fem-adjudicator-2026-08-28`.
-- Pass 1 is sealed: `docs/audits/fem/units-annotated-pass1.tsv`, sha256
-  `bbc90f7be3d089afd8fd71cc1f7660472ee99bab6dd2c70bb5c49798a90b9a55`, 176 rows,
-  every row disposed. **Do not open this file until pass 2 is independently
-  sealed** — reading it now would break pass independence exactly as the
-  original incident did.
-- Pass 2's file was reset to the frozen blank hash
-  `691f8b8c4f54fcbcafacc716ece331ff348e32d8ff0c5f40d5bfe79f1fe92c25` after the
-  prior deviation was preserved as incident evidence at
-  `docs/audits/fem/units-annotated-pass2-incident-preserved-2026-08-28.tsv`
-  (sha256 `91abeb36c9d08e8f5d41bcfa1e39d09253c56dbaf7c9b4f04a757430235cb74a`,
-  do not modify).
+```text
+pass 1 sha256: bbc90f7be3d089afd8fd71cc1f7660472ee99bab6dd2c70bb5c49798a90b9a55
+pass 2 sha256: 691f8b8c4f54fcbcafacc716ece331ff348e32d8ff0c5f40d5bfe79f1fe92c25
+```
 
-## What you are here to do
+Pass 2 is still byte-identical to the frozen blank. Do not open either pass
+TSV, the export, or any eligible FEM card in this session.
 
-1. As `copilot-pass2-2026-08-28`, independently annotate all 176 rows of
-   `docs/audits/fem/units-annotated-pass2.tsv` against the eligible Oracle
-   text, using only the frozen protocol and guide. Do not open pass 1. Do not
-   run unfiltered card/corpus searches. Use `unsure`/`unsupported`/`ambiguous`
-   rather than guessing.
-2. **Do not use `git diff`, `git diff --check`, or any other row-printing Git
-   command on staged audit TSVs** — this is exactly how the original pass-1
-   identity was disqualified (§3.4). Use hash-only verification
-   (`Get-FileHash`) instead.
-3. Seal pass 2 with a content hash and timestamp, recorded in
-   `docs/gates/fem-entry-record.md` as a new §3.8, in the same style as §3.7.
-4. Once both passes are sealed, perform the §7.3 comparison (align by
-   `(oracle_id, face, index)`, compute preregistered agreement measures,
-   publish confusion counts, list every disagreement).
-5. As adjudicator (`fresh-fem-adjudicator-2026-08-28`), resolve disagreements
-   and non-`accept` rows per §7.4/§9. CR and Oracle text control; a genuine
-   ambiguity stays `ambiguous`; a vocabulary gap stays `unsupported` with
-   `kind_expected = gap:<class>`.
-6. Populate `docs/findings/fem-structural-audit.md` only after adjudication,
-   under protocol S8-S12 — do not add measurements to it before that.
-7. Update `docs/gates/fem-entry-record.md`, `docs/findings/index.json`, and
-   `docs/current-state.md` when the audit closes, and run
-   `python scripts/python/validate_agent_context.py`.
+## Required next decision
+
+Under preregistration §11.2, the research lead/program owner must:
+
+1. retire `copilot-pass2-2026-08-28` from the pass-2 role;
+2. assign a new independent pass-2 annotator with a fresh attestation;
+3. provide a pass-2-safe routing packet that does not require reading
+   `fem-entry-record.md` §3.7 or any other pass-1 judgement;
+4. keep pass 2 and `fresh-fem-adjudicator-2026-08-28` as genuinely separate
+   review identities and sessions; and
+5. explicitly reauthorize annotation before the new pass opens the blank TSV.
+
+Only after a valid pass 2 seals may comparison and adjudication resume under
+preregistration §7.3-§7.4. The active session must not assume that decision.
 
 ## Do not touch
 
