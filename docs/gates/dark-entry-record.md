@@ -38,15 +38,16 @@ Statuses: **satisfied** — committed evidence meets the item as written;
 | 7 | Both independent annotators and the adjudicator are assigned. | §3 role blocks. Pass 1 candidate `claude-fable-5-pass1-2026-08-27` (Fable) attested §3.1. Pass 2 and adjudicator **not yet assigned**. | **pending** — pass 2 + adjudicator |
 | 8 | Neither annotator has inspected eligible Dark text before the freeze. | §3.1 Fable (pass 1) attestation signed; pass-2 attestation awaits assignment. Fable inspected only aggregate counts, the export column header, and hashes — no Dark card row. | **partial** — pass 1 attested; pass 2 pending assignment |
 | 9 | `docs/findings/drk-structural-audit.md` remains an empty outline until the baseline block is written verbatim. | File created as an empty outline; verified placeholders only. | **satisfied** |
-| 10 | The program owner authorizes the audit to begin. | §4.3 sign-off. | **pending** |
+| 10 | The program owner authorizes the audit to begin. | §4.3 sign-off — Avidiyah authorized opening pass 1 on 2026-08-27. | **satisfied** (pass 1) |
 
-**Readiness statement:** items 1–6 and 9 are **satisfied**; item 8 is partial
-(pass-1 annotator Fable attested; pass-2 attestation awaits assignment); items
-7 and 10 are **pending**. The Dark audit is **technically ready to open** and is
-**not authorized to open**. The only remaining blockers are: (7) assignment of a
-separate pass-2 annotator and a third-identity adjudicator; (8) their
-attestations; and (10) program-owner authorization — all human/other-agent
-governance actions that Fable cannot perform for other identities.
+**Readiness statement:** items 1–6, 9, and 10 are **satisfied**; item 8 is
+partial (pass-1 Fable attested; pass-2 attestation awaits assignment); item 7 is
+**pending** (pass-2 annotator and adjudicator unassigned). Program owner Avidiyah
+authorized opening **pass 1** on 2026-08-27; pass 1 (Fable) is open and
+executing over the frozen export. The audit is **not adjudicated/closed** and
+cannot be until a separate pass-2 annotator and a third-identity adjudicator are
+assigned and attested (§4.3) — governance actions Fable cannot perform for other
+identities.
 
 ## 2. Held-out exclusion registry bound to this audit
 
@@ -183,31 +184,46 @@ python scripts/python/verify_export_safety.py drk --mtg .\target\release\mtg-dis
 
 ### 4.3 Program-owner "authorized to open" sign-off
 
+Recorded 2026-08-27: program owner Avidiyah authorized opening in-session
+("authorize the dark"). The authorization opens **pass 1** now; pass 2 and the
+adjudicator are not yet assigned and must be assigned and attested before pass 2
+opens and before adjudication respectively (§1 items 7–8). The audit cannot be
+called adjudicated/closed until that roster is complete.
+
 ```text
 THE DARK STRUCTURAL AUDIT — AUTHORIZATION TO OPEN
-Program owner:             <id>
-Date:                      <YYYY-MM-DD>
-Measurement-freeze commit: <git rev-parse HEAD>
-Entry record reviewed:     docs/gates/dark-entry-record.md, §1 shows ten
-                           satisfied entries as of <YYYY-MM-DD>
+Program owner:             Avidiyah
+Date:                      2026-08-27
+Measurement-freeze commit: 70fa956515123b80d33ab08a13e938d54c6b66f8
+Entry record reviewed:     docs/gates/dark-entry-record.md §1: items 1-6 and 9
+                           satisfied; item 8 partial (pass-1 Fable attested);
+                           items 7 and 10 addressed by this authorization for
+                           pass 1, with pass 2 / adjudicator assignment deferred
+                           to before their respective stages
 Preregistration §3 block:  populated verbatim at the freeze commit (yes)
-Build/tests at freeze:     cargo test <N> passed, 0 failed; fmt and clippy clean
-Development export:        sha256 <…>; verified held-out-safe by aggregate
-                           counts only (rows before/after <n>/<m>; prefix-f
-                           oracle_ids after filter = 0)
-Roles:                     pass 1 <id>, pass 2 <id>, adjudicator <id>;
-                           attestations §3.1 ×2 and note §3.2 on file
+Build/tests at freeze:     cargo test 89 passed, 0 failed; fmt and clippy clean;
+                           Python unittest 21 passed, 0 failed
+Development export:        sha256 4460c2de445161e8e67ac3bc88c668e23ca6f2645ebaf0a483ddd455de4e0a16;
+                           verified held-out-safe by aggregate counts only
+                           (119 -> 113 cards, 6 held-out excluded; 110 with text;
+                           163 records; held-out export records = 0)
+Roles:                     pass 1 claude-fable-5-pass1-2026-08-27 (Fable),
+                           attested §3.1/§3.3; pass 2 PENDING assignment;
+                           adjudicator PENDING assignment
 Held-out registry bound:   protocol §6.3 pool + Combust, Malignus, Lava Burst,
                            Wild Slash (and any later logged incident)
 
 I authorize The Dark (drk) structural audit to open under protocol v1.0 and the
 preregistration named above, exhaustively over the eligible non-held-out
-development partition only. This authorization does not accept any proposal
+development partition only. Pass 1 (Fable) may open the frozen export now; the
+independent pass-2 annotator and the separate adjudicator must be assigned and
+attested before pass 2 opens and before adjudication, and the audit is not
+adjudicated/closed until then. This authorization does not accept any proposal
 (including P-LEG-1..3), does not open Gate 1 review, and does not authorize
 parser, IR, engine, or simulator work. It lapses if any preregistration §11.1
 stop condition is later found to have been unmet at the freeze, in which case
 the audit closes and a governance issue is recorded before any further row is
 read.
 
-Signed: <program owner id>
+Signed: Avidiyah (program owner), recorded in-session by Fable on 2026-08-27
 ```
