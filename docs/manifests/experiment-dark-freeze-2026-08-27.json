@@ -1,0 +1,163 @@
+{
+  "schema_version": "mtg-experiment-manifest-v1",
+  "manifest_type": "experiment",
+  "experiment_id": "dark-freeze-2026-08-27",
+  "question": "At the frozen measurement commit, is the retained The Dark development TSV identical to the aggregate-only verified output, deterministic, stable-key valid, parent-integrity valid, and free of protocol 6.3 held-out identities?",
+  "snapshot_manifest": {
+    "path": "docs/manifests/snapshot-scryfall-2026-08-25.json",
+    "bytes": 3673,
+    "sha256": "aa67c0c97771c21cfe79bffb1049a35152f12005cd8fc4af49f5a88c989ed9c3"
+  },
+  "partition": {
+    "policy": "protocol-v1.0-section-6.3-2026-08-26",
+    "protocol_path": "docs/protocol/structural-investigation-protocol.md",
+    "protocol_sha256": "1bc05d357b24006a2eecc692f9bed5b86d1d828f116c2d741fb75662df4913bf",
+    "heldout_identity_count": 2096,
+    "heldout_identity_sha256": "377e12bdf80e0263c361f48ff2be241f600efd854b6eaa4f916d239a83067fc7",
+    "incident_registry": "docs/gates/dark-entry-record.md section 2 (protocol 6.3 pool plus Combust, Malignus, Lava Burst, Wild Slash, and every other logged incident)",
+    "identities_disclosed": false
+  },
+  "commands": [
+    {
+      "argv": [
+        "python",
+        "scripts/python/verify_export_safety.py",
+        "drk",
+        "--mtg",
+        "./target/release/mtg-discover.exe",
+        "--runs",
+        "2"
+      ],
+      "runs": 1,
+      "exit_status": 0,
+      "output_policy": "aggregate counts and hashes only; no export row printed"
+    },
+    {
+      "argv": [
+        "python",
+        "scripts/python/export_units.py",
+        "drk",
+        "--mtg",
+        "./target/release/mtg-discover.exe",
+        "--exclude-heldout"
+      ],
+      "runs": 1,
+      "exit_status": 0,
+      "output_policy": "byte-preserving redirection to the retained TSV; no export row displayed"
+    }
+  ],
+  "repository": {
+    "freeze_commit": "70fa956515123b80d33ab08a13e938d54c6b66f8",
+    "governance_commit_after_freeze": "a384dc2daecb27d8c22c945ee32d678c6ea9e500",
+    "working_tree_dirty": true,
+    "dirty_state_note": "Only the retained Dark export, two identical blank pass copies, this manifest, and subsequent governance/frozen-input records were pending after the clean freeze commit; executable and protocol/guide source bytes are bound below. The .vscode/settings.json change was already committed in the freeze commit by a prior session and does not affect measurement.",
+    "source_files": [
+      {
+        "path": "src/audit.rs",
+        "bytes": 24031,
+        "sha256": "6e8241b8886b53fdb0e890d4f2f13b212f6ee0ad4b69185f3c3b351d273ab0ce"
+      },
+      {
+        "path": "src/segment.rs",
+        "bytes": 39152,
+        "sha256": "157f8fd93cae85787702a831467e9d3ac9641558e970a8c87f7519808642224d"
+      },
+      {
+        "path": "scripts/python/export_units.py",
+        "bytes": 6219,
+        "sha256": "568a5f396488ff8abc89b0e7cbe4a9b349e3cf3ffdc945a1ec895c0a75c58f27"
+      },
+      {
+        "path": "scripts/python/verify_export_safety.py",
+        "bytes": 6364,
+        "sha256": "7b7784237e29932a98a7c4841408bdcec6fb110c0aaf066491bf122c66d29772"
+      },
+      {
+        "path": "scripts/python/audit_metrics.py",
+        "bytes": 19263,
+        "sha256": "f9423bb826b84442ccf638dd4f3e6edd79276552c5abc1219757b460d7ee2848"
+      },
+      {
+        "path": "docs/protocol/structural-investigation-protocol.md",
+        "bytes": 26164,
+        "sha256": "1bc05d357b24006a2eecc692f9bed5b86d1d828f116c2d741fb75662df4913bf"
+      },
+      {
+        "path": "docs/protocol/structural-annotation-guide-v1.0.md",
+        "bytes": 68668,
+        "sha256": "d31dee0a3b06494bd7ba0238be65b330e2366edb1b8bcf4e5e6a6f865de5d84b"
+      }
+    ]
+  },
+  "environment": {
+    "os": "Microsoft Windows NT",
+    "architecture": "x86_64",
+    "rustc": "rustc 1.96.0 (ac68faa20 2026-05-25)",
+    "cargo": "cargo 1.96.0 (30a34c682 2026-05-25)",
+    "python": "Python 3.13.7",
+    "mtg_discover": "0.1.0",
+    "random_seed": null
+  },
+  "started_at_utc": "2026-08-28T02:45:00Z",
+  "ended_at_utc": "2026-08-28T02:55:00Z",
+  "exit_status": 0,
+  "outputs": [
+    {
+      "format": "native pretty JSON",
+      "schema_version": "audit-export-v1",
+      "retained": false,
+      "bytes": 133827,
+      "sha256": "6dc70f368ff53304a07d315ef85555e4ef4b16d72e8ed76308c93e134964d673",
+      "records": 163
+    },
+    {
+      "format": "protocol UTF-8 TSV",
+      "schema_version": "structural-protocol-v1.0-section-4.1",
+      "retained": true,
+      "path": "docs/audits/drk/units-export.tsv",
+      "bytes": 42317,
+      "sha256": "4460c2de445161e8e67ac3bc88c668e23ca6f2645ebaf0a483ddd455de4e0a16",
+      "records": 163
+    },
+    {
+      "format": "identical blank pass-1 annotation TSV",
+      "schema_version": "structural-protocol-v1.0-section-4.1-plus-4.2",
+      "retained": true,
+      "path": "docs/audits/drk/units-annotated-pass1.tsv",
+      "bytes": 44560,
+      "sha256": "de150fc1a9cc0bebcfa78bf95b7ccda5de4835f587f76109ba7f0635d0ce63b7",
+      "records": 163
+    },
+    {
+      "format": "identical blank pass-2 annotation TSV",
+      "schema_version": "structural-protocol-v1.0-section-4.1-plus-4.2",
+      "retained": true,
+      "path": "docs/audits/drk/units-annotated-pass2.tsv",
+      "bytes": 44560,
+      "sha256": "de150fc1a9cc0bebcfa78bf95b7ccda5de4835f587f76109ba7f0635d0ce63b7",
+      "records": 163
+    }
+  ],
+  "verification": {
+    "selected_cards_before_exclusion": 119,
+    "selected_cards_with_text_before_exclusion": 116,
+    "heldout_cards_excluded": 6,
+    "fallback_cards_before_exclusion": 0,
+    "cards_after_exclusion": 113,
+    "cards_with_text_after_exclusion": 110,
+    "heldout_export_records": 0,
+    "stable_key_rows": 163,
+    "stable_key_unique": 163,
+    "top_level_units": 161,
+    "child_units": 2,
+    "parent_integrity_violations": 0,
+    "json_tsv_stable_key_sequence_identical": true,
+    "byte_identical_repeated_exports": true,
+    "runs_per_format": 2,
+    "retained_tsv_matches_verified_sha256": true,
+    "blank_pass_copies_identical": true
+  },
+  "reviewer": "Fable (Claude Code) technical measurement owner",
+  "interpretation_document": "docs/gates/dark-entry-record.md",
+  "stderr_artifacts_retained": false
+}
