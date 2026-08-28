@@ -1,0 +1,136 @@
+{
+  "schema_version": "mtg-experiment-manifest-v1",
+  "manifest_type": "experiment",
+  "experiment_id": "legends-freeze-2026-08-27",
+  "question": "At the frozen measurement commit, is the retained Legends development TSV identical to the aggregate-only verified output, deterministic, stable-key valid, and free of protocol 6.3 held-out identities?",
+  "snapshot_manifest": {
+    "path": "docs/manifests/snapshot-scryfall-2026-08-25.json",
+    "bytes": 3673,
+    "sha256": "aa67c0c97771c21cfe79bffb1049a35152f12005cd8fc4af49f5a88c989ed9c3"
+  },
+  "partition": {
+    "policy": "protocol-v1.0-section-6.3-2026-08-26",
+    "protocol_path": "docs/protocol/structural-investigation-protocol.md",
+    "protocol_sha256": "1bc05d357b24006a2eecc692f9bed5b86d1d828f116c2d741fb75662df4913bf",
+    "heldout_identity_count": 2096,
+    "heldout_identity_sha256": "377e12bdf80e0263c361f48ff2be241f600efd854b6eaa4f916d239a83067fc7",
+    "incident_registry": "docs/gates/legends-entry-record.md section 3 item 7",
+    "identities_disclosed": false
+  },
+  "commands": [
+    {
+      "argv": [
+        "python",
+        "scripts/python/verify_export_safety.py",
+        "leg",
+        "--mtg",
+        ".\\target\\release\\mtg-discover.exe",
+        "--runs",
+        "2"
+      ],
+      "runs": 1,
+      "exit_status": 0,
+      "output_policy": "aggregate counts and hashes only; no export row printed"
+    },
+    {
+      "argv": [
+        "python",
+        "scripts/python/export_units.py",
+        "leg",
+        "--mtg",
+        ".\\target\\release\\mtg-discover.exe",
+        "--exclude-heldout"
+      ],
+      "runs": 1,
+      "exit_status": 0,
+      "output_policy": "byte-preserving redirection to the retained TSV; no export row displayed"
+    }
+  ],
+  "repository": {
+    "freeze_commit": "2e5173570077dab43cdfde2dc33d5a0e0831bd89",
+    "governance_commit_after_freeze": "b693a0c0a44a54fd8504ed95c9561f2d7b2e17d4",
+    "working_tree_dirty": true,
+    "dirty_state_note": "Only the retained export, pass copies, final manifest, and subsequent governance/frozen-input records were pending after the clean freeze commit; executable and protocol/guide source bytes are bound below.",
+    "source_files": [
+      {
+        "path": "src/audit.rs",
+        "bytes": 23994,
+        "sha256": "c581d9de5728bb19d9914576c2e83246daac55c178c35e3bf4aec78787943cdc"
+      },
+      {
+        "path": "src/segment.rs",
+        "bytes": 39152,
+        "sha256": "157f8fd93cae85787702a831467e9d3ac9641558e970a8c87f7519808642224d"
+      },
+      {
+        "path": "scripts/python/export_units.py",
+        "bytes": 6219,
+        "sha256": "568a5f396488ff8abc89b0e7cbe4a9b349e3cf3ffdc945a1ec895c0a75c58f27"
+      },
+      {
+        "path": "scripts/python/verify_export_safety.py",
+        "bytes": 6364,
+        "sha256": "7b7784237e29932a98a7c4841408bdcec6fb110c0aaf066491bf122c66d29772"
+      },
+      {
+        "path": "docs/protocol/structural-investigation-protocol.md",
+        "bytes": 26164,
+        "sha256": "1bc05d357b24006a2eecc692f9bed5b86d1d828f116c2d741fb75662df4913bf"
+      },
+      {
+        "path": "docs/protocol/structural-annotation-guide-v1.0.md",
+        "bytes": 68668,
+        "sha256": "d31dee0a3b06494bd7ba0238be65b330e2366edb1b8bcf4e5e6a6f865de5d84b"
+      }
+    ]
+  },
+  "environment": {
+    "os": "Microsoft Windows NT",
+    "architecture": "x86_64",
+    "rustc": "rustc 1.96.0 (ac68faa20 2026-05-25)",
+    "cargo": "cargo 1.96.0 (30a34c682 2026-05-25)",
+    "python": "Python 3.13.7",
+    "mtg_discover": "0.1.0",
+    "random_seed": null
+  },
+  "started_at_utc": "2026-08-28T00:59:00Z",
+  "ended_at_utc": "2026-08-28T01:03:10Z",
+  "exit_status": 0,
+  "outputs": [
+    {
+      "format": "native pretty JSON",
+      "schema_version": "audit-export-v1",
+      "retained": false,
+      "bytes": 355057,
+      "sha256": "d6f9a723bad824d2584ccb180a63db939b77cdf6167ec908d29ae794f88a127c",
+      "records": 426
+    },
+    {
+      "format": "protocol UTF-8 TSV",
+      "schema_version": "structural-protocol-v1.0-section-4.1",
+      "retained": true,
+      "path": "docs/audits/leg/units-export.tsv",
+      "bytes": 112158,
+      "sha256": "c39a2d695b94ce33a2e16356dd93bc6dc614b7c83becfb2b2f72ad5cb298d2e3",
+      "records": 426
+    }
+  ],
+  "verification": {
+    "selected_cards_before_exclusion": 310,
+    "selected_cards_with_text_before_exclusion": 290,
+    "heldout_cards_excluded": 17,
+    "fallback_cards_before_exclusion": 0,
+    "cards_after_exclusion": 293,
+    "cards_with_text_after_exclusion": 273,
+    "heldout_export_records": 0,
+    "stable_key_rows": 426,
+    "stable_key_unique": 426,
+    "json_tsv_stable_key_sequence_identical": true,
+    "byte_identical_repeated_exports": true,
+    "runs_per_format": 2,
+    "retained_tsv_matches_verified_sha256": true
+  },
+  "reviewer": "copilot-cli-adjudicator-2026-08-27",
+  "interpretation_document": "docs/gates/legends-entry-record.md",
+  "stderr_artifacts_retained": false
+}

@@ -13,6 +13,7 @@ class ManifestTests(unittest.TestCase):
     def test_committed_manifests_validate(self):
         for relative_path in [
             "docs/manifests/snapshot-scryfall-2026-08-25.json",
+            "docs/manifests/experiment-legends-freeze-2026-08-27.json",
         ]:
             result = verify_manifests.validate_manifest(
                 verify_manifests.REPO_ROOT / relative_path, allow_missing=True

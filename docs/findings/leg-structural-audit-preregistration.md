@@ -51,30 +51,66 @@ preregistration or an older findings document merely because it is expected to
 remain unchanged.
 
 ```text
-P-ATQ acceptance record:      <path, decision, commit>
-Repository commit:            <git rev-parse HEAD>
-Repository status:            <clean except explicitly listed governance artifacts>
-Protocol version and sha256:   <structural-investigation-protocol.md>
-Preregistration sha256:        <this file>
-Annotation-guide version/hash: <frozen guide used by both passes>
-mtg-discover version/build:    <release build and --version>
-cargo test:                    <N passed, 0 failed>
-Scryfall oracle snapshot:      <name, date/updated_at, size, sha256 if available>
-Scryfall rulings snapshot:     <name, date/updated_at, size, sha256 if available>
-Scryfall default snapshot:     <name, date/updated_at, size, sha256 if available>
-cards.sqlite identity:         <size, mtime, content/source identity available>
-Comprehensive Rules:           <effective date and file sha256>
-Corpus metadata:               <verbatim mtg-discover info output>
-Set aggregate metadata:        <verbatim eligible set summary; no row inspection>
-Earlier audited sets:          <final lea, leb, arn, atq export paths and hashes>
-Current corpus baseline:       <units, templates, coverage, kind histogram, role histogram>
-Held-out pool definition:      <protocol 6.3 definition and manifest/hash>
-Held-out exclusion registry:   <cumulative incident exclusions and linked identities>
-Development-export command:    <held-out-safe deterministic command or procedure>
-Development-export sha256:     <frozen non-held-out TSV>
-Annotator pass 1:              <independent id>
-Annotator pass 2:              <independent id>
-Adjudicator:                   <id>
+P-ATQ acceptance record:      docs/findings/p-atq-research-acceptance-assessment.md;
+                              ACCEPT P-ATQ-1 through P-ATQ-4; merge bcf9eaa
+Repository commit:            2e5173570077dab43cdfde2dc33d5a0e0831bd89
+Repository status:            clean at freeze selection; later governance-only
+                              commit b693a0c and frozen-input artifacts listed in
+                              docs/manifests/experiment-legends-freeze-2026-08-27.json
+Protocol version and sha256:   structural-investigation-protocol.md v1.0;
+                              1bc05d357b24006a2eecc692f9bed5b86d1d828f116c2d741fb75662df4913bf
+Preregistration sha256:        pre-population frozen control text:
+                              4c3e66afc0da339a67aefee14d026023d5a3ac6302c194cba6fa9025adf14ecf
+Annotation-guide version/hash: frozen Legends v1.0;
+                              d31dee0a3b06494bd7ba0238be65b330e2366edb1b8bcf4e5e6a6f865de5d84b
+mtg-discover version/build:    0.1.0; cargo build --release passed
+cargo test:                    88 passed, 0 failed; fmt and clippy clean;
+                              required Python suites 20 passed, 0 failed
+Scryfall oracle snapshot:      oracle-cards.jsonl.gz; 2026-08-25; 24,532,087 bytes;
+                              9611b5d93b20478a0ee46bae8b20a9eb39ee980f0ef4f5f6f6aaa8f7ab010ab2
+Scryfall rulings snapshot:     rulings.jsonl.gz; 2026-08-25; 5,366,171 bytes;
+                              3064689880a73f804f6e20411f6896d26aec06286eb4f2eb23d26e53779efe6f
+Scryfall default snapshot:     default-cards.jsonl.gz; 2026-08-25; 77,608,798 bytes;
+                              d65608b4993aeb2bd31ef8dfb41f6a9aa37396720d0a61d1354f528d8909667e
+cards.sqlite identity:         65,781,760 bytes; mtime 2026-08-26T06:40:45.988Z;
+                              d1c88cb9ab96531c2f2ce8f3b048c727240811e1f16acb141adbdb60998195c4
+Comprehensive Rules:          effective 2026-08-07;
+                              dc01ca5462085d6e3f7e85f548960a017522d1d851ac6a11d26ae14b6610c072
+Corpus metadata:              38,626 cards; 37,916 with Oracle text; 710 without;
+                              3,212 multi-face; 553 first-printing sets;
+                              78,949 rulings; 3,455 numbered rules; 752 glossary entries
+Set aggregate metadata:       293 eligible development cards; 273 with text;
+                              426 printed units; 0 rules-supplied; 399 top-level /
+                              27 child; face 0 = 426; prefix non-null/null = 0/426;
+                              315 templates; 285 singleton; 60 multi-sentence
+Earlier audited sets:         lea export aabc1bd58ce38a0e73c9c9ce23344a124482dd02f36c470129aecd9bf609f3bf,
+                              annotation cdd2438d5b44678200fe145dde49df7fc833974b8e19035d8391fa7002ecff91;
+                              leb export 4cb90170876be1d945d79915780ab831b452f3878c79515f66d40e06ca2c6c05,
+                              annotation 6a3a056385ff1618f9243dbdd9ed1cd673dedb8179711c45c65fe7117479494a;
+                              arn export 4827f5be9305b4a6e84978395a2c80566565ebf1bfc0943ff705099ff68f327d,
+                              annotation cfd31206e731061674ccce542c63198083c1ef0b80baebf38a8797e84e1656eb;
+                              atq export 8ec1047b3443845ca61c63a0a5cc8c444ae7f6c693a9c357e88bf0d0b244143d,
+                              annotation f01c9f84be527efbe0f9252190f7040219628deb78b277687262ef8f265eb8f4
+Current corpus baseline:       71,563 printed units; 970 rules-supplied;
+                              37,299 templates; coverage top 10/25/50/100/1,000/5,000 =
+                              14.17/20.03/23.41/26.90/42.18/54.87%;
+                              kinds activated 11,998, additional cost 319, ante 9,
+                              cast restriction 69, CDA 255, keyword 17,840,
+                              prevention 166, replacement 2,174, static/spell 19,519,
+                              triggered 19,214; roles ability 67,045, delayed 891,
+                              granted 1,506, mode 2,121
+Held-out pool definition:      protocol §6.3; 2,096 identities;
+                              377e12bdf80e0263c361f48ff2be241f600efd854b6eaa4f916d239a83067fc7;
+                              snapshot-scryfall-2026-08-25.json
+Held-out exclusion registry:  protocol §6.3 plus Combust, Malignus, Lava Burst,
+                              and Wild Slash; docs/gates/legends-entry-record.md
+Development-export command:   python scripts/python/export_units.py leg
+                              --mtg .\target\release\mtg-discover.exe
+                              --exclude-heldout > docs/audits/leg/units-export.tsv
+Development-export sha256:    c39a2d695b94ce33a2e16356dd93bc6dc614b7c83becfb2b2f72ad5cb298d2e3
+Annotator pass 1:              claude-fable-5-pass1-2026-08-27
+Annotator pass 2:              gpt-5.6-pass2-2026-08-27
+Adjudicator:                   copilot-cli-adjudicator-2026-08-27
 ```
 
 The set-level pre-audit baseline must then record, before any eligible card is
