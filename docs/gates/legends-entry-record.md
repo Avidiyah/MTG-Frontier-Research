@@ -86,16 +86,16 @@ fully demonstrated; **missing** — the artifact or act does not yet exist.
 | 2 | Any contradiction is adjudicated without silently changing P-ATQ dispositions. | §1 above; `p-atq-research-acceptance-assessment.md` "Residual adjudications" and "Text for Claude's S10 decision record" item 4; `atq-structural-audit.md` P-ATQ-1 acceptance record ("Expected vs measured") | **satisfied** | — |
 | 3 | `docs/current-state.md` reflects the accepted live baseline. | `docs/current-state.md` §"Current segmentation and normalization baseline" (71,563 / 970 / 37,299; roles 67,045 · 2,121 · 1,506 · 891; 861 + 30 delayed) agrees with `2026-08-26-post-patq-merge.md` §3 post column; stale clauses reconciled per §2 | **satisfied** (at the commit that lands this packet) | Re-check at the freeze commit · technical measurement owner |
 | 4 | Frozen commit, data snapshots, CR, protocol, guide, and earlier export hashes are recorded. | Preregistration §3 block — **not populated**. `docs/manifests/snapshot-scryfall-2026-08-25.json` now validates the three bulk files, `cards.sqlite`, CR, and the non-disclosing held-out pool digest; `docs/manifests/experiment-pre-legends-export-gate-2026-08-26.json` binds the technical export verification. Pre-freeze earlier-export reference hashes remain as recorded below and must be regenerated, not copied, at the freeze commit. | **partial** | (a) Choose the clean freeze commit; (b) validate/carry forward the manifests and record earlier export hashes; (c) populate preregistration §3 verbatim; (d) **Annotation-guide decision:** the research lead must declare which version binds both passes before either annotator opens the retained export. |
-| 5 | Build and tests pass at the frozen commit. | At `2355b6c`: `cargo test --release` **82 passed, 0 failed**; `python scripts/python/test_audit_metrics.py` **11 OK** (run 2026-08-26 for this record; the working tree was clean when the run was launched, but the external `src/main.rs` edit noted in item 6 appeared during the session, so this count is indicative only). `2026-08-26-post-patq-merge.md` §1: 82 passed, fmt and clippy clean at `8e83221` | **partial** | Re-run `cargo build --release`, `cargo test`, `cargo fmt -- --check`, `cargo clippy --all-targets -- -D warnings` at the freeze commit and record verbatim · technical measurement owner |
+| 5 | Build and tests pass at the frozen commit. | Clean freeze candidate `2e5173570077dab43cdfde2dc33d5a0e0831bd89`: `cargo build --release` passed; `cargo test` **88 passed, 0 failed**; `cargo fmt -- --check` passed; `cargo clippy --all-targets -- -D warnings` passed; required Python suites **20 passed, 0 failed**; snapshot manifest validated. | **satisfied** | — |
 | 6 | A held-out-safe deterministic development export exists and has been verified by aggregate counts only. | **Technical path verified, final audit input not yet retained.** T7 is implemented at the SQLite query boundary for `cards`, database-backed `segment`, and native audit export. `export_units.py --exclude-heldout` validates native exclusion/stable keys before writing TSV. `docs/gates/pre-legends-technical-entry-evidence.md` records aggregate-only verification: 310 / 290 cards before exclusion, 17 held-out identities excluded, 293 / 273 after, 0 held-out export records, 426 / 426 unique keys, JSON/TSV key sequences identical, and two byte-identical runs per format. Row outputs were discarded. | **partial** — technical blocker closed; freeze artifact still blocks | After roles/attestations and at the clean freeze commit, rerun the verifier, retain the exact TSV for annotation, and bind its SHA-256 into preregistration §3. Research lead verifies counts without opening rows. |
 | 7 | The cumulative held-out exclusion registry, including the four named incident exclusions, is bound to the audit. | Registry content remains protocol §6.3 plus the four named incidents. `docs/manifests/snapshot-scryfall-2026-08-25.json` now binds the full 2,096-card pool to the snapshot by a non-disclosing sorted-identity SHA-256; validation recomputes the count/digest from `cards.sqlite`. | **partial** | Binding is complete when preregistration §3 cites the snapshot manifest/digest and this registry section; research lead confirms no unlogged incident exists. |
-| 8 | Both independent annotators and the adjudicator are assigned. | None in any control document | **missing** — **hard blocker** | Nominate two independent annotators and one adjudicator using §5.1–5.2; record identities in preregistration §3 · research lead nominates, program owner approves |
-| 9 | Neither annotator has inspected eligible Legends text before the freeze. | Non-observation statements only: preregistration §1, `leg-structural-audit.md` header, this record. No per-annotator attestation exists | **missing** — **hard blocker** | Each nominated annotator signs §5.1 before the export is generated; the adjudicator signs the §5.2 note · annotators; research lead collects |
+| 8 | Both independent annotators and the adjudicator are assigned. | §7 below: pass 1 `claude-fable-5-pass1-2026-08-27`; pass 2 `gpt-5.6-pass2-2026-08-27`; adjudicator `copilot-cli-adjudicator-2026-08-27`; assigned and approved by Avidiyah on 2026-08-27. | **satisfied** | — |
+| 9 | Neither annotator has inspected eligible Legends text before the freeze. | Two §7 annotator attestations, personally confirmed to research lead Avidiyah before export retention, bind protocol, guide, preregistration, and expected TSV hash and declare no exceptions; adjudicator note declares the same non-observation condition. | **satisfied** | — |
 | 10 | `docs/findings/leg-structural-audit.md` remains an empty outline until the baseline block is written verbatim. | File at `2355b6c` + this packet: header, placeholder comments, empty measurement table only (verified by reading the file) | **satisfied** | Keep unchanged until §3 item 4 is written verbatim · everyone |
 | 11 | The program owner authorizes the audit to begin. | None | **missing** — **hard blocker** | Sign §5.3 only after items 1–10 all read satisfied · program owner |
 
-**Readiness statement:** 4 satisfied (1, 2, 3, 10), 4 partial (4, 5, 6, 7),
-3 missing (8, 9, 11). The Legends audit is
+**Readiness statement:** 7 satisfied (1, 2, 3, 5, 8, 9, 10), 3 partial
+(4, 6, 7), 1 missing (11). The Legends audit is
 **not ready to open**. No eligible row may be inspected until this table shows
 eleven **satisfied** entries and §5.3 is signed.
 
@@ -240,3 +240,97 @@ Get-Content docs/findings/leg-structural-audit.md                   # placeholde
 The later T7 verification captured filtered Legends exports internally and
 discarded them; it printed only counts and hashes. No Legends row was opened,
 printed, quoted, or inspected.
+
+## 7. Legends role assignments and attestations
+
+The research lead collected both annotator confirmations before any retained
+Legends export was generated. The identity shown for each pass is the exact
+value that must appear in that pass's `annotator` column.
+
+```text
+LEGENDS ANNOTATOR INDEPENDENCE ATTESTATION
+Pass:                      1
+Annotator identity:        claude-fable-5-pass1-2026-08-27
+Date:                      2026-08-27
+Protocol:                  structural-investigation-protocol.md v1.0, sha256 1bc05d357b24006a2eecc692f9bed5b86d1d828f116c2d741fb75662df4913bf
+Annotation guide binding:  frozen Legends v1.0 / sha256 d31dee0a3b06494bd7ba0238be65b330e2366edb1b8bcf4e5e6a6f865de5d84b
+Preregistration:           leg-structural-audit-preregistration.md, sha256 4c3e66afc0da339a67aefee14d026023d5a3ac6302c194cba6fa9025adf14ecf
+
+I attest that, as of the date above:
+1. I have not queried, read, quoted, segmented, or annotated any Legends (leg)
+   card's Oracle text in a heuristic-design, proposal, or review context before
+   the baseline freeze.
+2. I have not read, and will not read before both passes are sealed, the other
+   annotator's annotations, notes, row-level hypotheses, or candidate proposal
+   list.
+3. I will annotate only the frozen held-out-safe development export identified
+   by sha256 c39a2d695b94ce33a2e16356dd93bc6dc614b7c83becfb2b2f72ad5cb298d2e3,
+   will not run unfiltered card searches over the set, and will report any
+   held-out identity that appears in my view immediately rather than continue.
+4. I will use unsure / unsupported / ambiguous / adjudicate as defined in the
+   preregistration rather than guess, and will not discuss implementation
+   proposals during the pass.
+5. My sealed pass will be delivered with a content hash and timestamp.
+Exceptions or prior exposure to declare: none
+
+Signed: claude-fable-5-pass1-2026-08-27
+Received by research lead: Avidiyah, 2026-08-27
+```
+
+```text
+LEGENDS ANNOTATOR INDEPENDENCE ATTESTATION
+Pass:                      2
+Annotator identity:        gpt-5.6-pass2-2026-08-27
+Date:                      2026-08-27
+Protocol:                  structural-investigation-protocol.md v1.0, sha256 1bc05d357b24006a2eecc692f9bed5b86d1d828f116c2d741fb75662df4913bf
+Annotation guide binding:  frozen Legends v1.0 / sha256 d31dee0a3b06494bd7ba0238be65b330e2366edb1b8bcf4e5e6a6f865de5d84b
+Preregistration:           leg-structural-audit-preregistration.md, sha256 4c3e66afc0da339a67aefee14d026023d5a3ac6302c194cba6fa9025adf14ecf
+
+I attest that, as of the date above:
+1. I have not queried, read, quoted, segmented, or annotated any Legends (leg)
+   card's Oracle text in a heuristic-design, proposal, or review context before
+   the baseline freeze.
+2. I have not read, and will not read before both passes are sealed, the other
+   annotator's annotations, notes, row-level hypotheses, or candidate proposal
+   list.
+3. I will annotate only the frozen held-out-safe development export identified
+   by sha256 c39a2d695b94ce33a2e16356dd93bc6dc614b7c83becfb2b2f72ad5cb298d2e3,
+   will not run unfiltered card searches over the set, and will report any
+   held-out identity that appears in my view immediately rather than continue.
+4. I will use unsure / unsupported / ambiguous / adjudicate as defined in the
+   preregistration rather than guess, and will not discuss implementation
+   proposals during the pass.
+5. My sealed pass will be delivered with a content hash and timestamp.
+Exceptions or prior exposure to declare: none
+
+Signed: gpt-5.6-pass2-2026-08-27
+Received by research lead: Avidiyah, 2026-08-27
+```
+
+```text
+LEGENDS ADJUDICATOR ASSIGNMENT
+Adjudicator identity:      copilot-cli-adjudicator-2026-08-27
+Assigned by:               research lead Avidiyah, 2026-08-27; approved by program owner Avidiyah, 2026-08-27
+Independence:              the adjudicator is neither pass-1 nor pass-2 annotator
+                           and has not inspected eligible Legends text before the freeze: yes
+Inputs the adjudicator may open, and only after both passes are sealed:
+  - sealed pass 1 docs/audits/leg/units-annotated-pass1.tsv, sha256 and timestamp pending sealing
+  - sealed pass 2 docs/audits/leg/units-annotated-pass2.tsv, sha256 and timestamp pending sealing
+  - the alignment/agreement report produced under preregistration §7.3
+Authority order: Comprehensive Rules and current Oracle text control; official
+  rulings clarify but do not override the CR.
+Obligations:
+  - review every disagreement, every non-accept row, every unsure /
+    unsupported / ambiguous row, and every alleged card-specific dependency;
+  - keep a genuine rules ambiguity ambiguous with both readings, and a
+    vocabulary gap unsupported with kind_expected = gap:<class>;
+  - preserve original pass ids and record the rationale for each resolution;
+  - do not call the audit adjudicated while any row is merely adjudicate
+    without a documented reason;
+  - make no classifier proposal during adjudication.
+Exceptions to declare: none
+
+Signed (adjudicator): copilot-cli-adjudicator-2026-08-27
+Research lead: Avidiyah
+Program owner: Avidiyah
+```
