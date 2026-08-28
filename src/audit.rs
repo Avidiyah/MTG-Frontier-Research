@@ -588,7 +588,11 @@ pub(crate) fn suspicious_signals(record: &AuditRecord, segment: &Segment) -> Vec
 }
 
 pub(crate) fn is_multi_sentence(text: &str) -> bool {
-    text.matches(". ").count() + text.matches("? ").count() + text.matches("! ").count() > 0
+    text.chars()
+        .filter(|character| matches!(character, '.' | '!' | '?'))
+        .take(2)
+        .count()
+        >= 2
 }
 
 pub(crate) fn is_short_punctuation_free(text: &str) -> bool {

@@ -1,0 +1,134 @@
+{
+  "annotated_file": "docs\\audits\\leg\\units-annotated.tsv",
+  "cards": 273,
+  "units": {
+    "all": 426,
+    "printed": 426,
+    "rules_supplied": 0,
+    "printed_top_level": 399,
+    "printed_children": 27
+  },
+  "boundary": {
+    "precision": {
+      "numerator": 415,
+      "denominator": 425,
+      "value": 0.9765
+    },
+    "recall": {
+      "numerator": 415,
+      "denominator": 426,
+      "value": 0.9742
+    },
+    "by_value": {
+      "under": 10,
+      "ok": 415,
+      "unsure": 1
+    },
+    "missed_boundaries": 11,
+    "unsure": 1
+  },
+  "kind_accuracy": {
+    "numerator": 399,
+    "denominator": 405,
+    "value": 0.9852
+  },
+  "kind_not_applicable_or_unsure": 10,
+  "role_accuracy": {
+    "numerator": 415,
+    "denominator": 415,
+    "value": 1.0
+  },
+  "source_accuracy": {
+    "numerator": 426,
+    "denominator": 426,
+    "value": 1.0
+  },
+  "structural_exact_card_correctness": {
+    "numerator": 257,
+    "denominator": 273,
+    "value": 0.9414
+  },
+  "dispositions": {
+    "defect": 16,
+    "accept": 409,
+    "unsupported": 1
+  },
+  "context_required": {
+    "cr": 127,
+    "none": 280,
+    "type_line": 18,
+    "card_specific": 1
+  },
+  "structure_tags": {
+    "delayed_trigger_end_of_combat": 6,
+    "mode_header": 5,
+    "mode": 10,
+    "granted_quoted_parent": 12,
+    "granted_quoted": 12,
+    "keyword": 96,
+    "name_predicate": 5,
+    "self_reference_name": 42,
+    "intervening_if": 8,
+    "multi_sentence": 61,
+    "activation_instruction": 14,
+    "mana_ability": 12,
+    "prevention_static": 8,
+    "self_reference_this_ability": 2,
+    "cda": 2,
+    "enters_replacement": 4,
+    "keyword_list_split": 5,
+    "delayed_trigger_next": 4,
+    "delayed_trigger_parent": 5,
+    "delayed_trigger_inverted": 2,
+    "delayed_trigger_when": 2,
+    "cast_restriction": 4,
+    "cost_modification": 2,
+    "instead_in_activated": 3,
+    "ante": 4,
+    "instead_in_spell": 1,
+    "short_quote_not_ability": 2,
+    "physical_action": 1
+  },
+  "normalization_flags": {
+    "fragmentation:color_word": 34,
+    "fragmentation:land_type": 12,
+    "collision:tap_as_mana": 69,
+    "fragmentation:object_type": 30
+  },
+  "kind_expected_when_wrong": {
+    "keyword_ability": 5,
+    "replacement_effect": 1,
+    "gap:span:cost_only_parent": 1
+  },
+  "annotators": {
+    "claude-fable-5-pass1-2026-08-27;gpt-5.6-pass2-2026-08-27;fresh-legends-adjudicator-2026-08-27": 426
+  },
+  "templates": {
+    "distinct": 315,
+    "singletons": 285
+  },
+  "novelty": {
+    "earlier_files": [
+      "docs\\audits\\lea\\units-export.tsv",
+      "docs\\audits\\leb\\units-export.tsv",
+      "docs\\audits\\arn\\units-export.tsv",
+      "docs\\audits\\atq\\units-export.tsv"
+    ],
+    "earlier_distinct_templates": 465,
+    "unit_novelty": {
+      "numerator": 310,
+      "denominator": 426,
+      "value": 0.7277
+    },
+    "template_novelty": {
+      "numerator": 281,
+      "denominator": 315,
+      "value": 0.8921
+    }
+  },
+  "drift": {
+    "export": "docs\\audits\\leg\\units-export.tsv",
+    "changed_or_missing_units": 0,
+    "examples": []
+  }
+}

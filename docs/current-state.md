@@ -1,6 +1,6 @@
 # Current State: MTG Frontier Research
 
-Last verified: 2026-08-26
+Last verified: 2026-08-27
 
 ## Purpose of this document
 
@@ -443,14 +443,21 @@ Unless new evidence changes priorities:
    measurement at `bf9eb04`, and the combined technical evidence is in
    `docs/audits/corpus-checks/2026-08-26-post-patq-merge.md`. The five
    rule-(c) rows are re-annotated `under` with fresh exports and drift-free
-    metrics.     Legends (`leg`) reached its opening authorization on 2026-08-27 for two independent passes
-    over 293 held-out-safe development cards (273 with text, 426 frozen units).
-    Its measurement freeze is `2e517357`; the retained TSV SHA-256 is
+    metrics. Legends (`leg`) opened on 2026-08-27 over 293 held-out-safe
+    development cards (273 with text, 426 frozen units). Its measurement freeze
+    is `2e517357`; the retained TSV SHA-256 is
     `c39a2d695b94ce33a2e16356dd93bc6dc614b7c83becfb2b2f72ad5cb298d2e3`.
     Before either pass opened, a technical diff check displayed development
     rows to the assigned adjudicator; that identity was disqualified and
     replaced. Avidiyah reviewed the incident and reauthorized opening with the
-    replacement on 2026-08-27. Both independent passes may now begin.
+    replacement on 2026-08-27. Both independent passes sealed with
+    preregistered exact-row agreement 409/426 (0.9601), passing H8, and
+    exact-card agreement 256/273 (0.9377). The replacement adjudicator reviewed
+    the required 30-row union and closed Legends: 409 accepted rows, 16 defects,
+    one unsupported span gap, no ambiguous or unresolved rows, and zero export
+    drift. Boundary precision/recall are 415/425 (0.9765) and 415/426 (0.9742);
+    structural exact-card correctness is 257/273 (0.9414). The next eligible
+    set is The Dark (`drk`).
 2. **Normalization ablations:** measure one reversible transformation at a time
    rather than applying increasingly lossy normalization as a bundle.
 3. **Typed-slot discovery:** test candidate roles for numbers, mana, objects,
@@ -913,3 +920,17 @@ When updating this document:
   adjudicator. The frozen export and both independent annotator assignments are
   unchanged; Avidiyah reviewed the incident and reauthorized opening with the
   replacement on 2026-08-27.
+- Both independent Legends passes sealed on 2026-08-27 with all 426 keys,
+  zero structural drift, 409/426 exact-row agreement, and 256/273 exact-card
+  agreement. Reconciled the frozen binary's 60-unit multi-sentence aggregate
+  with the protocol/pass count of 61: Life Matrix has a terminator before a
+  closing quote, which the old `is_multi_sentence` implementation skipped.
+  The counter now implements the frozen two-terminator definition; no export or
+  sealed annotation changed.
+- The replacement Legends adjudicator reviewed all 30 required rows and closed
+  the audit on 2026-08-27. Final results: 409 accept, 16 defect, one unsupported
+  (`gap:span:cost_only_parent` on Giant Slug), zero ambiguous/adjudicate, and
+  drift 0. Five quoted `bands with other` children have the wrong kind; Clergy
+  of the Holy Nimbus has a missed replacement kind; ten emitted rows miss
+  eleven delayed or quoted child units. P-LEG-1 through P-LEG-3 are research
+  proposals only and do not block freezing The Dark.

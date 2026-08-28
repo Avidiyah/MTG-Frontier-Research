@@ -204,6 +204,16 @@ fn audit_summary_counts_match_template_inclusion_policy() {
 }
 
 #[test]
+fn multi_sentence_count_includes_terminators_before_closing_quotes() {
+    assert!(is_multi_sentence(
+        "This creature gains \"{T}: Draw a card.\" Activate only once each turn."
+    ));
+    assert!(!is_multi_sentence(
+        "This creature gains \"{T}: Draw a card.\""
+    ));
+}
+
+#[test]
 fn novelty_classifies_units_and_templates_against_earlier_sets() {
     let earlier = vec![audit_card(
         "Earlier",

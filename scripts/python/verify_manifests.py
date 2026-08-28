@@ -8,10 +8,12 @@ import json
 from pathlib import Path
 import re
 import sqlite3
+import subprocess
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+GIT_COMMIT_RE = re.compile(r"^[0-9a-f]{7,40}$")
 HELD_OUT_SQL = """
     oracle_text IS NOT NULL AND oracle_text != ''
     AND lower(substr(oracle_id, 1, 1)) = 'f'
@@ -52,6 +54,53 @@ def validate_bound_file(entry, label, allow_missing=False):
     if file_sha256(path) != entry["sha256"]:
         raise ValueError(f"{label} content hash does not match")
     return True
+
+
+def validate_bound_repository_file(entry, label, preferred_commit):
+    require_fields(entry, ["path", "bytes", "sha256"], label)
+    validate_sha256(entry["sha256"], f"{label}.sha256")
+    if not isinstance(preferred_commit, str) or not GIT_COMMIT_RE.fullmatch(
+        preferred_commit
+    ):
+        raise ValueError("repository.freeze_commit is not a Git commit id")
+    current_path = REPO_ROOT / entry["path"]
+    if (
+        current_path.is_file()
+        and current_path.stat().st_size == entry["bytes"]
+        and file_sha256(current_path) == entry["sha256"]
+    ):
+        return True
+
+    history = subprocess.run(
+        ["git", "log", "--all", "--format=%H", "--", entry["path"]],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        check=False,
+    )
+    if history.returncode != 0:
+        raise ValueError(
+            f"{label} history cannot be read for bound path: {entry['path']}"
+        )
+    commits = [preferred_commit, *history.stdout.decode("ascii").splitlines()]
+    for commit in dict.fromkeys(commits):
+        result = subprocess.run(
+            ["git", "show", f"{commit}:{entry['path']}"],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            check=False,
+        )
+        if result.returncode != 0:
+            continue
+        candidates = [result.stdout]
+        if b"\r\n" not in result.stdout:
+            candidates.append(result.stdout.replace(b"\n", b"\r\n"))
+        if any(
+            len(content) == entry["bytes"]
+            and hashlib.sha256(content).hexdigest() == entry["sha256"]
+            for content in candidates
+        ):
+            return True
+    raise ValueError(f"{label} bound content is absent from repository history")
 
 
 def heldout_identity_digest(db_path):
@@ -162,8 +211,18 @@ def validate_experiment(manifest, allow_missing=False):
     checked += validate_bound_file(
         manifest["snapshot_manifest"], "snapshot_manifest", allow_missing
     )
+    bound_commit = manifest["repository"].get(
+        "freeze_commit", manifest["repository"].get("head_commit")
+    )
     for index, source in enumerate(manifest["repository"].get("source_files", [])):
-        checked += validate_bound_file(source, f"source_files[{index}]", allow_missing)
+        if bound_commit:
+            checked += validate_bound_repository_file(
+                source, f"source_files[{index}]", bound_commit
+            )
+        else:
+            checked += validate_bound_file(
+                source, f"source_files[{index}]", allow_missing
+            )
     for index, command in enumerate(manifest["commands"]):
         require_fields(command, ["argv", "runs", "exit_status"], f"commands[{index}]")
         if not isinstance(command["argv"], list) or not command["argv"]:

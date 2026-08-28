@@ -1,5 +1,9 @@
 {
     "chat.tools.terminal.autoApprove": {
-        "git worktree": true
+        "git worktree": true,
+        "/^python -m unittest scripts\\.python\\.test_manifests; if \\(\\$\\?\\) \\{ python scripts/python/verify_manifests\\.py docs/manifests/experiment-pre-legends-export-gate-2026-08-26\\.json docs/manifests/experiment-legends-freeze-2026-08-27\\.json --allow-missing-artifacts \\}; if \\(\\$\\?\\) \\{ python -m unittest discover scripts/python -p 'test_\\*\\.py' \\}$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
     }
 }
