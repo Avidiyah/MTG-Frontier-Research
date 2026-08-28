@@ -491,500 +491,78 @@ When updating this document:
 - distinguish decisions from candidates and hypotheses;
 - remove resolved questions or rewrite them to the new frontier;
 - keep the repository map brief;
-- keep the log short and link detailed findings elsewhere if they grow;
+- keep the log to one entry per milestone (a sentence or two); put detail in
+  a `docs/findings/`, `docs/gates/`, or `docs/protocol/` file instead, and
+  add or update that file's entry in `docs/findings/index.json` (id, path,
+  scope, status, one-line summary, `supersedes`/`superseded_by`);
 - do not silently change the active goal or long-term destination.
 
 ## Decision and discovery log
 
+Full detail for every dated entry below lives in `docs/findings/`,
+`docs/gates/`, or `docs/protocol/`, indexed machine-readably at
+`docs/findings/index.json` (id, path, scope, status, one-line summary,
+supersession links). This log stays a one-line-per-milestone pointer; do not
+re-expand a milestone's narrative here — add or edit the detail in its own
+findings/gate file and the index entry instead.
+
 ### 2026-08-25
 
-- Decided that the near-term objective is empirical discovery and measurement
-  before committing to an IR.
-- Decided that this document primarily serves terminal agents such as Fable.
-- Decided to maintain current truth plus a short dated decision/discovery log.
-- Confirmed that the long-term destination is a general MTG rules engine,
-  simulation, telemetry, and AI stack.
-- Established the first Rust discovery baseline: 67,738 structural units and
-  37,912 normalized templates; the top 5,000 cover 51.41% under the current
-  lossy normalization.
+- Decided the near-term objective is empirical discovery/measurement before
+  committing to an IR, that this document serves terminal agents, and that
+  the long-term destination is a rules engine, simulation, telemetry, and AI
+  stack. First Rust baseline: 67,738 units, 37,912 templates, top-5,000
+  coverage 51.41%.
 
 ### 2026-08-26
 
-- Stated the working hypothesis under test: because Magic is a formal
-  rules-based system, cards follow semantic patterns that an algorithm can
-  parse without hand-coding the vast majority of effects. No coverage target;
-  the goal is the upper bound of what is parseable.
-- Decided to walk the corpus set by set from Alpha, recording each step in
-  `docs/findings/`.
-- Added first-printing derivation (`default_cards` bulk file, `first_*`
-  columns) and `sets` / `--set` to the CLI. Baseline segmentation and
-  normalization are unchanged, so corpus-wide numbers above still hold.
-- Alpha audit: a line is not an ability (both directions); reminder text
-  breaks keyword classification on 34% of keyword lines; 14 Alpha cards have
-  rules-supplied abilities only; typed-slot ablations reduce Alpha's
-  singleton share only from 68% to 56%; 47% of Alpha templates never recur
-  in the corpus, half of those as parametric cycles. Verified that Oracle
-  text does not vary across printings.
-- Added repository-wide Copilot instructions aligned with this document and
-  `CLAUDE.md`; restored `mtg_search.py` database discovery relative to the
-  repository root so it works independently of the caller's working directory.
-- Implemented the seven Alpha segmenter changes: classification on
-  reminder-stripped text, keyword-list splitting, explicit rules-supplied
-  units, new kinds (replacement, cast restriction, additional cost, CDA,
-  ante), `this <type>` -> `~` with `named X` preserved, and nested modes,
-  delayed triggers, and quoted abilities as typed children. This Alpha
-  baseline was later superseded by the P-ARN updates recorded below.
-- Gate 0 reviewed and passed with two recorded caveats (snapshot identity is
-  prose-only; Alpha's B1/B2/V3 scratch measurements were not preserved and
-  are downgraded to bounded observations). Froze the structural-investigation
-  protocol v1.0 and the held-out pool. Annotated all 412 Alpha units; found
-  5 missed nested delayed-trigger boundaries, 4 kind defects, and that `{T}`
-  collapses to `{M}`. Narrowed three Alpha claims (activation instructions
-  are not separate abilities per CR 602.1b; Animate Dead's last sentence is
-  a delayed trigger; Gaea's Liege's CDA status is ambiguous under CR
-  604.3a(5)). Arabian Nights plan prepared, not started.
-- Gate 0 countersigned by the owner. Arabian Nights (77 cards, 109 units)
-  and Beta (2 cards) audited under protocol v1.0: 3 more missed nested
-  delayed triggers (Rukh Egg, Sandals of Abdallah, Nafs Asp), 1 more
-  `instead`-on-instant kind defect (Eye for an Eye), 2 more prevention
-  statics (Camel, Desert Nomads); unit novelty 77 / 109 vs Alpha + Beta.
-  Corpus counterexample searches (535 inverted delayed-trigger hits, 154
-  `at end of combat`, 798 sentence-initial `When`) support a generic
-  sentence-level delayed-trigger split but show the delayed-vs-independent
-  *role* needs CR context (reflexive triggers, CR 603.12; vanishing-style
-  triggers). Alpha's Cockatrice / Thicket Basilisk adjudicated to missed
-  delayed triggers via the Gorgon Recluse ruling.
-- Implemented P-ARN-1 through P-ARN-4. The corpus baseline is now 71,682
-  printed units + 970 rules-supplied, 37,344 templates, top-100 coverage
-  26.85%, with 982 delayed-trigger children and 181 `prevention_effect`
-  units. Re-exported and regenerated metrics for `lea`, `leb`, and `arn`;
-  all three report zero drift. Arabian Nights now has 112 / 112 boundary,
-  role, and source accuracy and 110 / 110 kind accuracy. Antiquities is
-  cleared to begin, but Codex did not start that research.
-- Lead review of `af150b0`: P-ARN-2/3/4 and sentence-level P-ARN-1 ratified;
-  the un-proposed single-sentence split rule (c) rejected on corpus evidence
-  (0/40 sampled comma/colon parents are reference units; 108 bare-condition
-  parents; 3 in-quote splits). Condition-only parents in `lea`/`arn`/`atq`
-  re-dispositioned `over`/`defect`. Fixed `export_units.py` name-collision
-  defect (Shapeshifter vs. tokens); script and native `audit export` now
-  agree field-for-field on `atq`. Antiquities audited with two passes
-  (125/125 agreement): one unscoped-`When` miss (Tawnos's Coffin), one
-  rule-(c) fragment (Battering Ram); unit novelty rose to 96/125, falsifying
-  N1 as stated (novelty tracks theme, not only date). Corpus S11 checks
-  preserved as scripts. Proposals P-ATQ-1..4 recorded; D15–D20 registered.
-- Implemented P-ATQ-1: `delayed_trigger_split` in `src/segment.rs` no longer
-  searches backward for the nearest comma/colon before a delayed-trigger
-  phrase in a single sentence (the rejected rule (c)); it only returns a
-  split point at a complete sentence boundary (P-ARN-1 generic/inverted
-  `next`/`at end of combat`, P-ARN-2 scoped `When`/`Whenever ... this
-  turn`/`this way`/`When you do`). When a delayed-trigger phrase remains in
-  an unresolved single sentence, the unit is kept whole and the existing
-  `delayed_trigger_unattached_candidate` audit signal (T8-style slot) fires
-  instead of a fabricated split; this required no new mechanism. Added
-  `src/tests/` regression tests: sentence-level splitting still creates a
-  `delayed_trigger` child and a valid parent
-  (`sentence_level_delayed_trigger_still_splits_as_a_child`); a leading
-  `Whenever CONDITION,` trigger clause is no longer split off as its own
-  parent, for both the plain and inverted-`next`-phrase forms
-  (`end_of_combat_delayed_trigger_in_a_single_sentence_stays_whole`,
-  `inverted_next_step_delayed_trigger_in_a_single_sentence_stays_whole`); an
-  activation-cost colon (`{T}:`) is never emitted as its own unit
-  (`activation_cost_colon_is_not_split_into_its_own_parent`); a quoted
-  granted ability's internal comma/colon is never used as a split point,
-  for either the outer or the inner unit
-  (`delayed_trigger_and_punctuation_inside_quotes_are_not_split`,
-  `delayed_trigger_inside_quoted_ability_stays_under_granted_child`); and
-  the unattached-trigger signal fires for the conservative-fallback case
-  (`suspicious_signals_flag_unresolved_single_sentence_delayed_trigger`).
-  `cargo fmt -- --check`, `cargo test` (45 passed), `cargo clippy
-  --all-targets -- -D warnings`, and `cargo build --release` all pass at
-  this change. **Accepted 2026-08-26** (technical S10 package, branch
-  `claude/p-atq-1-acceptance`): measured in isolation at `bf9eb04` against
-  `8c0f229` on the same snapshot — 71,682 → 71,563 printed units, 37,344 →
-  37,299 templates, 982 → 861 delayed-trigger children (all 121 comma/colon
-  children removed, not the estimated ~113, because rule (c) was deleted
-  rather than guarded; 0 added; 0 lowercase-initial; 0 in-quote), every
-  merged unit carrying `delayed_trigger_unattached_candidate`. Regression:
-  fresh exports drift in exactly the five fix rows, re-annotated `under`
-  (missed 1, D15 slot), drift 0, no new non-`accept` row. Full record in
-  `docs/findings/atq-structural-audit.md` ("P-ATQ-1 acceptance record").
-- Implemented P-ATQ-2: `classify_kind` in `src/segment.rs` no longer labels
-  `can't be prevented` / `cannot be prevented` text as `prevention_effect`.
-  A new `prevention_prohibition` regex (`can(?:'|’)?t be prevented|cannot be
-  prevented`, matched against the same lowercased normalized text as the
-  existing `prevention` regex, apostrophe optional/either form since
-  normalization does not fold apostrophes) is checked alongside the
-  existing prevention match; when both match, the unit falls through the
-  existing `else if` chain (replacement, then CDA, then residual) exactly
-  as it would if the prevention regex hadn't matched at all — no new kind,
-  no reordering of the surrounding branches, no card- or set-specific
-  logic. Added `src/tests/` regression tests:
-  `prevention_prohibition_is_not_classified_as_prevention_effect` (two
-  distinct `can't be prevented` wordings plus `cannot be prevented` and a
-  curly-apostrophe `can’t be prevented` variant all classify as
-  `spell_or_static_text`, matching the existing residual-static fallback)
-  and `prevention_prohibition_exclusion_does_not_regress_genuine_prevention`
-  (a unit that both commands genuine prevention and separately describes
-  damage as "is prevented" still classifies as `prevention_effect`, showing
-  the exclusion is the narrow collocation and not a blanket `contains
-  "prevented"` rule). All prior prevention/replacement/CDA tests, including
-  `static_prevention_effects_have_their_own_kind` and
-  `prevention_in_activated_triggered_or_spell_text_keeps_precedence`, were
-  left unchanged and still pass — none of their fixtures used the
-  prohibition wording. `cargo fmt -- --check`, `cargo test` (47 passed),
-  `cargo clippy --all-targets -- -D warnings`, and `cargo build --release`
-  all pass. *(The remainder of this entry is superseded: P-ATQ-2 was
-  accepted under S10 in the post-merge acceptance pass at `8e83221`, the
-  last entry of this log.)* **Not yet done, same blocker as P-ATQ-1:** this
-  session's network egress policy again returns 403 for
-  `api.scryfall.com`, so `cards.sqlite` could not be (re)generated and neither
-  `scripts/python/corpus_checks/check_kind_rules.py` (which reads
-  `cards.sqlite` directly for type-line lookups) nor
-  `scripts/python/corpus_checks/dump_corpus_units.py` (its required input)
-  could be run. The Antiquities audit's 9 `can't be prevented` misfires are
-  therefore not re-measured, and the 8 ability-word/Saga-chapter/named-mode
-  prefixed misfires from the same check (P-ATQ-3, explicitly out of scope
-  here) are expected to remain untouched but likewise unverified. A search
-  of the local `Magic-Comprehensive_Rules.md` text and the existing
-  `src/tests/` test fixtures (all of which already use a straight ASCII
-  apostrophe for `can't`, consistent with Scryfall's Oracle-text
-  convention) informed the regex, but this substitutes for the protocol's
-  S8 corpus counterexample search rather than satisfying it. P-ATQ-2 is
-  implemented and unit-tested but not yet accepted under protocol S10
-  (items 4–5); a later session with data access must rerun
-  `check_kind_rules.py`, confirm the 9-misfire class is gone with no new
-  false positives or negatives, and refresh the baseline numbers above.
-- Implemented P-ATQ-3: `build_unit` in `src/segment.rs` now detects a leading
-  `<prefix> — ` structural marker on the fully normalized unit text (em
-  dash, prefix has no period or colon, prefix ≤ 45 characters, non-empty
-  body after the dash) via a new `extract_prefix` function, before
-  `classify_kind` runs. The detected prefix is recorded verbatim on a new
-  `prefix: Option<String>` field on `Segment` (only field added; no new
-  ontology of prefix categories); `text` and `normalized` are unchanged, so
-  the original Oracle text and the existing corpus-wide template baseline
-  are both preserved exactly. When no prefix is found, behavior is
-  byte-for-byte identical to before this change. When a prefix is found,
-  two cases: (1) a Saga chapter symbol — one or more comma-separated pure
-  Roman numerals (`is_saga_chapter_prefix`) *and* the unit's per-face type
-  line carries the Saga subtype (`is_saga`) — is classified
-  `triggered_ability` directly, per CR 714.2b's "is a keyword ability that
-  represents a triggered ability," without running the stripped body
-  through `classify_kind` at all (stripping and classifying the body would
-  reproduce the P-ATQ-3 failure as `prevention_effect` when the effect text
-  starts with "Prevent", which is exactly the corpus-observed case); (2)
-  every other prefix (ability word, CR 207.2c; named mode/label; a
-  non-Saga numeral label) is stripped and the remaining body is classified
-  by the existing, unmodified `classify_kind` with the same `type_line` and
-  `allow_spell_text_override` the whole unit would have received, so a
-  hidden `Whenever`/`At` trigger word is recovered and P-ARN-3's
-  instant/sorcery spell-text override, the CDA check, and every other
-  branch keep working unchanged on the shorter body. No card name, set
-  code, or ability-word vocabulary list appears in the implementation; the
-  rule is purely structural (delimiter, length, punctuation, and — for the
-  chapter case only — the CR-defined Roman-numeral/Saga-type gate).
-  Regression tests added in `src/tests/` (16 new, all synthetic, none
-  naming an Antiquities card): an ability-word prefix over a `Whenever`
-  trigger and over an `At the beginning of` trigger (guards against a fix
-  that only handles one trigger word); a multi-chapter (`I, II —`) and a
-  single-chapter (`II —`) Saga marker, both asserting `triggered_ability`
-  even though the body starts with `Prevent`; a Roman-numeral prefix on a
-  *non*-Saga type line asserting it is **not** treated as a chapter symbol;
-  a named-mode prefix (`Run and Hide —`) inside an actual modal spell's `•`
-  child, asserting the mode `role` and the CR 615.1a `prevention_effect`
-  body kind are both unchanged from what the existing prevention machinery
-  already produces; an early-colon guard, an early-period guard, and an
-  overlong-prefix guard, each asserting `prefix` stays `None` and the unit
-  classifies exactly as it did before this change; a mode-header em dash
-  with no following body (`Choose one —`) asserting no prefix is recorded
-  over its own bullet children — the one "ordinary em-dash usage" case this
-  session could verify against a real, extremely common corpus pattern
-  without database access (see below); the P-ATQ-2 `can't be prevented`
-  exclusion and a prefix-free genuine-prevention case, both reconfirmed
-  unaffected; and two direct unit tests of `extract_prefix` and
-  `is_saga_chapter_prefix`. `cargo fmt -- --check`, `cargo test` (61
-  passed), `cargo clippy --all-targets -- -D warnings`, and `cargo build
-  --release` all pass.
+- Stated the working parseability hypothesis and decided to walk the corpus
+  set by set from Alpha, recording each step in `docs/findings/`. Added
+  first-printing derivation and `sets`/`--set` to the CLI (baseline numbers
+  unchanged). See `lea-segmentation-audit` in the index for the Alpha audit
+  and the seven resulting segmenter changes.
+- Gate 0 reviewed, passed (two caveats), protocol v1.0 and the held-out pool
+  frozen; all 412 Alpha units annotated. See `gate-0-evidence`.
+- Arabian Nights (+ Beta) audited under protocol v1.0; motivated P-ARN-1..4,
+  later implemented and re-exported with zero drift across `lea`/`leb`/`arn`.
+  See `arn-structural-audit`.
+- Antiquities audited two-pass (125/125 agreement); motivated P-ATQ-1..4
+  and registered D15-D20. All four proposals implemented, then accepted
+  under protocol S10 in a post-merge acceptance pass at `8e83221` (P-ATQ-3
+  accepted within bounded scope). Corpus after merge: 71,563 printed units,
+  37,299 templates, 861 sentence-level delayed-trigger children, 30
+  top-level spell-created delayed triggers, 166 `prevention_effect` units.
+  See `atq-structural-audit` and `p-atq-research-acceptance-assessment`.
+- Gate 1 readiness assessed at `2355b6c` (P-ATQ technical package merged at
+  `bcf9eaa`); pre-Legends T7 export gate closed (held-out exclusion in
+  SQLite before export, byte-identical repeated exports, 0 held-out
+  records). See `gate-1-readiness-matrix` and `pre-legends-technical-entry-evidence`.
 
-  *(The remainder of this entry is superseded: the S8 search and S11
-  inventory it names were run at `8e83221` and P-ATQ-3 was accepted
-  within its measured scope — see the last entry of this log.)*
-  **Not yet done:** this session's network egress policy again returns 403
-  for `api.scryfall.com` (re-confirmed this session) and no `cards.sqlite`
-  exists, the same blocker recorded against P-ATQ-1 and P-ATQ-2. The
-  protocol's S8 corpus counterexample search for the prefix rule (§18 of
-  the P-ATQ-3 task: searching specifically for short, punctuation-clean,
-  em-dash-joined constructions that are *not* an ability word, chapter
-  symbol, or named mode, where stripping would be semantically wrong) was
-  **not performed** against the corpus; it is informed only by the
-  Antiquities audit's own recorded evidence (the 8-unit prefix family in
-  `docs/audits/corpus-checks/2026-08-26-kind-rules-check.md` §A2), CR
-  207.2c/714.2, and this session's knowledge of Magic Oracle-text
-  conventions (planeswalker loyalty abilities use a colon, not an em dash,
-  so they cannot collide with this rule; no non-label short em-dash
-  construction under the 45-character/no-period/no-colon bound was
-  identified by inspection). The S11 corpus-wide over-segmentation check
-  (candidate units matched, prefixes extracted by length/role/kind/card
-  type/release year, false-positive rate) was **not run**, so the
-  before/after `prevention_effect` count, the corpus-wide kind/role
-  histograms, and whether all 8 historical Antiquities misfires actually
-  change kind under this rule are **not measured** in this session.
-  Reasoning through the 8 recorded misfires against this implementation
-  (not corpus-verified): 3 are ability words whose hidden trigger word is
-  now recovered (`Heroic`, `Constellation`, `Lieutenant` — Favored Hoplite,
-  Harvestguard Alseids, Loyal Unicorn in the audit's own wording), kind
-  changes from `prevention_effect` to `triggered_ability`; 2 are genuine
-  Saga chapter markers that now classify `triggered_ability` via the
-  chapter-symbol path rather than by the body's leading verb (`I, II —`,
-  `II —`); the remaining 3 (`2 —` on a non-Saga Un-set card, `Immune —`,
-  `The Betrayer —`) have bodies that already begin with `Prevent` or `If
-  ... would ... prevent`, a wording `classify_kind` already assigns
-  `prevention_effect` with or without the prefix present, so this rule is
-  not expected to change their kind — they were still evidence for the
-  general structural phenomenon, and now carry recorded prefix metadata,
-  but are not "misfires" this change resolves. This reasoning is stated as
-  a hypothesis from the audit's recorded wording, not a corpus
-  measurement. `docs/findings/atq-structural-audit.md` records the same
-  caveat. A later session with data access must run
-  `dump_corpus_units.py` and `check_kind_rules.py`, confirm the actual
-  before/after `prevention_effect` count and kind distribution, execute
-  the S8 counterexample search and S11 over-segmentation check this
-  session could not run, and only then treat P-ATQ-3 as accepted.
-- Implemented P-ATQ-4: a new `apply_spell_created_delayed_triggers` pass in
-  `src/segment.rs` runs once per card face, after `segment_text` has already
-  attached every line's unit (mode children, P-ARN-1/P-ATQ-1 delayed-trigger
-  children, granted quoted abilities), and changes `role` from `ability` to
-  `delayed_trigger` **in place** — never reparenting or duplicating a unit —
-  on a top-level unit that is `source = printed`, `kind = triggered_ability`,
-  on an instant/sorcery face, and satisfies a new
-  `is_spell_created_delayed_trigger` predicate. That predicate requires a
-  stated future/duration temporal scope in the CR 603.7b sense
-  (`has_delayed_trigger_temporal_scope`: `this turn`, `this combat`, or
-  `next ...`) **and** the absence of two kinds of negative evidence:
-  `is_cast_or_resolve_trigger` (the condition is about the spell's own
-  casting/resolution: `when you cast ~`, `~ resolves`, `~ is countered`) and
-  `has_off_stack_evidence` (a CR-defined off-stack keyword — `cycle`,
-  `suspended`, `haunts` — or the unit's self-reference `~` within the same
-  sentence as a `graveyard`/`exile`/`discard` zone word, CR 113.6b). The
-  zone check is a proximity match on `~`, not a bare word blacklist, so it
-  does not misfire on a delayed trigger that merely mentions a graveyard as
-  the destination of its effect rather than as the ability's own zone
-  (e.g. "return **those cards** from your graveyard" vs. "if **this
-  card/`~`** is in your graveyard"). All four helper functions operate on
-  the same P-ATQ-3 classification text (`extract_prefix`'s stripped body
-  when a prefix is present, else the full normalized text) that
-  `classify_kind` already used to assign `triggered_ability`, so a prefix
-  cannot hide P-ATQ-4's evidence either. `kind` is never changed. No `kind`
-  variant, card name, or set code appears in the implementation.
+### 2026-08-27
 
-  The distinct concrete failure this corrects: a single-line instant or
-  sorcery whose *entire* printed text is a CR 603.7d delayed-trigger clause
-  (e.g. "Whenever a creature blocks this turn, ...") previously kept
-  `role = ability`, because the repository's existing cross-line delayed-
-  trigger mechanism (the `delayed_trigger_start`-based check already in
-  `segment_line`, used for e.g. a trailing "At the beginning of the next end
-  step, ..." *line* that continues an earlier line's effect) only keeps
-  `role = delayed_trigger` when it can attach the unit as a *child* of a
-  preceding sibling; a lone top-level unit has none, so it fell back to
-  `role = ability`. P-ATQ-4 is a separate mechanism for exactly that case:
-  it changes an existing top-level unit's role in place and deliberately
-  never attaches it as anyone's child, since resolving the spell and the
-  delayed trigger it creates are the same printed unit (CR 603.7d: "the
-  source of that delayed triggered ability is that spell"). `parent_index`
-  stays absent either way, which is what distinguishes a P-ATQ-4 unit from
-  a `delayed_trigger` *child* produced by the pre-existing mechanism (which
-  always has a parent) and from a `granted` delayed trigger inside a quoted
-  ability (a different `role` entirely) — no new field was needed to keep
-  the three cases distinguishable in audit output.
+- Legends entry conditions passed; an adjudicator-disqualification incident
+  (accidental row exposure via `git diff --cached --check`) was caught before
+  either pass opened, the adjudicator replaced, and opening reauthorized by
+  Avidiyah. Both passes sealed with 409/426 exact-row and 256/273 exact-card
+  agreement, drift 0; audit closed with 409 accept / 16 defect / 1
+  unsupported, motivating non-blocking P-LEG-1..3. See `leg-structural-audit`
+  and `legends-entry-record`.
+- The Dark preregistered (hypotheses H1-H11) and inputs frozen at `70fa956`;
+  held-out-safe freeze export validated (163 unique keys, 0 held-out
+  records). Pass 1 sealed before pass 2/adjudicator were assigned, a
+  preregistration §12 deviation; Avidiyah authorized a narrow reconciliation
+  preserving pass 1 and assigning pass 2 (`gpt-5.3-codex-pass2-2026-08-27`)
+  and a separate adjudicator. See `drk-structural-audit-preregistration` and
+  `dark-entry-record`.
 
-  Regression tests added in `src/tests/` (21 new; `cargo test`: 82 passed,
-  up from 61), all synthetic: the four positive temporal-scope forms (`this
-  turn`, `you next cast ... this turn`, `at the beginning of combat this
-  turn`, `this combat`), including the single-line no-parent case that was
-  the concrete pre-P-ATQ-4 defect; the `cycle`/graveyard-self/`discard
-  this card`/`suspended` off-stack negative classes; a direct positive
-  counterexample proving the zone check is proximity-based, not a
-  blacklist (a delayed trigger scoped `this turn` that returns *someone
-  else's* discarded cards from a graveyard is not excluded); a cast trigger
-  that also contains a `this turn` phrase, proving the cast/resolve
-  exclusion takes precedence rather than merely being redundant with it; a
-  resolution trigger; identical wording on a non-instant/sorcery face
-  (type-line context matters); non-trigger spell text containing `this
-  turn` (kind gates the check before role does); the existing P-ARN-1/
-  P-ATQ-1 multi-line delayed-trigger *child* split, reconfirmed unchanged
-  in shape; P-ATQ-2's `can't be prevented` exclusion and P-ATQ-3's Saga-
-  chapter/ability-word prefix handling, both reconfirmed unaffected; a
-  case combining a P-ATQ-3 ability-word prefix with a P-ATQ-4 temporal
-  clause, showing the prefix does not hide the evidence from either
-  mechanism; and direct unit tests of the three new helper predicates.
-  `cargo fmt -- --check`, `cargo test` (82 passed), `cargo clippy
-  --all-targets -- -D warnings`, and `cargo build --release` all pass.
+### 2026-08-28
 
-  *(The remainder of this entry is superseded: the full instant/sorcery-face
-  S8 sweep was run at `8e83221` and P-ATQ-4 was accepted under S10 — see
-  the last entry of this log.)*
-  **Partial corpus cross-check, not a full S8/S11 pass:** this session's
-  network egress policy again returns 403 for `api.scryfall.com`
-  (re-confirmed), so `cards.sqlite` does not exist and neither
-  `dump_corpus_units.py` nor `check_kind_rules_part2.py` could run against
-  the live corpus — the same blocker as P-ATQ-1/2/3. However, the 111
-  I/S-face top-level `triggered_ability` units (105 non-pool) recorded
-  verbatim in the already-committed
-  `docs/audits/corpus-checks/2026-08-26-kind-rules-check.md` §B/§B2 are
-  themselves reproducible evidence: this session ran the release binary's
-  `segment` command against all 105 non-pool texts and their recorded type
-  lines. 28 were classified `delayed_trigger` and 77 stayed `ability`, with
-  no unexpected role or an execution error on any unit; every one of the 28
-  matches this session's own by-hand CR-based classification of the same
-  105 rows, and the two units whose text contains both a trigger-word start
-  and a temporal-scope phrase yet were *not* flagged (Sunfire Balm: `cycle`;
-  Show of Confidence: `cast this spell`) are exactly the off-stack and
-  cast/resolve counterexamples this proposal is designed to exclude.
-  Diffing this rule's output against `check_kind_rules_part2.py`'s own
-  blacklist-based measurement heuristic on the same 105 rows found exactly
-  two disagreements, both resolving in the new rule's favor on CR grounds:
-  the old heuristic's `if`/`elif` ordering lets its temporal-scope branch
-  win *before* its cast/resolve branch ever runs, so it misclassifies "When
-  you cast [this spell], copy it for each ... spell you've cast this turn."
-  as a delayed trigger; and the old heuristic's bare-word `graveyard`
-  exclusion misclassifies a genuine delayed trigger ("... return **those**
-  [other, discarded] cards from your graveyard to your hand") as off-stack,
-  exactly the false-exclusion class the task description warned this
-  session to check for. This is a strong desk cross-check against evidence
-  already committed to the repository, not a freshly executed S8 corpus
-  query or an S11 over-segmentation pass: it does not cover the full
-  12,468-unit I/S-face population, the 6 held-out-pool rows in the 111 (not
-  inspected, consistent with protocol §6.3), or corpus-wide false negatives
-  outside the 111 units the earlier audit already flagged as
-  `triggered_ability`. P-ATQ-4 is implemented and unit-tested, corroborated
-  against the recorded historical evidence, but **not yet accepted under
-  protocol S10/S11**. A later session with data access must run
-  `dump_corpus_units.py` and `check_kind_rules_part2.py`, confirm the
-  before/after role distribution and the ~30-unit historical comparison
-  point on the live corpus, execute a true S8 counterexample search over
-  the full I/S-face population (not just the 111 already flagged
-  `triggered_ability` — a false negative could be hiding in a different
-  temporal phrasing this proposal does not yet cover), rerun
-  `audit_metrics.py` against `lea`/`leb`/`arn`/`atq` to confirm no new
-  non-`accept` rows, and only then treat P-ATQ-4 as accepted. This session
-  also could not run the still-outstanding P-ATQ-1/P-ATQ-2/P-ATQ-3 corpus
-  validation for the same reason; that work remains open exactly as
-  recorded in their own disposition entries above, unchanged by this
-  session.
-- Re-ran the full local corpus after merging P-ATQ-1..4: 71,563 printed units,
-  37,299 templates, 861 sentence-level delayed-trigger children, 30 top-level
-  spell-created delayed triggers, 0 comma/colon delayed splits, 166
-  `prevention_effect` units, and 0 `can't be prevented` prohibition misfires.
-  P-ATQ-3 reduced the 8 recorded prefix-related prevention candidates to 3;
-  these remain for research-lead adjudication. All four implementations remain
-  pending the protocol-required re-annotation and acceptance decision.
-  *(Superseded the same day by the two entries below: all four are accepted,
-  the three residuals are adjudicated correct positives, and the
-  re-annotation is committed at drift 0.)*
-- Accepted P-ATQ-1 under protocol S10 (decider: research lead, per
-  `docs/findings/p-atq-research-acceptance-assessment.md`; technical package
-  on branch `claude/p-atq-1-acceptance`). The rule (c) retraction was
-  measured in isolation (`8c0f229` → `bf9eb04`, same snapshot): all 121
-  comma/colon delayed children revert (982 → 861; the proposal had estimated
-  ~113), 0 children added, the surviving 861 are identical to HEAD's nested
-  set, and every merged unit carries the T8-style
-  `delayed_trigger_unattached_candidate` signal. Fresh `lea`/`leb`/`arn`/`atq`
-  exports and metrics are committed; the five fix rows are re-annotated as
-  `under` (missed 1) with defect totals unchanged. The corpus-check scripts
-  gained a binary-path override and a commit-label argument.
-- Post-merge acceptance pass at `8e83221` (technical validator; 82 tests, fmt
-  and clippy clean; snapshot sha256 recorded): regenerated every corpus check
-  with a second binary built from `8c0f229` for unit-level before/after
-  diffs, ran the protocol's missing S8 searches with the new
-  `scripts/python/corpus_checks/check_patq_s8.py` (binary cross-check 3,340
-  units, 0 mismatches), and re-ran `audit_metrics.py` on fresh exports of all
-  four audited sets. **Accepted P-ATQ-1, P-ATQ-2 and P-ATQ-4**; the later
-  research reconciliation accepted P-ATQ-3 within its bounded scope and
-  confirmed Urza's Science Fair Project, Khârn the Betrayer and Diamond Weapon
-  as correct prevention positives. Counterexample classes remain recorded
-  (Prototype/spree/table labels; 2 punctuated flavor words; 141 funny/token
-  bodies newly labelled keywords). The five rule-(c) rows were subsequently
-  re-annotated and regenerated at drift 0. D19 and D14 remain open; Legends
-  has not started.
-- Post-merge reconciliation at `2355b6c` (technical validator): the P-ATQ
-  technical package is complete and merged (`bcf9eaa`); stale
-  "pending"/"not yet accepted" wording in this document,
-  `docs/gates/gate-1-readiness-matrix.md` and
-  `docs/findings/atq-structural-audit.md` was marked superseded rather than
-  rewritten. The Legends entry-checklist completion record and the
-  annotator/adjudicator/program-owner templates are in
-  `docs/gates/legends-entry-record.md`. Legends remains closed: the
-  held-out-safe export (protocol T7 is not implemented at `2355b6c`), the
-  frozen-inputs
-  block, the annotator/adjudicator assignments and attestations, and the
-  program-owner authorization are still outstanding.
-- Closed the pre-Legends T7 technical gate without displaying card rows:
-  held-out exclusion now occurs in SQLite before segmentation/serialization;
-  JSON and TSV exports validate `(oracle_id, face, unit_index)` uniqueness and
-  parent integrity; two aggregate-only repeated runs were byte-identical with
-  17 held-out identities excluded and 0 held-out export records. Added
-  validated snapshot/experiment manifests under `docs/manifests/`. The final
-  retained freeze export and governance sign-offs remain open; Legends has not
-  started.
-- Legends initially passed all eleven entry conditions on 2026-08-27. Before
-  either pass opened, `git diff --cached --check` displayed development rows to
-  the assigned adjudicator while reporting intentional TSV trailing tabs. That
-  identity was disqualified immediately and replaced by a fresh no-access
-  adjudicator. The frozen export and both independent annotator assignments are
-  unchanged; Avidiyah reviewed the incident and reauthorized opening with the
-  replacement on 2026-08-27.
-- Both independent Legends passes sealed on 2026-08-27 with all 426 keys,
-  zero structural drift, 409/426 exact-row agreement, and 256/273 exact-card
-  agreement. Reconciled the frozen binary's 60-unit multi-sentence aggregate
-  with the protocol/pass count of 61: Life Matrix has a terminator before a
-  closing quote, which the old `is_multi_sentence` implementation skipped.
-  The counter now implements the frozen two-terminator definition; no export or
-  sealed annotation changed.
-- The replacement Legends adjudicator reviewed all 30 required rows and closed
-  the audit on 2026-08-27. Final results: 409 accept, 16 defect, one unsupported
-  (`gap:span:cost_only_parent` on Giant Slug), zero ambiguous/adjudicate, and
-  drift 0. Five quoted `bands with other` children have the wrong kind; Clergy
-  of the Holy Nimbus has a missed replacement kind; ten emitted rows miss
-  eleven delayed or quoted child units. P-LEG-1 through P-LEG-3 are research
-  proposals only and do not block freezing The Dark.
-- Preregistered The Dark (`drk`) structural audit and froze its inputs at
-  measurement commit `70fa956` (frozen segmenter; no P-LEG implemented). Design
-  in `docs/findings/drk-structural-audit-preregistration.md` (hypotheses
-  H1–H11); empty outline `docs/findings/drk-structural-audit.md`; governance
-  `docs/gates/dark-entry-record.md`; manifest
-  `docs/manifests/experiment-dark-freeze-2026-08-27.json`. Held-out-safe
-  aggregate-only freeze: 119→113 cards (6 held-out excluded), 110 with text,
-  163 units, retained export SHA-256 `4460c2de…`, byte-identical repeated
-  exports, 163 unique keys, 0 held-out records, corrected multi-sentence count
-  25. Regression/novelty corpus is `lea`+`leb`+`arn`+`atq`+`leg`.
-- Pass 1 was authorized, completed, and sealed while pass 2 and the adjudicator
-  were still unassigned, a governance deviation from preregistration §12's
-  full-roster-before-opening requirement. On 2026-08-27 program owner Avidiyah
-  directed a narrow reconciliation: preserve sealed pass 1 because the export
-  and guide were frozen, pass 1 remained independent, no held-out exposure or
-  structural drift is known, pass 2 had not opened or inspected pass-1
-  judgments, and the deviation concerns assignment timing rather than row
-  instructions or evidence. Pass 2 is now assigned to
-  `gpt-5.3-codex-pass2-2026-08-27`, the separate adjudicator is
-  `fresh-dark-adjudicator-2026-08-27`, and pass 2 is authorized to open after
-  its attestation. The adjudicator may not inspect Dark rows, either pass, or
-  comparison output until pass 2 is sealed. No empirical Dark finding was
-  populated by this reconciliation.
-- Pass 2 sealed on 2026-08-27T23:45:35-05:00 (`5b555148…`). The adjudicator
-  `fresh-dark-adjudicator-2026-08-27` verified every seal hash before opening
-  a row, generated the §7.3 agreement report (141/163 rows, 89/110 cards;
-  keys 163/163, drift 0), reviewed the 23-row union, and closed The Dark on
-  2026-08-28 (`docs/gates/dark-entry-record.md` §6). Final annotation
-  `docs/audits/drk/units-annotated.tsv` (`aed8ab63…`), metrics
-  `docs/audits/drk/metrics.json` (`8c02d616…`). Adjudicated outcomes: the 18
-  context-only disagreements on plain instant/sorcery text → `none` (C6
-  "required", not "consulted"); Runesword #0/#1 → boundary defects (the
-  sentence-initial `When` child consumed two trailing parent sentences; the
-  correct non-contiguous-parent shape is already emitted for `atq` Rocket
-  Launcher, so it is not a schema gap); Angry Mob #1 → `ambiguous` per frozen
-  guide example 19; Leviathan #1 → `accept` under CR 113.2c; Venom #1
-  consensus D15 defect. H1–H5 and H9 pass, H6/H7/H8-static/H11 have zero
-  denominators, **H10 is falsified** (0.8650 < 0.95) by the context
-  convention rather than structural disagreement. Open for the next guide
+- The Dark pass 2 sealed (141/163 rows, 89/110 cards agreement, drift 0);
+  adjudicator closed the audit. H1-H5 and H9 pass; **H10 falsified**
+  (0.8650 < 0.95, a context convention rather than structural disagreement);
+  H6/H7/H8-static/H11 have zero denominators. Open item for the next guide
   version: state C6's answer for plain spell text and a boundary value for
-  over-inclusive child spans. No source, export, protocol, guide, or sealed
-  pass file changed.
+  over-inclusive child spans. See `drk-structural-audit`.
+- Compressed this log and added `docs/findings/index.json` as a
+  machine-readable catalog of findings/gates/protocol documents, to stop the
+  log re-narrating detail that already lives in those files.

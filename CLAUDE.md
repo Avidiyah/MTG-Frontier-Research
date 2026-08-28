@@ -8,9 +8,9 @@ An empirical research workbench for the problem of translating Magic: The Gather
 
 **Read `docs/current-state.md` first** — it is the primary handoff document: current verified state, research method, evidence hierarchy, non-goals, and open questions. Update it (including `Last verified`) only when repository-wide state changes. `docs/RESEARCH_NOTES.md` holds the literature review; `docs/README.md` documents the pipeline and tools in detail.
 
-**Then Read `docs\findings` for the most recent research findings to review your current progress**
+**Then read `docs/findings/index.json`** — a machine-readable catalog of every file in `docs/findings/`, `docs/gates/`, and `docs/protocol/` (id, path, scope, status, one-line summary, `supersedes`/`superseded_by`). Use it to decide which findings file is current for your scope before opening any of them in full; do not read the whole `docs/findings/` directory blind.
 
-Before ending any task, leave a handoff document: update `docs/current-state.md` for repository-wide truth, or add a concise dated note under `docs/findings/` for scoped work. Capture what changed, what was verified, and the next open question.
+Before ending any task, leave a handoff document: update `docs/current-state.md` for repository-wide truth (its own log stays one line per milestone — see its maintenance contract), or add a concise dated note under `docs/findings/` for scoped work and add/update its entry in `docs/findings/index.json`. Capture what changed, what was verified, and the next open question.
 
 ## Commands
 

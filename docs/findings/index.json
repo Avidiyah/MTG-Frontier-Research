@@ -1,0 +1,205 @@
+{
+  "schema_version": 1,
+  "last_updated": "2026-08-28",
+  "purpose": "Machine-readable index of docs/findings, docs/gates, and docs/protocol. Read this before reading any findings file in full: it says what exists, what it covers, whether it is still active, and what superseded it. docs/current-state.md keeps only a one-line-per-milestone log and points here for detail.",
+  "entries": [
+    {
+      "id": "lea-segmentation-audit",
+      "path": "docs/findings/lea-segmentation-audit.md",
+      "type": "finding",
+      "scope": "lea",
+      "date": "2026-08-26",
+      "status": "closed",
+      "summary": "Alpha segmentation audit and first normalization ablation; motivated the seven Alpha segmenter changes and the set-by-set walk method.",
+      "supersedes": [],
+      "superseded_by": []
+    },
+    {
+      "id": "arn-structural-audit",
+      "path": "docs/findings/arn-structural-audit.md",
+      "type": "finding",
+      "scope": "arn+leb",
+      "date": "2026-08-26",
+      "status": "closed",
+      "summary": "Arabian Nights structural audit with a Beta appendix under protocol v1.0; single annotator, two Alpha rows adjudicated; motivated P-ARN-1..4.",
+      "supersedes": [],
+      "superseded_by": []
+    },
+    {
+      "id": "atq-structural-audit",
+      "path": "docs/findings/atq-structural-audit.md",
+      "type": "finding",
+      "scope": "atq",
+      "date": "2026-08-26",
+      "status": "closed",
+      "summary": "Antiquities structural audit plus post-P-ARN corpus checks; two-pass adjudicated agreement on all 125 units; motivated P-ATQ-1..4.",
+      "supersedes": [],
+      "superseded_by": []
+    },
+    {
+      "id": "p-atq-research-acceptance-assessment",
+      "path": "docs/findings/p-atq-research-acceptance-assessment.md",
+      "type": "research",
+      "scope": "atq",
+      "date": "2026-08-26",
+      "status": "closed",
+      "summary": "Research-lead acceptance decision for P-ATQ-1 through P-ATQ-4 at commit 8e83221; P-ATQ-1/2/4 accepted, P-ATQ-3 accepted within bounded scope.",
+      "supersedes": [],
+      "superseded_by": []
+    },
+    {
+      "id": "d19-attachment-research-design",
+      "path": "docs/findings/d19-attachment-research-design.md",
+      "type": "research",
+      "scope": null,
+      "date": "2026-08-26",
+      "status": "design_only",
+      "summary": "D19 unscoped-trigger attachment research design; no corpus or card search performed yet. Related to D14 and P-ATQ-1.",
+      "supersedes": [],
+      "superseded_by": []
+    },
+    {
+      "id": "leg-structural-audit-preregistration",
+      "path": "docs/findings/leg-structural-audit-preregistration.md",
+      "type": "finding",
+      "scope": "leg",
+      "date": "2026-08-26",
+      "status": "closed",
+      "summary": "Legends structural-audit preregistration; superseded once the audit itself closed.",
+      "supersedes": [],
+      "superseded_by": ["leg-structural-audit"]
+    },
+    {
+      "id": "leg-structural-audit",
+      "path": "docs/findings/leg-structural-audit.md",
+      "type": "finding",
+      "scope": "leg",
+      "date": "2026-08-27",
+      "status": "closed",
+      "summary": "Legends structural audit, adjudicated and closed 2026-08-27: 409/426 exact-row agreement, 256/273 exact-card agreement, drift 0; motivated P-LEG-1..3 (non-blocking).",
+      "supersedes": ["leg-structural-audit-preregistration"],
+      "superseded_by": []
+    },
+    {
+      "id": "drk-structural-audit-preregistration",
+      "path": "docs/findings/drk-structural-audit-preregistration.md",
+      "type": "finding",
+      "scope": "drk",
+      "date": "2026-08-27",
+      "status": "closed",
+      "summary": "The Dark structural-audit preregistration (hypotheses H1-H11); frozen inputs at commit 70fa956. Superseded once the audit itself closed.",
+      "supersedes": [],
+      "superseded_by": ["drk-structural-audit"]
+    },
+    {
+      "id": "drk-structural-audit",
+      "path": "docs/findings/drk-structural-audit.md",
+      "type": "finding",
+      "scope": "drk",
+      "date": "2026-08-28",
+      "status": "closed",
+      "summary": "The Dark structural audit, adjudicated and closed 2026-08-28: 141/163 rows and 89/110 cards exact agreement, drift 0. H1-H5 and H9 pass; H10 falsified (0.8650 < 0.95, context convention not structural disagreement); H6/H7/H8-static/H11 have zero denominators.",
+      "supersedes": ["drk-structural-audit-preregistration"],
+      "superseded_by": []
+    },
+    {
+      "id": "external-stack-research-2026-08-26",
+      "path": "docs/findings/external-stack-research-2026-08-26.md",
+      "type": "research",
+      "scope": null,
+      "date": "2026-08-26",
+      "status": "closed",
+      "summary": "External technical and literature review; no implementation or new corpus measurement.",
+      "supersedes": [],
+      "superseded_by": []
+    },
+    {
+      "id": "gate-0-evidence",
+      "path": "docs/gates/gate-0-evidence.md",
+      "type": "gate",
+      "scope": null,
+      "date": "2026-08-26",
+      "status": "closed",
+      "summary": "Gate 0 evidence package: Phase 0 to Phase 1 baseline-stabilization decision. Reviewed and passed with two recorded caveats.",
+      "supersedes": [],
+      "superseded_by": []
+    },
+    {
+      "id": "gate-1-readiness-matrix",
+      "path": "docs/gates/gate-1-readiness-matrix.md",
+      "type": "gate",
+      "scope": null,
+      "date": "2026-08-26",
+      "status": "closed",
+      "summary": "Gate 1 (Phase 1, structural discovery) readiness assessment at commit 2355b6c, after P-ATQ technical acceptance merged at bcf9eaa.",
+      "supersedes": [],
+      "superseded_by": []
+    },
+    {
+      "id": "legends-entry-record",
+      "path": "docs/gates/legends-entry-record.md",
+      "type": "gate",
+      "scope": "leg",
+      "date": "2026-08-26",
+      "status": "closed",
+      "summary": "Legends entry checklist completion record; superseded by the audit closing.",
+      "supersedes": [],
+      "superseded_by": ["leg-structural-audit"]
+    },
+    {
+      "id": "legends-opening-work-plan",
+      "path": "docs/gates/legends-opening-work-plan.md",
+      "type": "gate",
+      "scope": "leg",
+      "date": "2026-08-26",
+      "status": "closed",
+      "summary": "Minimum work plan to open the Legends structural audit under the existing preregistration.",
+      "supersedes": [],
+      "superseded_by": ["leg-structural-audit"]
+    },
+    {
+      "id": "pre-legends-technical-entry-evidence",
+      "path": "docs/gates/pre-legends-technical-entry-evidence.md",
+      "type": "gate",
+      "scope": "leg",
+      "date": "2026-08-26",
+      "status": "closed",
+      "summary": "Pre-Legends technical entry evidence: protocol T7 export gate (deterministic export, stable-key integrity, provenance) satisfied.",
+      "supersedes": [],
+      "superseded_by": []
+    },
+    {
+      "id": "dark-entry-record",
+      "path": "docs/gates/dark-entry-record.md",
+      "type": "gate",
+      "scope": "drk",
+      "date": "2026-08-27",
+      "status": "closed",
+      "summary": "The Dark entry checklist completion record, including the pass-1/pass-2 assignment-timing reconciliation; adjudicated and closed 2026-08-28.",
+      "supersedes": [],
+      "superseded_by": []
+    },
+    {
+      "id": "structural-investigation-protocol",
+      "path": "docs/protocol/structural-investigation-protocol.md",
+      "type": "protocol",
+      "scope": null,
+      "date": "2026-08-26",
+      "status": "frozen",
+      "summary": "Structural-investigation protocol v1.0, frozen 2026-08-26. Alpha is the reference execution; this document wins over Alpha documents on disagreement for future sets.",
+      "supersedes": [],
+      "superseded_by": []
+    },
+    {
+      "id": "structural-annotation-guide-v1.0",
+      "path": "docs/protocol/structural-annotation-guide-v1.0.md",
+      "type": "protocol",
+      "scope": null,
+      "date": "2026-08-26",
+      "status": "frozen",
+      "summary": "Structural annotation guide v1.0, frozen for the Legends annotation passes and carried forward to The Dark.",
+      "supersedes": [],
+      "superseded_by": []
+    }
+  ]
+}
