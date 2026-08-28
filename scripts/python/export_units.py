@@ -27,7 +27,7 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fi
 DEFAULT_MTG = os.path.join(REPO_ROOT, "target", "release", "mtg-discover.exe")
 COLUMNS = [
     "set", "oracle_id", "name", "type_line", "index", "parent_index", "depth",
-    "face", "line", "kind", "role", "source", "rule", "text", "normalized",
+    "face", "line", "kind", "role", "source", "rule", "prefix", "text", "normalized",
 ]
 
 
@@ -114,6 +114,7 @@ def tsv_rows(payload, require_heldout_exclusion=False):
             "role": record["role"],
             "source": record["source"],
             "rule": record.get("rule") or "",
+            "prefix": record.get("prefix") or "",
             "text": record["unit_text"],
             "normalized": record["normalized"],
         }

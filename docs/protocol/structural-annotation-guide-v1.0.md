@@ -1,14 +1,23 @@
-# Structural annotation guide — candidate v1.0 (not frozen)
+# Structural annotation guide — v1.0 (frozen for Legends)
 
-- Status: **candidate v1.0 — draft for review and calibration; not frozen,
-  not hashed, not bound to any preregistration**
+- Status: **frozen v1.0 for the Legends (`leg`) annotation passes.** The
+  file's SHA-256 is recorded outside this file — in preregistration §3
+  (`Annotation-guide version/hash`) and in each annotator attestation
+  (`docs/gates/legends-entry-record.md` §5.1). Once that hash is taken this
+  file is not edited; any later change is a new guide version, and a change
+  after one pass has seen affected rows is a preregistration §11.2 pause
+  condition.
 - Drafted: 2026-08-26, from repository state at `b649eba` (documentation
   only; no source, TSV, manifest, gate, finding, or protocol file was changed)
-- Governs (once frozen): the two independent annotation passes and the
+- Frozen: 2026-08-27, by ratifying one decision for each of U1–U9 (§17)
+  from `docs/gates/legends-opening-work-plan.md` §5, together with the
+  protocol §4.1 export-column change that adds `prefix` (work item A). No
+  Legends row was used to select any convention.
+- Governs: the two independent annotation passes and the
   adjudication of the Legends (`leg`) development export, under
   `docs/protocol/structural-investigation-protocol.md` v1.0 and
   `docs/findings/leg-structural-audit-preregistration.md`
-- Non-observation statement: this draft was prepared from the protocol, the
+- Non-observation statement: this guide was prepared from the protocol, the
   preregistration, the gate records, the committed `lea`/`leb`/`arn`/`atq`
   audit files, the live kind/role/source vocabulary in `src/segment.rs`, the
   export/metrics script contracts, and `Magic-Comprehensive_Rules.md`. No
@@ -46,9 +55,10 @@ unit is a `triggered_ability` says nothing about what it does.
 
 **Labelling of conventions.** Paragraphs marked **[Convention — new in this
 guide]** make explicit a rule that the protocol leaves open; each is listed
-again in §16 for calibration. Paragraphs marked **[Retrieved]** restate a
-protocol, preregistration, CR, or committed-audit fact. Items the guide
-deliberately cannot settle are in §17.
+again in §16 for reference. Paragraphs marked **[Retrieved]** restate a
+protocol, preregistration, CR, or committed-audit fact. The questions that
+were open while the guide was a candidate, the alternatives considered, and
+the decision frozen for Legends are retained in §17; none remains open.
 
 ## 2. Annotation invariants
 
@@ -99,10 +109,14 @@ Apply in this order to every row. Do not skip a step because an earlier one
 
 ## 4. Field-by-field codebook
 
-**[Retrieved]** The annotated TSV = the 15 export columns
+**[Retrieved]** The annotated TSV = the 16 export columns
 (`set, oracle_id, name, type_line, index, parent_index, depth, face, line,
-kind, role, source, rule, text, normalized`) + the 13 annotation columns
-below, one row per unit, stable key `(oracle_id, face, index)`. The eight
+kind, role, source, rule, prefix, text, normalized`, protocol §4.1) + the 13
+annotation columns below, one row per unit, stable key
+`(oracle_id, face, index)`. `prefix` is structural metadata the segmenter
+already emitted (the `<marker> —` label it stripped before classifying
+`kind`; empty when none was found); it is read, never judged directly, and
+is not an H8 field — see §6.12 step 6 (C8). The eight
 **judgement fields** compared for preregistered agreement (H8) are
 `boundary, missed, kind_expected, kind_ok, role_ok, source_ok, context,
 disposition`; `cr_ref`, `structure_tags`, `note` are reported separately;
@@ -239,6 +253,7 @@ statement with a prefix so notes are scannable and countable
 | `GAP:` | the smallest missing structural distinction (required for `unsupported`) |
 | `D19:<class>` / `D14:<class>` | attachment evidence class from §12 |
 | `SPAN:` | representation limits (e.g. non-contiguous parent) |
+| `PREFIX:` | observation about the export's `prefix` value (`PREFIX: prose` when the stripped marker is not a structural label, §6.12 step 6) |
 | `PROPOSED_TAG:<slug> — <definition>` | tag proposal (§11.3) |
 | `GUIDE-CONFLICT:` | §1 conflict report |
 | `UNSURE:` | what would resolve an `unsure` field |
@@ -374,7 +389,9 @@ exist); cite the supplying rule (`305.6`). Precedent: `lea` Badlands #0.
 A parent that becomes **non-contiguous** because the child sat between its
 effect and its activation instruction is `ok` (the span minus the child is
 one ability); write `SPAN: non-contiguous parent (T2/T8)` in `note`
-(precedent: `atq` Rocket Launcher #0). See §17 U3.
+(precedent: `atq` Rocket Launcher #0). Frozen decision: §17 U3 — this shape
+is `ok`; `unsupported` (`gap:span:…`) applies only when the export actually
+loses text or the correct parent link (§10.3).
 
 ## 6. Kind codebook
 
@@ -423,8 +440,20 @@ numbered definition* and no accepted kind is `unsupported` (§10.3).
 3. `As an additional cost to cast this spell` → `additional_cost`.
 4. `Cast this spell only` → `cast_restriction`.
 5. Saga chapter symbol on a Saga type line → `triggered_ability`.
-6. Strip a structural prefix (`<label> —`, ≤ 45 chars, no `.`/`:`) mentally
-   and classify the body (P-ATQ-3; 207.2c–d).
+6. Read the row's `prefix` column (**[Convention — new in this guide]**
+   C8). A non-empty value is the structural prefix the segmenter detected
+   and stripped (P-ATQ-3; ≤ 45 chars, no `.`/`:`, em-dash delimiter; CR
+   207.2c–d, 714.2) before classifying the body; classify the body that
+   follows it. An empty value means the segmenter stripped nothing, so the
+   emitted `kind` was classified on the whole span — still judge
+   `kind_expected` on the reference unit as the CR defines it, so a label
+   the segmenter did not strip that hides a trigger yields `kind_ok = no`
+   (H5 falsifier, reported through the ordinary fields). Do not widen or
+   narrow what counts as a prefix: the column *is* the frozen extraction.
+   When a non-empty `prefix` is not a structural label (ordinary prose
+   before a mid-sentence em dash), write `PREFIX: prose` in `note`; the
+   judged fields are still decided by the span and the body's kind exactly
+   as for any other row.
 7. Bare keyword / keyword list item (702) → `keyword_ability`.
 8. `[Cost]:` at the start → `activated_ability`.
 9. `When/Whenever/At` at the start, or an inverted delayed form → `triggered_ability`.
@@ -452,7 +481,7 @@ ability child regardless of whether the parent gains or loses it (the live
 enum documents "grants, gains, or refers to"). Record the relation in `note`
 (`ROLE: lost`, `ROLE: referenced`). This differs from the Alpha row Animate
 Dead #2, which used `role_ok = unsure` / `adjudicate` for a lost ability;
-see §17 U5.
+frozen decision §17 U5: C5 applies, the Alpha row is historical.
 
 **Topology (preserved from preregistration §10, H2)**:
 
@@ -756,8 +785,10 @@ shown; the H8 judgement fields are in the order
     Coffin #1. `under / 1 / activated_ability / yes / yes / yes /
     card_specific / defect`; `602.1;603.7a;603.7e`; tags
     `delayed_trigger_when;multi_sentence`; note `D19:P3 RULING:<date>
-    'its delayed triggered ability'`. (Committed row records `cr`; under C6
-    a ruling *about this card* is `card_specific` — see §17 U8.)
+    'its delayed triggered ability'`. (The committed ATQ row records `cr`;
+    that value is historical. Under the frozen C6/U8 decision a ruling
+    *about the annotated card* that is required for the judgement is
+    `card_specific`, so the Legends answer for this shape is as shown.)
 11. **Under-segmentation, P-ATQ-1 in-sentence slot** — `atq` Battering Ram
     #1 (`Whenever this creature becomes blocked by a Wall, destroy that Wall
     at end of combat.`). `under / 1 / triggered_ability / yes / yes / yes /
@@ -800,9 +831,12 @@ shown; the H8 judgement fields are in the order
     attacks, it gets +1/+1 until end of turn.` (a fictional ability word,
     CR 207.2c; the segmenter records `prefix` and classifies the body). `ok / 0 /
     triggered_ability / yes / yes / yes / cr / accept`; `207.2c;113.3c`; note
-    `KIND: ability-word prefix stripped before classification`. If the
-    emitted kind were `spell_or_static_text`, the row would be `defect`,
-    `kind_ok no`. (Note that the TSV export has no `prefix` column — §17 U2.)
+    `KIND: ability-word prefix stripped before classification`. The export's
+    `prefix` column reads `Moonrise`. If the emitted kind were
+    `spell_or_static_text`, the row would be `defect`, `kind_ok no`. If the
+    `prefix` column were empty on this text, the segmenter stripped nothing;
+    the reference unit is still a triggered ability, so a residual `kind`
+    is likewise `defect`, `kind_ok no` (§6.12 step 6, §17 U2).
 18. **`unsupported` [synthetic]** — an activated ability whose effect reads
     `Exile target creature. At the beginning of the next end step, return
     it to the battlefield. Then draw a card.` The created delayed trigger
@@ -913,14 +947,15 @@ Per file:
 - [ ] Row count equals the frozen export; every stable key
       `(oracle_id, face, index)` present exactly once; no added or dropped
       rows.
-- [ ] The 15 structural columns are byte-identical to the export.
+- [ ] The 16 structural columns (including `prefix`) are byte-identical to
+      the export.
 - [ ] `annotator` is one identical value on every row and matches the
       attestation.
 - [ ] `python scripts/python/audit_metrics.py <pass.tsv> --export
       <frozen-export.tsv>` runs without error and reports drift 0.
 - [ ] Content hash (sha256) computed and timestamp recorded; file sealed.
 
-## 16. Conventions newly made explicit by this guide (for calibration)
+## 16. Conventions newly made explicit by this guide (reference)
 
 | Id | Convention | Section |
 |---|---|---|
@@ -931,24 +966,44 @@ Per file:
 | C5 | `granted` covers granted, gained, lost, and referenced quoted abilities | §7 |
 | C6 | Context = strongest context *required*, precedence `card_specific > game_state > type_line > cr > none`; fixed consequences for keyword / rules-supplied / CDA / delayed-trigger rows | §8 |
 | C7 | `cr_ref` never blank; default citations for surface-obvious rows; rulings go in `note` | §9 |
+| C8 | The frozen `prefix` export column is the prefix extraction; classify the body after a non-empty prefix; `PREFIX: prose` note when the value is not a structural label | §6.12 |
 | C9 | Residual-accepted classes vs `gap:kind/role/span:<slug>` | §6.11, §10.3 |
 | C10 | Mandatory vs optional tags; `multi_sentence` terminator definition | §11.2 |
 | C11 | `norm_issue` recognized classes, mechanical tests, `;` joining | §11.4 |
+| C12 | *reserved* — identifier skipped in the candidate draft; retained unused so that C9–C13 references in this guide and in `docs/gates/legends-opening-work-plan.md` stay stable | — |
 | C13 | Note prefixes | §4.13 |
 
-## 17. Unresolved issues that require a protocol or lead decision
+C1–C13 are frozen with this guide. A pass applies them as written; a
+convention found inadequate mid-pass is recorded (`GUIDE-CONFLICT:` /
+`GUIDE-GAP:` in `note`, §14.6), never repaired in place.
 
-| Id | Issue | Guide's interim position |
-|---|---|---|
-| U1 | Protocol S7 ("must cite") versus committed practice (blank `cr_ref` on most `accept` rows) | C7 never-blank with defaults; if the lead prefers the historical practice, replace §9's first sentence — no other section depends on it |
-| U2 | The frozen export columns (protocol 4.1, `export_units.py`) carry no `prefix` column, yet H5's denominator is "units with a non-null `prefix`" | Annotators cannot see `prefix` in the TSV; either the freeze export adds the column (a T2 contract change) or H5 is computed from the JSON export at adjudication — not a guide decision |
-| U3 | Non-contiguous parent spans (P-ARN-1 shape): accepted as `ok` + `SPAN:` note in `atq`, but preregistration §11.2 lists "schema cannot preserve the observed span" as a pause condition | Follow the ATQ precedent (`ok`); the lead should confirm before the freeze |
-| U4 | Whether payment restrictions / cost modifications / prohibitions are residual-accepted (C9) or `unsupported` | Residual-accepted, on the evidence of the frozen tag names and the P-ATQ-2 acceptance |
-| U5 | `granted` for lost/referenced quoted abilities (C5) vs the Alpha `adjudicate` precedent | C5, on the live enum's own definition |
-| U6 | `multi_sentence`: protocol says "≥ 2 sentence terminators" without defining terminators | `.`, `!`, `?` in `text` as exported |
-| U7 | `norm_issue` schema row lists single forms; practice uses `;` | `;` permitted |
-| U8 | Whether a *generic* ruling on a wording class (e.g. the Gorgon Recluse ruling reused for other cards) is `cr` or `card_specific` | `card_specific` only when the ruling is about the card being annotated; a ruling on another card is corroboration recorded in `note` and the context is `cr` — this changes the value on rows like `atq` Tawnos's Coffin #1 (committed `cr`) and needs confirmation |
-| U9 | Guide length versus the repository's 500-line file guideline | Left as one document so a pass uses a single frozen hash; can be split at freeze if required |
+## 17. Retained decision record — Legends v1.0 (decided 2026-08-27)
 
-No item above is resolved here; each is a calibration question for the
-research lead before the guide is frozen and hashed into preregistration §3.
+Format follows protocol §7.2. Decider: research lead, by ratifying the
+dispositions of `docs/gates/legends-opening-work-plan.md` §5 (work item B).
+Evidence: control documents, source and test contracts, and the committed
+`lea`/`leb`/`arn`/`atq` audits only — no Legends row. Each row below keeps
+the question as it stood in the candidate draft, the alternatives that were
+considered, the decision frozen for Legends, and its basis, so the history
+is retained rather than deleted. **What would reverse any decision:** a new
+guide version, issued only between passes or before the next set — never an
+edit during a pass (§14.6; preregistration §11.2).
+
+| Id | Question (candidate draft) | Alternatives considered | Legends v1.0 decision | Basis |
+|---|---|---|---|---|
+| U1 | Protocol S7 ("must cite") versus committed practice (blank `cr_ref` on most `accept` rows) | (a) C7 never-blank with default citations; (b) historical practice, blank on surface-obvious `accept` rows | **(a) — keep C7 (§9).** | S7 says a boundary or kind disposition must cite a CR rule. Blank citations in earlier audits are historical practice, not the frozen requirement. |
+| U2 | The frozen export carried no `prefix` column, yet H5's denominator is "units with a non-null `prefix`" | (a) add `prefix` to the T2 contract and the frozen TSV; (b) compute H5 from a separate JSON query at adjudication | **(a) — resolved by work item A.** Protocol §4.1 now lists `prefix` (between `rule` and `text`) as pre-existing segmenter metadata; annotators read it per §6.12 step 6 (C8). H5 and the prefix classifier are unchanged. | H5 explicitly requires the non-null-prefix denominator; a second, unbound row source would allow drift. |
+| U3 | Non-contiguous parent spans (P-ARN-1 shape): `ok` + `SPAN:` note in `atq`, versus preregistration §11.2 "schema cannot preserve the observed span" | (a) ATQ precedent, `ok` with `SPAN:` note; (b) `unsupported` / pause | **(a) — keep the ATQ representation** while all text and the correct parent link remain represented; pause only if the schema actually loses span or attachment information (§5.8, §10.3). | The ATQ adjudicated precedent accepts the representation; §11.2 pauses only when the schema *cannot preserve* the span or attachment. |
+| U4 | Whether payment restrictions / cost modifications / prohibitions are residual-accepted (C9) or `unsupported` | (a) residual-accepted with mandatory structure tags; (b) `unsupported` with `gap:kind:…` | **(a) — keep §6.11's bounded list and the mandatory tags of §11.2.** | Gate 1's matrix records the accepted P-ATQ-2 residual treatment while requiring the limitation to stay visible (tags) rather than be silently absorbed. |
+| U5 | `granted` for lost/referenced quoted abilities (C5) versus the Alpha `adjudicate` precedent | (a) C5; (b) `role_ok = unsure` / `adjudicate` as in `lea` Animate Dead #2 | **(a) — keep C5 (§7).** | The live enum explicitly covers granted, gained, lost, and referenced quoted abilities; that is the vocabulary the export asks annotators to judge. |
+| U6 | `multi_sentence`: protocol said "≥ 2 sentence terminators" without defining terminators | (a) `.`, `!`, `?` in `text` as exported; (b) `.` only; (c) leave undefined | **(a) — terminators are `.`, `!`, and `?` in exported `text`** (§11.2; protocol §4.4 now states the same). The tag stays descriptive: it never decides `boundary` or any other judged field. | Protocol §4.4 defines the tag mechanically; naming the characters completes that definition without changing boundaries. |
+| U7 | `norm_issue` schema row listed single forms; practice uses `;` | (a) permit `;`-separated values and say so in the schema; (b) one value per row | **(a) — `;` permitted** (§11.4; protocol §4.2 row now says so). | Committed annotations already carry multiple issues; the delimiter preserves them without adding an issue class. |
+| U8 | Whether a *generic* ruling on a wording class reused for other cards is `cr` or `card_specific` | (a) `card_specific` only when the ruling is about the annotated card and is required for the judgement; a ruling about another card is corroboration in `note` with `context` per the CR requirement (normally `cr`); (b) any consulted ruling → `card_specific` | **(a)** (§8 C6). Committed rows such as `atq` Tawnos's Coffin #1 (`cr`) are historical values, not overturned. | Protocol S5 defines `card_specific` as a ruling specific to the card; S7 says rulings clarify but do not override the CR. |
+| U9 | Guide length versus the repository's 500-line file guideline | (a) one authoritative guide and one hash; (b) split before the freeze | **(a) — one guide, one hash, for Legends.** | The entry record and attestations bind one guide version/hash; splitting adds another identity without changing any judgement. |
+
+Consequences of this record: no instruction in this guide leaves an H8
+judgement field (`boundary`, `missed`, `kind_expected`, `kind_ok`,
+`role_ok`, `source_ok`, `context`, `disposition`) to a later lead or
+protocol decision; every convention either is [Retrieved] or has a frozen
+C-id in §16. Affected documents: protocol §4.1, §4.2, §4.4, §4.5 (same
+date); preregistration §3 and entry record §5.1 receive this file's hash.

@@ -77,6 +77,32 @@ fn audit_export_is_byte_deterministic_for_reordered_input_cards() {
 }
 
 #[test]
+fn audit_export_carries_segment_prefix_and_serializes_absence_as_null() {
+    let cards = vec![
+        audit_card(
+            "Prefixed",
+            "tst",
+            "2000-01-01",
+            Some("Heroic \u{2014} Whenever you cast a spell, draw a card."),
+        ),
+        audit_card("Plain", "tst", "2000-01-01", Some("Flying")),
+    ];
+    let payload = audit_export_payload("tst", &cards, false).expect("audit export");
+    let records = payload["records"].as_array().expect("records array");
+    let prefixed = records
+        .iter()
+        .find(|record| record["card_name"] == "Prefixed")
+        .expect("prefixed record");
+    let plain = records
+        .iter()
+        .find(|record| record["card_name"] == "Plain")
+        .expect("plain record");
+
+    assert_eq!(prefixed["prefix"], "Heroic");
+    assert!(plain["prefix"].is_null());
+}
+
+#[test]
 fn audit_export_rejects_duplicate_stable_keys() {
     let mut records =
         audit_records(&[audit_card("Duplicate", "tst", "2000-01-01", Some("Flying"))]);

@@ -281,10 +281,26 @@ docs/current-state.md                      refreshed only if the corpus baseline
 ### 4.1 Export columns (contract for T2)
 
 `set, oracle_id, name, type_line, index, parent_index, depth, face, line,
-kind, role, source, rule, text, normalized` — one row per unit, sorted by
-name then index; `parent_index` empty for top-level units; `text` is the
-printed text with reminder text removed (rules-supplied units keep the
+kind, role, source, rule, prefix, text, normalized` — one row per unit,
+sorted by name then index; `parent_index` empty for top-level units; `text`
+is the printed text with reminder text removed (rules-supplied units keep the
 parenthetical); UTF-8, tab-separated, no embedded newlines.
+
+`prefix` (added 2026-08-27 for the Legends freeze; `docs/gates/legends-opening-work-plan.md`
+work item A) is **pre-existing structural metadata emitted by the segmenter**,
+not a new label and not a semantic claim: it carries the `prefix` field of the
+`segment` output (`src/segment.rs`, `extract_prefix`) — the leading
+`<marker> —` string that the accepted P-ATQ-3 rule detected and stripped
+before `kind` classification (an ability word, CR 207.2c; a Saga chapter
+symbol, CR 714.2; or a named mode/label), bounded as that rule defines it
+(em-dash delimiter, no period or colon, at most 45 characters). The value is
+the marker as it appears in `normalized`. It is `null` in the native JSON
+export and **empty** in the TSV when the segmenter found no prefix. Exposing
+it changes no boundary, kind, role, source, or ordering; the stable unit key
+remains `(oracle_id, face, index)`. It exists so that the Legends
+preregistration's H5 denominator (units with a non-null `prefix`) is
+computable from the same frozen rows the annotators judge. Annotators judge
+it only through the existing 4.2 fields; it adds no annotation column.
 
 ### 4.2 Annotation columns
 
@@ -299,7 +315,7 @@ parenthetical); UTF-8, tab-separated, no embedded newlines.
 | `context` | `none`, `cr`, `type_line`, `game_state`, `card_specific` | context needed for the disposition |
 | `cr_ref` | `;`-separated rule ids | authority for the disposition |
 | `structure_tags` | `;`-separated tags (4.4) | structures present |
-| `norm_issue` | `collision:<tag>`, `fragmentation:<tag>` | suspected normalization issue (4.5) |
+| `norm_issue` | blank, or `;`-separated `collision:<tag>` / `fragmentation:<tag>` values | suspected normalization issue(s) (4.5); several values on one row are permitted |
 | `disposition` | `accept`, `defect`, `unsupported`, `ambiguous`, `adjudicate` | |
 | `annotator` | free id | one value per pass |
 | `note` | text | reasoning; required for every non-`accept` row |
@@ -326,7 +342,8 @@ parenthetical); UTF-8, tab-separated, no embedded newlines.
 `state_trigger`, `enters_replacement`, `instead_in_spell`,
 `instead_in_activated`, `prevention_static`, `cda`, `conditional_cda`,
 `cast_restriction`, `cost_modification`, `payment_restriction`, `ante`,
-`multi_sentence` (automatic: ≥ 2 sentence terminators), `name_predicate`,
+`multi_sentence` (automatic and descriptive: ≥ 2 sentence terminators,
+where a terminator is `.`, `!`, or `?` in `text` as exported), `name_predicate`,
 `self_reference_name`, `self_reference_this_ability`, `text_change`,
 `physical_action`, `player_control`, `one_off_candidate` (structure believed
 unique in the corpus; verified only by a corpus count).
@@ -347,7 +364,7 @@ unique in the corpus; verified only by a corpus count).
 | CR / type-line / game-state context | rows by `context` | all units | |
 | Card-specific exceptions | rows with `context = card_specific` | all units | must be 0 in accepted heuristics |
 | Unit / template novelty | 4.3 | 4.3 | |
-| Multi-sentence units | tag `multi_sentence` | printed units | automatic |
+| Multi-sentence units | tag `multi_sentence` | printed units | automatic; terminators `.`, `!`, `?` (4.4); descriptive only, never a boundary judgement |
 
 Rates are reported as `numerator / denominator (value)`. No rate is reported
 for a field that was not annotated. Single-pass results are labelled

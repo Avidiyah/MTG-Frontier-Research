@@ -25,6 +25,7 @@ def record(oracle_id="a-safe", index=0, **changes):
         "depth": 0,
         "source_line_text": "Flying",
         "unit_text": "Flying",
+        "prefix": None,
         "normalized": "Flying",
         "kind": "keyword_ability",
         "role": "ability",
@@ -62,6 +63,19 @@ class ExportValidationTests(unittest.TestCase):
             [("a-safe", 0, 0), ("a-safe", 0, 1)],
         )
         self.assertEqual(rows[1]["parent_index"], 0)
+
+    def test_tsv_projection_preserves_prefix_and_uses_empty_string_when_absent(self):
+        rows = export_units.tsv_rows(
+            payload(
+                [
+                    record(prefix="Heroic", unit_text="Heroic \u2014 Whenever something happens."),
+                    record(index=1),
+                ]
+            ),
+            True,
+        )
+        self.assertEqual(rows[0]["prefix"], "Heroic")
+        self.assertEqual(rows[1]["prefix"], "")
 
     def test_duplicate_stable_key_is_rejected(self):
         duplicate = record()
