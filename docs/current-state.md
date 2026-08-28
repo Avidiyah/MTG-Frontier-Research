@@ -595,3 +595,22 @@ findings/gate file and the index entry instead.
   and `legends-opening-work-plan` in its `supersedes` list, even though
   both of those gate documents already named it in `superseded_by`. No
   research, code behavior, or findings content changed otherwise.
+- Fallen Empires (`fem`) entry preparation started (measurement freeze at
+  `2823b122`): preregistration (H1-H12), empty findings outline, and entry
+  record created; build/tests/held-out-safe export verified (93 eligible
+  cards, 176 units). While computing the aggregate novelty baseline, a
+  command without a `--exclude-heldout` option (`audit novelty`) displayed
+  row-bearing output that exposed seven held-out identities (Farrel's
+  Mantle, Fungal Bloom, Orgg, Spore Flower, Svyelunite Priest, Thelon's
+  Chant, Vodalian War Machine); Avidiyah authorized logging this as a
+  held-out incident and continuing. Those seven identities are added to the
+  cumulative held-out incident-exclusion registry, and the preparer is
+  disqualified from any `fem` annotator/adjudicator role. An initial three-role
+  roster and conditional authorization were recorded, but the original pass-1
+  identity was then exposed to eligible text and pass-2 judgements when `git
+  diff --cached --check` printed staged TSV rows; that identity stopped without
+  annotating and is disqualified from all `fem` review roles. The audit remains
+  closed pending a replacement pass 1, pass-2 attestation and
+  preserve/restart reconciliation, and program-owner reauthorization. See
+  `fem-structural-audit-preregistration`, `fem-entry-record`, and
+  `fallen-empires-opening-handoff`.

@@ -103,6 +103,50 @@
       "superseded_by": []
     },
     {
+      "id": "fallen-empires-opening-handoff",
+      "path": "docs/gates/fallen-empires-opening-handoff.md",
+      "type": "gate",
+      "scope": "fem",
+      "date": "2026-08-28",
+      "status": "audit_closed_replacement_pass1_and_pass2_reconciliation_pending",
+      "summary": "Fallen Empires handoff after the original pass-1 identity was disqualified by staged-TSV row exposure; audit remains closed pending replacement pass 1, pass-2 attestation/reconciliation, and owner reauthorization.",
+      "supersedes": [],
+      "superseded_by": []
+    },
+    {
+      "id": "fem-structural-audit-preregistration",
+      "path": "docs/findings/fem-structural-audit-preregistration.md",
+      "type": "finding",
+      "scope": "fem",
+      "date": "2026-08-28",
+      "status": "preregistered_audit_not_started",
+      "summary": "Fallen Empires structural-audit preregistration (hypotheses H1-H12); frozen inputs at commit 2823b122. Discloses a held-out exposure incident (audit novelty command lacking --exclude-heldout) found during preparation. Superseded once the audit itself closes.",
+      "supersedes": [],
+      "superseded_by": []
+    },
+    {
+      "id": "fem-structural-audit",
+      "path": "docs/findings/fem-structural-audit.md",
+      "type": "finding",
+      "scope": "fem",
+      "date": "2026-08-28",
+      "status": "empty_outline_audit_not_open",
+      "summary": "Empty, non-empirical Fallen Empires findings outline; no measurement may be added until the preregistration entry checklist passes and opening is authorized.",
+      "supersedes": [],
+      "superseded_by": []
+    },
+    {
+      "id": "fem-entry-record",
+      "path": "docs/gates/fem-entry-record.md",
+      "type": "gate",
+      "scope": "fem",
+      "date": "2026-08-28",
+      "status": "audit_closed_pass1_disqualified_reauthorization_pending",
+      "summary": "Fallen Empires entry record: original pass 1 disqualified after staged-TSV output exposed eligible text and pass-2 judgements; replacement pass 1, pass-2 attestation/reconciliation, and owner reauthorization remain pending. The earlier held-out incident remains bound.",
+      "supersedes": [],
+      "superseded_by": []
+    },
+    {
       "id": "external-stack-research-2026-08-26",
       "path": "docs/findings/external-stack-research-2026-08-26.md",
       "type": "research",

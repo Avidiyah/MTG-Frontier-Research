@@ -1,0 +1,223 @@
+{
+  "schema_version": "mtg-experiment-manifest-v1",
+  "manifest_type": "experiment",
+  "experiment_id": "fem-freeze-2026-08-28",
+  "question": "At the frozen measurement commit, is the retained Fallen Empires development TSV identical to the aggregate-only verified output, deterministic, stable-key valid, parent-integrity valid, and free of protocol 6.3 held-out identities?",
+  "snapshot_manifest": {
+    "path": "docs/manifests/snapshot-scryfall-2026-08-25.json",
+    "bytes": 3673,
+    "sha256": "aa67c0c97771c21cfe79bffb1049a35152f12005cd8fc4af49f5a88c989ed9c3"
+  },
+  "partition": {
+    "policy": "protocol-v1.0-section-6.3-2026-08-26",
+    "protocol_path": "docs/protocol/structural-investigation-protocol.md",
+    "protocol_sha256": "1bc05d357b24006a2eecc692f9bed5b86d1d828f116c2d741fb75662df4913bf",
+    "heldout_identity_count": 2096,
+    "heldout_identity_sha256": "377e12bdf80e0263c361f48ff2be241f600efd854b6eaa4f916d239a83067fc7",
+    "incident_registry": "docs/gates/fem-entry-record.md section 2 (protocol 6.3 pool plus Combust, Malignus, Lava Burst, Wild Slash, and the seven fem-freeze incident identities: Farrel's Mantle, Fungal Bloom, Orgg, Spore Flower, Svyelunite Priest, Thelon's Chant, Vodalian War Machine)",
+    "identities_disclosed": false
+  },
+  "commands": [
+    {
+      "argv": [
+        "python",
+        "scripts/python/verify_export_safety.py",
+        "fem",
+        "--mtg",
+        "./target/release/mtg-discover.exe",
+        "--runs",
+        "2"
+      ],
+      "runs": 1,
+      "exit_status": 0,
+      "output_policy": "aggregate counts and hashes only; no export row printed"
+    },
+    {
+      "argv": [
+        "python",
+        "scripts/python/export_units.py",
+        "fem",
+        "--mtg",
+        "./target/release/mtg-discover.exe",
+        "--exclude-heldout"
+      ],
+      "runs": 1,
+      "exit_status": 0,
+      "output_policy": "byte-preserving redirection to the retained TSV; no export row displayed"
+    },
+    {
+      "argv": [
+        "mtg-discover.exe",
+        "audit",
+        "summary",
+        "fem",
+        "--exclude-heldout"
+      ],
+      "runs": 1,
+      "exit_status": 0,
+      "output_policy": "aggregate histogram/counts only, held-out-safe"
+    },
+    {
+      "argv": [
+        "mtg-discover.exe",
+        "audit",
+        "signals",
+        "fem",
+        "--exclude-heldout"
+      ],
+      "runs": 1,
+      "exit_status": 0,
+      "output_policy": "signal_histogram and signal_definitions consumed; the row-level `records` array was requested and displayed in full by this command but contains only aggregate-eligible development rows (held-out-safe) -- see incident note below for the separate non-held-out-safe novelty command"
+    },
+    {
+      "argv": [
+        "mtg-discover.exe",
+        "audit",
+        "novelty",
+        "fem",
+        "--earlier",
+        "lea",
+        "--earlier",
+        "leb",
+        "--earlier",
+        "arn",
+        "--earlier",
+        "atq",
+        "--earlier",
+        "leg",
+        "--earlier",
+        "drk"
+      ],
+      "runs": 1,
+      "exit_status": 0,
+      "output_policy": "INCIDENT: this command does not support --exclude-heldout and its full output, including novel_template_records (card names and normalized templates), was displayed. It ran over the complete 102-card fem population, not the 93-card held-out-safe partition. Cross-referencing displayed names against the held-out-safe export identified 7 held-out identities exposed: Farrel's Mantle, Fungal Bloom, Orgg, Spore Flower, Svyelunite Priest, Thelon's Chant, Vodalian War Machine. Logged in docs/gates/fem-entry-record.md section 2; these 7 identities are added to the cumulative held-out incident-exclusion registry. This command's output is NOT used as a source for any figure in the preregistration or this manifest; the held-out-safe novelty figures were recomputed by a separate local template-overlap comparison (see the next command)."
+    },
+    {
+      "argv": [
+        "python",
+        "-c",
+        "held-out-safe template-overlap comparison over docs/audits/fem/units-export.tsv and the six earlier held-out-safe exports (aggregate counts only, no row printed)"
+      ],
+      "runs": 1,
+      "exit_status": 0,
+      "output_policy": "aggregate counts only: total_printed_units, units_seen_earlier, novel_units, unit_novelty_percent, distinct_templates, templates_seen_earlier, novel_templates, template_novelty_percent"
+    }
+  ],
+  "repository": {
+    "freeze_commit": "2823b1226c7d10bdb1d47d41a17cfeda709d4ecb",
+    "governance_commit_after_freeze": null,
+    "working_tree_dirty": true,
+    "dirty_state_note": "The freeze commit is clean HEAD. Pending on top of it before this manifest: docs/findings/index.json (fallen-empires-opening-handoff entry, pre-existing from a prior session), docs/gates/fallen-empires-opening-handoff.md (pre-existing, untracked), and this preregistration/outline/entry-record/manifest/audit-artifact set. No source, protocol, or guide file is modified.",
+    "source_files": [
+      {
+        "path": "src/audit.rs",
+        "bytes": 24031,
+        "sha256": "6e8241b8886b53fdb0e890d4f2f13b212f6ee0ad4b69185f3c3b351d273ab0ce"
+      },
+      {
+        "path": "src/segment.rs",
+        "bytes": 39152,
+        "sha256": "157f8fd93cae85787702a831467e9d3ac9641558e970a8c87f7519808642224d"
+      },
+      {
+        "path": "scripts/python/export_units.py",
+        "bytes": 6219,
+        "sha256": "568a5f396488ff8abc89b0e7cbe4a9b349e3cf3ffdc945a1ec895c0a75c58f27"
+      },
+      {
+        "path": "scripts/python/verify_export_safety.py",
+        "bytes": 6364,
+        "sha256": "7b7784237e29932a98a7c4841408bdcec6fb110c0aaf066491bf122c66d29772"
+      },
+      {
+        "path": "scripts/python/audit_metrics.py",
+        "bytes": 19263,
+        "sha256": "f9423bb826b84442ccf638dd4f3e6edd79276552c5abc1219757b460d7ee2848"
+      },
+      {
+        "path": "docs/protocol/structural-investigation-protocol.md",
+        "bytes": 26164,
+        "sha256": "1bc05d357b24006a2eecc692f9bed5b86d1d828f116c2d741fb75662df4913bf"
+      },
+      {
+        "path": "docs/protocol/structural-annotation-guide-v1.0.md",
+        "bytes": 68668,
+        "sha256": "d31dee0a3b06494bd7ba0238be65b330e2366edb1b8bcf4e5e6a6f865de5d84b"
+      }
+    ]
+  },
+  "environment": {
+    "os": "Microsoft Windows NT",
+    "architecture": "x86_64",
+    "rustc": "rustc 1.96.0 (ac68faa20 2026-05-25)",
+    "cargo": "cargo 1.96.0 (30a34c682 2026-05-25)",
+    "python": "Python 3.13.7",
+    "mtg_discover": "0.1.0",
+    "random_seed": null
+  },
+  "started_at_utc": "2026-08-28T00:00:00Z",
+  "ended_at_utc": "2026-08-28T01:00:00Z",
+  "exit_status": 0,
+  "outputs": [
+    {
+      "format": "protocol UTF-8 TSV",
+      "schema_version": "structural-protocol-v1.0-section-4.1",
+      "retained": true,
+      "path": "docs/audits/fem/units-export.tsv",
+      "bytes": 45187,
+      "sha256": "095a25a7a0729bca12d515b2ce0a7395c0484d1fc335d11a913dec8c6c3b0d74",
+      "records": 176
+    },
+    {
+      "format": "identical blank pass-1 annotation TSV",
+      "schema_version": "structural-protocol-v1.0-section-4.1-plus-4.2",
+      "retained": true,
+      "path": "docs/audits/fem/units-annotated-pass1.tsv",
+      "bytes": 47599,
+      "sha256": "691f8b8c4f54fcbcafacc716ece331ff348e32d8ff0c5f40d5bfe79f1fe92c25",
+      "records": 176
+    },
+    {
+      "format": "identical blank pass-2 annotation TSV",
+      "schema_version": "structural-protocol-v1.0-section-4.1-plus-4.2",
+      "retained": true,
+      "path": "docs/audits/fem/units-annotated-pass2.tsv",
+      "bytes": 47599,
+      "sha256": "691f8b8c4f54fcbcafacc716ece331ff348e32d8ff0c5f40d5bfe79f1fe92c25",
+      "records": 176
+    }
+  ],
+  "verification": {
+    "selected_cards_before_exclusion": 102,
+    "selected_cards_with_text_before_exclusion": 101,
+    "heldout_cards_excluded": 9,
+    "fallback_cards_before_exclusion": 0,
+    "cards_after_exclusion": 93,
+    "cards_with_text_after_exclusion": 92,
+    "heldout_export_records": 0,
+    "stable_key_rows": 176,
+    "stable_key_unique": 176,
+    "top_level_units": 170,
+    "child_units": 6,
+    "parent_integrity_violations": 0,
+    "json_tsv_stable_key_sequence_identical": true,
+    "byte_identical_repeated_exports": true,
+    "runs_per_format": 2,
+    "retained_tsv_matches_verified_sha256": true,
+    "blank_pass_copies_identical": true,
+    "multi_sentence_unit_count": 19,
+    "held_out_safe_novelty_vs_six_earlier_sets": {
+      "total_printed_units": 176,
+      "units_seen_earlier": 51,
+      "novel_units": 125,
+      "unit_novelty_percent": 71.02,
+      "distinct_templates": 122,
+      "templates_seen_earlier": 22,
+      "novel_templates": 100,
+      "template_novelty_percent": 81.97
+    }
+  },
+  "reviewer": "Claude Code (Sonnet 5), technical measurement owner -- disqualified from any fem annotator/adjudicator role by the novelty-command incident logged above",
+  "interpretation_document": "docs/gates/fem-entry-record.md",
+  "stderr_artifacts_retained": false
+}

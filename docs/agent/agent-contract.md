@@ -171,6 +171,27 @@ rustup component add rust-analyzer
 cargo install rust-analyzer-mcp
 ```
 
+## Choosing the next work item (for anyone prompting a terminal agent)
+
+Before writing a prompt/handoff for another agent, review current status
+(`docs/current-state.md`, `docs/findings/index.json`) and classify the next
+step as exactly one of:
+
+1. **Continue researching by set** — keep applying the established per-set
+   workflow to gather more evidence.
+2. **Update the segmenter/normalizer** — only once enough cross-set data has
+   accumulated to justify a meaningful, cross-set improvement (not a
+   single-set quirk).
+3. **Improve agent tooling** — CLI, scripts, context map, or agent docs.
+
+If the choice is (2) or (3), first write or update a short roadmap (in the
+relevant findings file or `docs/current-state.md`) describing the sequence of
+steps the improvement will take. Then write a handoff that assigns the agent
+only the **next small step** on that roadmap — not the whole roadmap — and
+explicitly instructs it to leave a handoff describing the following step, so
+any subsequent agent (of any kind) can pick up the work without re-deriving
+the plan.
+
 ## Handoff requirement
 
 Before ending any task, leave a handoff document:
