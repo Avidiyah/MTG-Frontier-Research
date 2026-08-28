@@ -46,6 +46,23 @@ assuming yesterday's frontier is still today's.
 documents the data pipeline and `mtg-discover` CLI in full detail; both are
 reference material, not state.
 
+## Finding context for a specific task
+
+`docs/current-state.md` and `docs/findings/index.json` tell you *what is
+currently true*. They do not tell you *which parts of the repository a given
+task needs*. For that, use `docs/agent/context-map.json`: a versioned,
+machine-readable routing layer keyed by task class (structural segmentation
+change, structural audit, data-ingestion change, rules investigation,
+documentation/handoff maintenance, CLI change, protocol/gate work, literature
+review, future semantic-parser/IR work, and a generic orientation fallback
+for anything else). Each route lists required and optional context, likely
+code ownership, validation commands, and artifacts not to modify casually.
+It never duplicates volatile values (counts, accuracy, current commit) —
+those stay in `docs/current-state.md`, `docs/findings/index.json`, and the
+manifests. Read it directly, or via
+`python scripts/python/agent_context.py route <task_class>`
+(`list-routes` to see task classes, `validate` to check the map itself).
+
 ## Evidence hierarchy
 
 Keep facts, measurements, hypotheses, and design proposals separate. Use this

@@ -575,3 +575,10 @@ findings/gate file and the index entry instead.
   "read the newest file in `docs/findings/`" instruction predating the
   index). Added a minimal root `README.md`. No research, code, or findings
   content changed.
+- Added `docs/agent/context-map.json`, a versioned machine-readable
+  context-routing layer (task class -> required/optional context, likely
+  code ownership, validation commands, do-not-modify-casually list), plus
+  the standard-library-only `scripts/python/agent_context.py` helper and
+  its tests. Solves "which repository context does this task need", which
+  the findings index and this document do not. `docs/agent/agent-contract.md`
+  now points to it. No research, code behavior, or findings content changed.

@@ -1,0 +1,192 @@
+{
+  "schema_version": 1,
+  "purpose": "Machine-readable context-routing layer. Given a task class, tells an agent which documents and code areas are required, optional, likely to own the change, and off-limits, WITHOUT recursively reading the repository. This file routes to context; it does not restate context. docs/current-state.md is authoritative for active state, docs/findings/index.json is authoritative for which findings document is current, and docs/agent/agent-contract.md is authoritative for process/evidence rules. This file must never duplicate volatile values (counts, accuracy, current commit, open hypotheses) from those sources -- see 'entries[].path' for where the current value lives.",
+  "how_to_use": [
+    "1. Classify the task against 'task_routes[].id'. If none fits, use 'unknown_task_fallback'.",
+    "2. Read every document in the route's 'required_context' (resolve each 'ref' against 'entries[].id').",
+    "3. Read 'optional_context' only if the required context does not answer the task.",
+    "4. Check 'validation' before claiming the task is done.",
+    "5. Do not touch anything listed in 'do_not_modify_casually' without the process that entry names.",
+    "Optional helper: 'python scripts/python/agent_context.py route <task_class_id>' emits this same routing as JSON without hand-parsing this file."
+  ],
+
+  "entries": [
+    { "id": "agent-contract", "path": "docs/agent/agent-contract.md", "role": "canonical_entry_document", "note": "Tool-agnostic operating contract: routing order, evidence hierarchy, build/test commands, architecture, generated-artifact policy, handoff requirement. Read first, every session." },
+    { "id": "current-state", "path": "docs/current-state.md", "role": "source_of_truth", "note": "Primary handoff document: current verified state, active research goal and non-goals, corpus/baseline measurements, known limitations, open questions, dated decision log." },
+    { "id": "findings-index", "path": "docs/findings/index.json", "role": "source_of_truth", "note": "Machine-readable catalog of every docs/findings, docs/gates, and docs/protocol document (id, path, scope, status, summary, supersedes/superseded_by). Read before opening any individual findings file." },
+    { "id": "context-map", "path": "docs/agent/context-map.json", "role": "source_of_truth", "note": "This file. Answers 'what repository context does this task need', not 'what state is currently true'." },
+    { "id": "roadmap", "path": "docs/roadmap.md", "role": "source_of_truth", "note": "Gated long-term roadmap: phases, gate criteria, deferred-work register (D1-D21+). Authoritative for whether a later-phase task (IR, executor, simulation, learning) is currently authorized." },
+    { "id": "structural-investigation-protocol", "path": "docs/protocol/structural-investigation-protocol.md", "role": "protocol", "note": "Frozen v1.0 set-by-set structural audit procedure." },
+    { "id": "structural-annotation-guide", "path": "docs/protocol/structural-annotation-guide-v1.0.md", "role": "protocol", "note": "Frozen v1.0 unit-level annotation guide used by structural audits." },
+    { "id": "readme-pipeline", "path": "docs/README.md", "role": "reference", "note": "Full data-pipeline and mtg-discover CLI reference. Reference material, not state." },
+    { "id": "research-notes", "path": "docs/RESEARCH_NOTES.md", "role": "reference", "note": "Literature review. Reference material, not state." },
+    { "id": "future-work-alpha-engine-poc", "path": "docs/future-work/alpha-engine-poc-playbook.md", "role": "dormant_future_work", "note": "Parser -> IR -> execution proof-of-concept playbook. Dormant: only in scope when a task prompt explicitly invokes it by path and phase, per its own Section 3 invocation protocol and the roadmap's phase gating." },
+    { "id": "manifests-readme", "path": "docs/manifests/README.md", "role": "reference", "note": "What the committed reproducibility manifests bind and how to validate them." },
+
+    { "id": "src-cli", "path": "src/main.rs", "role": "code_area", "note": "mtg-discover entry point and dispatch, alongside src/cli.rs (CLI argument definitions)." },
+    { "id": "src-segment", "path": "src/segment.rs", "role": "code_area", "note": "segment_text/segment_line/build_unit, classify_kind, normalize_text. Shared by 'segment' and 'templates' CLI commands; changing it changes corpus-wide baseline numbers recorded in docs/current-state.md." },
+    { "id": "src-cards", "path": "src/cards.rs", "role": "code_area", "note": "Card and set query logic." },
+    { "id": "src-rules", "path": "src/rules.rs", "role": "code_area", "note": "Comprehensive Rules parsing and lookup (numbered rules and glossary)." },
+    { "id": "src-audit", "path": "src/audit.rs", "role": "code_area", "note": "Structural-audit export/measurement commands used by the protocol." },
+    { "id": "src-database", "path": "src/database.rs", "role": "code_area", "note": "Shared read-only database access policy, including held-out-pool exclusion at the query boundary." },
+    { "id": "src-tests", "path": "src/tests", "role": "code_area", "note": "Subsystem-organized Rust unit tests (segmentation, normalization, delayed_triggers, prefixes, rules, audit, database)." },
+    { "id": "python-pipeline", "path": "scripts/python/mtg_card_pipeline.py", "role": "code_area", "note": "Fetches Scryfall bulk data and loads cards.sqlite. Standard-library-only; keep it that way." },
+    { "id": "python-search", "path": "scripts/python/mtg_search.py", "role": "code_area", "note": "Human-oriented interactive card lookup." },
+    { "id": "python-protocol-tooling", "path": "scripts/python", "role": "code_area", "note": "Protocol tooling: export_units.py, audit_metrics.py, verify_export_safety.py, verify_manifests.py, corpus_checks/, plus this file's own agent_context.py helper." },
+
+    { "id": "docs-findings", "path": "docs/findings", "role": "research_artifact_area", "note": "One document per completed or in-progress investigation. Route through findings-index; do not read blind or recursively." },
+    { "id": "docs-gates", "path": "docs/gates", "role": "research_artifact_area", "note": "One evidence package and decision record per roadmap gate. Route through findings-index." },
+    { "id": "docs-audits", "path": "docs/audits", "role": "research_artifact_area", "note": "Per-set frozen artifact packages: unit export, unit-level annotation(s), metrics.json." },
+    { "id": "docs-manifests", "path": "docs/manifests", "role": "research_artifact_area", "note": "Committed reproducibility manifests (snapshot and experiment identity records). Do not commit the bulk/database files they bind to." },
+    { "id": "docs-corpus-checks", "path": "docs/audits/corpus-checks", "role": "research_artifact_area", "note": "Scripted corpus-wide S11 check reports for accepted structural proposals." },
+
+    { "id": "gen-sqlite", "path": "cards.sqlite", "role": "generated_local_artifact", "note": "Regenerated by scripts/python/mtg_card_pipeline.py load. Gitignored. Never commit." },
+    { "id": "gen-oracle-cards", "path": "oracle-cards.jsonl.gz", "role": "generated_local_artifact", "note": "Scryfall Oracle Cards bulk input. Gitignored. Never commit." },
+    { "id": "gen-rulings", "path": "rulings.jsonl.gz", "role": "generated_local_artifact", "note": "Scryfall rulings bulk input. Gitignored. Never commit." },
+    { "id": "gen-default-cards", "path": "default-cards.jsonl.gz", "role": "generated_local_artifact", "note": "Scryfall all-printings bulk input, used only for first-printing derivation. Gitignored. Never commit." },
+    { "id": "gen-target", "path": "target", "role": "generated_local_artifact", "note": "Rust build output. Gitignored. Never commit." },
+    { "id": "src-comprehensive-rules", "path": "Magic-Comprehensive_Rules.md", "role": "tracked_source_data", "note": "Local Comprehensive Rules text. Tracked (not gitignored) despite being external data, because it is a fixed input rather than a regenerable artifact." }
+  ],
+
+  "machine_interfaces": [
+    { "id": "mtg-discover-cli", "description": "Release-built Rust CLI. Successful commands print one JSON document to stdout; errors go to stderr with a nonzero exit.", "invoke": "target/release/mtg-discover.exe <subcommand>", "see": "agent-contract" },
+    { "id": "findings-index-json", "description": "Structured catalog of findings/gates/protocol documents.", "invoke": "read docs/findings/index.json directly", "see": "findings-index" },
+    { "id": "context-map-json", "description": "This file, for programmatic routing.", "invoke": "read docs/agent/context-map.json directly, or use agent-context-helper", "see": "context-map" },
+    { "id": "agent-context-helper", "description": "Optional standard-library-only Python helper over this file. One JSON document to stdout on success; diagnostics to stderr; nonzero exit on failure.", "invoke": "python scripts/python/agent_context.py --help" },
+    { "id": "verify-manifests", "description": "Validates committed reproducibility manifests against bound files.", "invoke": "python scripts/python/verify_manifests.py <manifest.json...>" }
+  ],
+
+  "validation_commands": [
+    { "id": "rust-tests", "command": "cargo test", "when": "Any change under src/, including segmentation, normalization, rules, audit, or database logic." },
+    { "id": "rust-fmt", "command": "cargo fmt -- --check", "when": "Any change under src/." },
+    { "id": "rust-clippy", "command": "cargo clippy --all-targets -- -D warnings", "when": "Any change under src/." },
+    { "id": "rust-templates-recompute", "command": ".\\target\\release\\mtg-discover.exe templates --limit 100", "when": "Any change to src/segment.rs; refresh the affected measurements in docs/current-state.md rather than leaving them stale." },
+    { "id": "python-unit-tests", "command": "python -m unittest scripts.python.test_<module>", "when": "Any change under scripts/python/ that has a matching test_*.py file (run from the repository root)." },
+    { "id": "verify-manifests-check", "command": "python scripts/python/verify_manifests.py docs/manifests/<file>.json", "when": "Any change touching docs/manifests/ or the data it binds." },
+    { "id": "context-map-selfcheck", "command": "python scripts/python/agent_context.py validate", "when": "Any change to docs/agent/context-map.json itself." }
+  ],
+
+  "task_routes": [
+    {
+      "id": "repository-orientation",
+      "description": "A fresh agent needs to understand what this repository is and what to do first, with no task-specific angle yet.",
+      "required_context": [{ "ref": "agent-contract" }, { "ref": "current-state" }, { "ref": "findings-index" }],
+      "optional_context": [{ "ref": "roadmap" }, { "ref": "readme-pipeline" }],
+      "likely_code_areas": [],
+      "validation": [],
+      "do_not_modify_casually": []
+    },
+    {
+      "id": "documentation-handoff-maintenance",
+      "description": "Updating docs/current-state.md, adding/editing a findings/gates/protocol document, or otherwise closing out a task's required handoff.",
+      "required_context": [{ "ref": "agent-contract" }, { "ref": "current-state" }, { "ref": "findings-index" }],
+      "optional_context": [{ "ref": "context-map" }],
+      "likely_code_areas": [{ "ref": "docs-findings" }, { "ref": "docs-gates" }],
+      "validation": [],
+      "do_not_modify_casually": [
+        { "ref": "findings-index", "reason": "Every findings/gates/protocol add or edit must also update its index entry (id, path, scope, status, summary, supersedes/superseded_by); do not let the index drift from the documents it catalogs." }
+      ]
+    },
+    {
+      "id": "structural-segmentation-normalization-change",
+      "description": "Changing segment_text/segment_line/build_unit/classify_kind/normalize_text or otherwise changing how Oracle text is split into units or normalized into templates.",
+      "required_context": [{ "ref": "agent-contract" }, { "ref": "current-state" }, { "ref": "structural-investigation-protocol" }],
+      "optional_context": [{ "ref": "findings-index" }, { "ref": "docs-findings" }, { "ref": "roadmap" }],
+      "likely_code_areas": [{ "ref": "src-segment" }, { "ref": "src-tests" }],
+      "validation": [{ "ref": "rust-tests" }, { "ref": "rust-fmt" }, { "ref": "rust-clippy" }, { "ref": "rust-templates-recompute" }],
+      "do_not_modify_casually": [
+        { "ref": "docs-audits", "reason": "Frozen per-set exports and annotations are evidence artifacts; a segmenter/normalizer change can make them stale (drift) and requires the protocol's re-export/re-measure process, not a silent edit." },
+        { "ref": "current-state", "reason": "Corpus-wide baseline numbers in the verified data snapshot must be refreshed from a real run, never hand-edited." }
+      ]
+    },
+    {
+      "id": "structural-audit-research",
+      "description": "Running or continuing a per-set structural audit (preregistration, annotation passes, adjudication) under the frozen protocol.",
+      "required_context": [{ "ref": "agent-contract" }, { "ref": "current-state" }, { "ref": "structural-investigation-protocol" }, { "ref": "structural-annotation-guide" }, { "ref": "findings-index" }],
+      "optional_context": [{ "ref": "docs-gates" }, { "ref": "roadmap" }],
+      "likely_code_areas": [{ "ref": "src-audit" }, { "ref": "python-protocol-tooling" }],
+      "validation": [{ "ref": "python-unit-tests" }],
+      "do_not_modify_casually": [
+        { "ref": "docs-audits", "reason": "Frozen exports/annotations for a closed or in-progress audit are the audit's evidence; changing them outside the protocol's preregistration/adjudication steps invalidates the audit." },
+        { "ref": "structural-investigation-protocol", "reason": "Frozen v1.0; changing it mid-audit changes the procedure the current audit was preregistered under." }
+      ]
+    },
+    {
+      "id": "corpus-data-ingestion-change",
+      "description": "Changing how Scryfall bulk data is fetched, loaded, or shaped into cards.sqlite (scripts/python/mtg_card_pipeline.py and related database schema).",
+      "required_context": [{ "ref": "agent-contract" }, { "ref": "current-state" }, { "ref": "readme-pipeline" }],
+      "optional_context": [{ "ref": "docs-manifests" }, { "ref": "manifests-readme" }],
+      "likely_code_areas": [{ "ref": "python-pipeline" }, { "ref": "src-database" }, { "ref": "src-cards" }],
+      "validation": [{ "ref": "rust-tests" }, { "ref": "python-unit-tests" }, { "ref": "verify-manifests-check" }],
+      "do_not_modify_casually": [
+        { "ref": "gen-sqlite", "reason": "Generated local artifact; regenerate, do not hand-edit or commit." },
+        { "ref": "docs-manifests", "reason": "Committed manifests bind exact byte identities; a data-shape change requires a new manifest, not editing an existing one's recorded hashes." }
+      ]
+    },
+    {
+      "id": "rules-comprehensive-rules-investigation",
+      "description": "A question about game rules, rule citations, or how the rules parser exposes numbered rules and glossary entries.",
+      "required_context": [{ "ref": "agent-contract" }, { "ref": "current-state" }],
+      "optional_context": [{ "ref": "src-comprehensive-rules" }, { "ref": "findings-index" }],
+      "likely_code_areas": [{ "ref": "src-rules" }],
+      "validation": [{ "ref": "rust-tests" }],
+      "do_not_modify_casually": [
+        { "ref": "src-comprehensive-rules", "reason": "Tracked source data reflecting an official rules text snapshot; edits should be a deliberate snapshot update, not incidental text changes." }
+      ]
+    },
+    {
+      "id": "cli-query-behavior-change",
+      "description": "Changing mtg-discover CLI commands, arguments, or output shape (src/main.rs, src/cli.rs) without changing segmentation/normalization semantics.",
+      "required_context": [{ "ref": "agent-contract" }],
+      "optional_context": [{ "ref": "readme-pipeline" }, { "ref": "current-state" }],
+      "likely_code_areas": [{ "ref": "src-cli" }, { "ref": "src-cards" }, { "ref": "src-rules" }],
+      "validation": [{ "ref": "rust-tests" }, { "ref": "rust-fmt" }, { "ref": "rust-clippy" }],
+      "do_not_modify_casually": [
+        { "ref": "src-database", "reason": "Owns the held-out-pool exclusion at the query boundary; a CLI change that adds a new query path must preserve that exclusion, not bypass it." }
+      ]
+    },
+    {
+      "id": "research-protocol-gate-work",
+      "description": "Proposing or evaluating a change to the frozen structural-investigation protocol/annotation guide, or preparing/reviewing a roadmap gate evidence package.",
+      "required_context": [{ "ref": "agent-contract" }, { "ref": "current-state" }, { "ref": "roadmap" }, { "ref": "structural-investigation-protocol" }],
+      "optional_context": [{ "ref": "structural-annotation-guide" }, { "ref": "docs-gates" }, { "ref": "findings-index" }],
+      "likely_code_areas": [],
+      "validation": [],
+      "do_not_modify_casually": [
+        { "ref": "roadmap", "reason": "Gate criteria and phase authorization are the program's scope-control mechanism (roadmap Section 2.3); changes need a written change record, not an inline edit." },
+        { "ref": "structural-investigation-protocol", "reason": "Frozen v1.0; a protocol revision needs its own versioning and re-freeze, not a silent edit." }
+      ]
+    },
+    {
+      "id": "literature-external-research",
+      "description": "Reviewing or adding external literature, existing-engine comparisons, or architecture references that inform (but do not decide) future IR/engine choices.",
+      "required_context": [{ "ref": "agent-contract" }, { "ref": "current-state" }, { "ref": "research-notes" }],
+      "optional_context": [{ "ref": "roadmap" }, { "ref": "findings-index" }],
+      "likely_code_areas": [],
+      "validation": [],
+      "do_not_modify_casually": []
+    },
+    {
+      "id": "future-semantic-parser-ir-work",
+      "description": "Any work toward a semantic IR, parser-beyond-segmentation, effect executor, or simulation. Not authorized by default; route to state and let it decide authorization, do not assume architecture.",
+      "required_context": [{ "ref": "agent-contract" }, { "ref": "current-state" }, { "ref": "roadmap" }],
+      "optional_context": [{ "ref": "future-work-alpha-engine-poc" }, { "ref": "research-notes" }, { "ref": "findings-index" }],
+      "likely_code_areas": [],
+      "validation": [],
+      "do_not_modify_casually": [
+        { "ref": "roadmap", "reason": "This task class is phase-gated; roadmap.md's gate criteria and deferred-work register determine what is currently authorized, not this file." }
+      ],
+      "note": "This route intentionally names no architecture, IR, or design. It exists only to point an agent at the documents that govern whether and how such work may begin."
+    }
+  ],
+
+  "unknown_task_fallback": {
+    "id": "generic-orientation",
+    "description": "No task_routes entry matched. This is a conservative default, not a guess at intent: read the canonical entry documents, then ask for clarification or narrow the task before making changes.",
+    "required_context": [{ "ref": "agent-contract" }, { "ref": "current-state" }, { "ref": "findings-index" }],
+    "optional_context": [{ "ref": "roadmap" }, { "ref": "context-map" }],
+    "likely_code_areas": [],
+    "validation": [],
+    "do_not_modify_casually": []
+  }
+}
