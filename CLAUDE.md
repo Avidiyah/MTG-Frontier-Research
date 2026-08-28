@@ -10,6 +10,8 @@ An empirical research workbench for the problem of translating Magic: The Gather
 
 **Then Read `docs\findings` for the most recent research findings to review your current progress**
 
+Before ending any task, leave a handoff document: update `docs/current-state.md` for repository-wide truth, or add a concise dated note under `docs/findings/` for scoped work. Capture what changed, what was verified, and the next open question.
+
 ## Commands
 
 ```powershell

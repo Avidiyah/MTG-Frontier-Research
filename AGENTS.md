@@ -36,6 +36,8 @@ Recent commits use short, imperative summaries with optional scope context, for 
 
 Read `docs/current-state.md` before research work and the newest relevant file in `docs/findings/`. Treat the current segmenter and normalizer as measurement tools, not a parser or semantic engine. Follow the evidence hierarchy: Comprehensive Rules, Oracle text, official rulings, corpus measurements, literature, then agent interpretation.
 
+Before you finish any task, leave a handoff document: update `docs/current-state.md` when the repository-wide state changes, or add a concise dated note under `docs/findings/` for scoped work. Include what changed, what was verified, and the next open question.
+
 ## Rust MCP Tooling
 
 This repo has a `rust-analyzer`-backed MCP server configured (`rust-analyzer-mcp`, see `.vscode/mcp.json` and `.mcp.json`). When it is connected and trusted, prefer its tools — get symbols, go to definition, find references, hover — over grep/text search when tracing code across the functional modules under `src/`. If the MCP tools aren't available in a given session, fall back to grep/glob. Install or reinstall locally with:

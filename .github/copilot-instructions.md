@@ -14,6 +14,11 @@ the current investigation sequence. Then read the newest relevant document in
 `docs/findings/`. Use `docs/RESEARCH_NOTES.md` for literature context and
 `docs/mtg_ai_research_roadmap.md` for the long-term pipeline.
 
+Before ending any task, create a handoff document: update `docs/current-state.md`
+for repository-wide truth, or add a concise dated note under `docs/findings/`
+for scoped work. Record what changed, what was verified, and the next open
+question.
+
 ## Build, test, and lint
 
 Run commands from the repository root in PowerShell.

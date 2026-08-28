@@ -1,6 +1,6 @@
 # Current State: MTG Frontier Research
 
-Last verified: 2026-08-27
+Last verified: 2026-08-28
 
 ## Purpose of this document
 
@@ -456,8 +456,20 @@ Unless new evidence changes priorities:
     the required 30-row union and closed Legends: 409 accepted rows, 16 defects,
     one unsupported span gap, no ambiguous or unresolved rows, and zero export
     drift. Boundary precision/recall are 415/425 (0.9765) and 415/426 (0.9742);
-    structural exact-card correctness is 257/273 (0.9414). The next eligible
-    set is The Dark (`drk`).
+    structural exact-card correctness is 257/273 (0.9414). The Dark (`drk`)
+    was frozen at `70fa956` over 113 held-out-safe development cards (110
+    with text, 163 units, export `4460c2de…`), annotated by two independent
+    passes, and adjudicated and closed on 2026-08-28
+    (`docs/findings/drk-structural-audit.md`): 159 accept, 3 defect, 1
+    ambiguous, 0 unsupported, drift 0. Boundary precision/recall 160/163
+    (0.9816) and 160/161 (0.9938); kind, role, and source accuracy 1.0;
+    exact-card correctness 107/110 (0.9727); unit novelty 127/163 (0.7791).
+    Preregistered row agreement was 141/163 (0.8650), so **H10 is
+    falsified**; 18 of 22 disagreements are one context convention (C6 on
+    plain instant/sorcery spell text), and non-context agreement is 159/163.
+    One proposal (P-DRK-1, over-inclusive sentence-initial `When` child span)
+    joins P-LEG-1..3 in the unimplemented S8–S12 pipeline. The next eligible
+    set is Fallen Empires (`fem`).
 2. **Normalization ablations:** measure one reversible transformation at a time
    rather than applying increasingly lossy normalization as a bundle.
 3. **Typed-slot discovery:** test candidate roles for numbers, mana, objects,
@@ -943,8 +955,8 @@ When updating this document:
   aggregate-only freeze: 119→113 cards (6 held-out excluded), 110 with text,
   163 units, retained export SHA-256 `4460c2de…`, byte-identical repeated
   exports, 163 unique keys, 0 held-out records, corrected multi-sentence count
-  25. Regression/novelty corpus is `lea`+`leb`+`arn`+`atq`+`leg`. The audit is
-  Pass 1 was authorized, completed, and sealed while pass 2 and the adjudicator
+  25. Regression/novelty corpus is `lea`+`leb`+`arn`+`atq`+`leg`.
+- Pass 1 was authorized, completed, and sealed while pass 2 and the adjudicator
   were still unassigned, a governance deviation from preregistration §12's
   full-roster-before-opening requirement. On 2026-08-27 program owner Avidiyah
   directed a narrow reconciliation: preserve sealed pass 1 because the export
@@ -955,5 +967,24 @@ When updating this document:
   `gpt-5.3-codex-pass2-2026-08-27`, the separate adjudicator is
   `fresh-dark-adjudicator-2026-08-27`, and pass 2 is authorized to open after
   its attestation. The adjudicator may not inspect Dark rows, either pass, or
-  comparison output until pass 2 is sealed. The audit remains open and
-  unadjudicated; no empirical Dark finding is populated by this reconciliation.
+  comparison output until pass 2 is sealed. No empirical Dark finding was
+  populated by this reconciliation.
+- Pass 2 sealed on 2026-08-27T23:45:35-05:00 (`5b555148…`). The adjudicator
+  `fresh-dark-adjudicator-2026-08-27` verified every seal hash before opening
+  a row, generated the §7.3 agreement report (141/163 rows, 89/110 cards;
+  keys 163/163, drift 0), reviewed the 23-row union, and closed The Dark on
+  2026-08-28 (`docs/gates/dark-entry-record.md` §6). Final annotation
+  `docs/audits/drk/units-annotated.tsv` (`aed8ab63…`), metrics
+  `docs/audits/drk/metrics.json` (`8c02d616…`). Adjudicated outcomes: the 18
+  context-only disagreements on plain instant/sorcery text → `none` (C6
+  "required", not "consulted"); Runesword #0/#1 → boundary defects (the
+  sentence-initial `When` child consumed two trailing parent sentences; the
+  correct non-contiguous-parent shape is already emitted for `atq` Rocket
+  Launcher, so it is not a schema gap); Angry Mob #1 → `ambiguous` per frozen
+  guide example 19; Leviathan #1 → `accept` under CR 113.2c; Venom #1
+  consensus D15 defect. H1–H5 and H9 pass, H6/H7/H8-static/H11 have zero
+  denominators, **H10 is falsified** (0.8650 < 0.95) by the context
+  convention rather than structural disagreement. Open for the next guide
+  version: state C6's answer for plain spell text and a boundary value for
+  over-inclusive child spans. No source, export, protocol, guide, or sealed
+  pass file changed.

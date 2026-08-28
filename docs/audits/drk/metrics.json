@@ -1,0 +1,120 @@
+{
+  "annotated_file": "docs/audits/drk/units-annotated.tsv",
+  "cards": 110,
+  "units": {
+    "all": 163,
+    "printed": 163,
+    "rules_supplied": 0,
+    "printed_top_level": 161,
+    "printed_children": 2
+  },
+  "boundary": {
+    "precision": {
+      "numerator": 160,
+      "denominator": 163,
+      "value": 0.9816
+    },
+    "recall": {
+      "numerator": 160,
+      "denominator": 161,
+      "value": 0.9938
+    },
+    "by_value": {
+      "ok": 160,
+      "over": 1,
+      "under": 2
+    },
+    "missed_boundaries": 1,
+    "unsure": 0
+  },
+  "kind_accuracy": {
+    "numerator": 159,
+    "denominator": 159,
+    "value": 1.0
+  },
+  "kind_not_applicable_or_unsure": 1,
+  "role_accuracy": {
+    "numerator": 160,
+    "denominator": 160,
+    "value": 1.0
+  },
+  "source_accuracy": {
+    "numerator": 163,
+    "denominator": 163,
+    "value": 1.0
+  },
+  "structural_exact_card_correctness": {
+    "numerator": 107,
+    "denominator": 110,
+    "value": 0.9727
+  },
+  "dispositions": {
+    "accept": 159,
+    "ambiguous": 1,
+    "defect": 3
+  },
+  "context_required": {
+    "none": 130,
+    "cr": 29,
+    "type_line": 4
+  },
+  "structure_tags": {
+    "keyword": 24,
+    "conditional_cda": 1,
+    "multi_sentence": 25,
+    "self_reference_name": 9,
+    "mana_ability": 8,
+    "instead_in_spell": 1,
+    "instead_in_activated": 3,
+    "cast_restriction": 1,
+    "enters_replacement": 4,
+    "activation_instruction": 3,
+    "state_trigger": 3,
+    "keyword_list_split": 2,
+    "cda": 2,
+    "delayed_trigger_parent": 2,
+    "delayed_trigger_when": 2,
+    "cost_modification": 1,
+    "prevention_static": 1,
+    "delayed_trigger_end_of_combat": 1
+  },
+  "normalization_flags": {
+    "fragmentation:land_type": 15,
+    "collision:tap_as_mana": 41,
+    "fragmentation:object_type": 9,
+    "fragmentation:color_word": 8
+  },
+  "kind_expected_when_wrong": {},
+  "annotators": {
+    "claude-fable-5-pass1-2026-08-27;gpt-5.3-codex-pass2-2026-08-27;fresh-dark-adjudicator-2026-08-27": 163
+  },
+  "templates": {
+    "distinct": 148,
+    "singletons": 138
+  },
+  "novelty": {
+    "earlier_files": [
+      "docs/audits/lea/units-export.tsv",
+      "docs/audits/leb/units-export.tsv",
+      "docs/audits/arn/units-export.tsv",
+      "docs/audits/atq/units-export.tsv",
+      "docs/audits/leg/units-export.tsv"
+    ],
+    "earlier_distinct_templates": 746,
+    "unit_novelty": {
+      "numerator": 127,
+      "denominator": 163,
+      "value": 0.7791
+    },
+    "template_novelty": {
+      "numerator": 126,
+      "denominator": 148,
+      "value": 0.8514
+    }
+  },
+  "drift": {
+    "export": "docs/audits/drk/units-export.tsv",
+    "changed_or_missing_units": 0,
+    "examples": []
+  }
+}
