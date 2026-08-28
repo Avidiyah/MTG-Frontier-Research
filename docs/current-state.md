@@ -944,7 +944,16 @@ When updating this document:
   163 units, retained export SHA-256 `4460c2de…`, byte-identical repeated
   exports, 163 unique keys, 0 held-out records, corrected multi-sentence count
   25. Regression/novelty corpus is `lea`+`leb`+`arn`+`atq`+`leg`. The audit is
-  **technically ready to open but not authorized**: pass 1 candidate
-  `claude-fable-5-pass1-2026-08-27` (Fable) attested; pass-2 annotator,
-  adjudicator, and program-owner authorization remain outstanding. No eligible
-  Dark card row has been inspected.
+  Pass 1 was authorized, completed, and sealed while pass 2 and the adjudicator
+  were still unassigned, a governance deviation from preregistration §12's
+  full-roster-before-opening requirement. On 2026-08-27 program owner Avidiyah
+  directed a narrow reconciliation: preserve sealed pass 1 because the export
+  and guide were frozen, pass 1 remained independent, no held-out exposure or
+  structural drift is known, pass 2 had not opened or inspected pass-1
+  judgments, and the deviation concerns assignment timing rather than row
+  instructions or evidence. Pass 2 is now assigned to
+  `gpt-5.3-codex-pass2-2026-08-27`, the separate adjudicator is
+  `fresh-dark-adjudicator-2026-08-27`, and pass 2 is authorized to open after
+  its attestation. The adjudicator may not inspect Dark rows, either pass, or
+  comparison output until pass 2 is sealed. The audit remains open and
+  unadjudicated; no empirical Dark finding is populated by this reconciliation.
