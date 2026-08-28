@@ -1,0 +1,47 @@
+name: Validate agent context metadata
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/findings/index.json"
+      - "docs/findings/**.md"
+      - "docs/gates/**.md"
+      - "docs/protocol/**.md"
+      - "docs/agent/context-map.json"
+      - "docs/agent/agent-contract.md"
+      - "docs/current-state.md"
+      - "CLAUDE.md"
+      - "AGENTS.md"
+      - ".github/copilot-instructions.md"
+      - "scripts/python/agent_context.py"
+      - "scripts/python/validate_agent_context.py"
+      - ".github/workflows/validate-agent-context.yml"
+  pull_request:
+    paths:
+      - "docs/findings/index.json"
+      - "docs/findings/**.md"
+      - "docs/gates/**.md"
+      - "docs/protocol/**.md"
+      - "docs/agent/context-map.json"
+      - "docs/agent/agent-contract.md"
+      - "docs/current-state.md"
+      - "CLAUDE.md"
+      - "AGENTS.md"
+      - ".github/copilot-instructions.md"
+      - "scripts/python/agent_context.py"
+      - "scripts/python/validate_agent_context.py"
+      - ".github/workflows/validate-agent-context.yml"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate findings index, context map, and agent entry points
+        run: python scripts/python/validate_agent_context.py
+      - name: Run validator's own test suite
+        run: python -m unittest scripts.python.test_validate_agent_context scripts.python.test_agent_context -v

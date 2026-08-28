@@ -582,3 +582,16 @@ findings/gate file and the index entry instead.
   its tests. Solves "which repository context does this task need", which
   the findings index and this document do not. `docs/agent/agent-contract.md`
   now points to it. No research, code behavior, or findings content changed.
+- Added `scripts/python/validate_agent_context.py`, a standard-library-only
+  structural validator for `docs/findings/index.json`,
+  `docs/agent/context-map.json`, and the agent entry-point files (dangling
+  references, asymmetric supersession, unindexed findings/gates/protocol
+  documents, generated-artifact/role mismatches, dropped entry-point
+  pointers), plus its tests
+  (`docs/agent/README-validate-agent-context.md` documents scope) and a CI
+  workflow (`.github/workflows/validate-agent-context.yml`) that runs it on
+  relevant pushes/PRs. Fixed a real one-sided supersession found while
+  building it: `leg-structural-audit` was missing `legends-entry-record`
+  and `legends-opening-work-plan` in its `supersedes` list, even though
+  both of those gate documents already named it in `superseded_by`. No
+  research, code behavior, or findings content changed otherwise.

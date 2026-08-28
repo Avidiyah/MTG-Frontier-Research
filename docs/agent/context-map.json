@@ -22,6 +22,7 @@
     { "id": "research-notes", "path": "docs/RESEARCH_NOTES.md", "role": "reference", "note": "Literature review. Reference material, not state." },
     { "id": "future-work-alpha-engine-poc", "path": "docs/future-work/alpha-engine-poc-playbook.md", "role": "dormant_future_work", "note": "Parser -> IR -> execution proof-of-concept playbook. Dormant: only in scope when a task prompt explicitly invokes it by path and phase, per its own Section 3 invocation protocol and the roadmap's phase gating." },
     { "id": "manifests-readme", "path": "docs/manifests/README.md", "role": "reference", "note": "What the committed reproducibility manifests bind and how to validate them." },
+    { "id": "validate-agent-context-readme", "path": "docs/agent/README-validate-agent-context.md", "role": "reference", "note": "What scripts/python/validate_agent_context.py checks, what it deliberately does not, and how to update metadata records." },
 
     { "id": "src-cli", "path": "src/main.rs", "role": "code_area", "note": "mtg-discover entry point and dispatch, alongside src/cli.rs (CLI argument definitions)." },
     { "id": "src-segment", "path": "src/segment.rs", "role": "code_area", "note": "segment_text/segment_line/build_unit, classify_kind, normalize_text. Shared by 'segment' and 'templates' CLI commands; changing it changes corpus-wide baseline numbers recorded in docs/current-state.md." },
@@ -32,7 +33,7 @@
     { "id": "src-tests", "path": "src/tests", "role": "code_area", "note": "Subsystem-organized Rust unit tests (segmentation, normalization, delayed_triggers, prefixes, rules, audit, database)." },
     { "id": "python-pipeline", "path": "scripts/python/mtg_card_pipeline.py", "role": "code_area", "note": "Fetches Scryfall bulk data and loads cards.sqlite. Standard-library-only; keep it that way." },
     { "id": "python-search", "path": "scripts/python/mtg_search.py", "role": "code_area", "note": "Human-oriented interactive card lookup." },
-    { "id": "python-protocol-tooling", "path": "scripts/python", "role": "code_area", "note": "Protocol tooling: export_units.py, audit_metrics.py, verify_export_safety.py, verify_manifests.py, corpus_checks/, plus this file's own agent_context.py helper." },
+    { "id": "python-protocol-tooling", "path": "scripts/python", "role": "code_area", "note": "Protocol tooling: export_units.py, audit_metrics.py, verify_export_safety.py, verify_manifests.py, corpus_checks/, this file's own agent_context.py helper, and validate_agent_context.py (the findings-index/context-map/entry-point structural validator)." },
 
     { "id": "docs-findings", "path": "docs/findings", "role": "research_artifact_area", "note": "One document per completed or in-progress investigation. Route through findings-index; do not read blind or recursively." },
     { "id": "docs-gates", "path": "docs/gates", "role": "research_artifact_area", "note": "One evidence package and decision record per roadmap gate. Route through findings-index." },
@@ -53,7 +54,8 @@
     { "id": "findings-index-json", "description": "Structured catalog of findings/gates/protocol documents.", "invoke": "read docs/findings/index.json directly", "see": "findings-index" },
     { "id": "context-map-json", "description": "This file, for programmatic routing.", "invoke": "read docs/agent/context-map.json directly, or use agent-context-helper", "see": "context-map" },
     { "id": "agent-context-helper", "description": "Optional standard-library-only Python helper over this file. One JSON document to stdout on success; diagnostics to stderr; nonzero exit on failure.", "invoke": "python scripts/python/agent_context.py --help" },
-    { "id": "verify-manifests", "description": "Validates committed reproducibility manifests against bound files.", "invoke": "python scripts/python/verify_manifests.py <manifest.json...>" }
+    { "id": "verify-manifests", "description": "Validates committed reproducibility manifests against bound files.", "invoke": "python scripts/python/verify_manifests.py <manifest.json...>" },
+    { "id": "validate-agent-context-helper", "description": "Validates docs/findings/index.json, this context map, and the agent entry points for structural drift (dangling references, asymmetric supersession, unindexed documents, generated-artifact/role mismatches). One JSON document to stdout; nonzero exit on failure. See validate-agent-context-readme.", "invoke": "python scripts/python/validate_agent_context.py" }
   ],
 
   "validation_commands": [
@@ -63,7 +65,8 @@
     { "id": "rust-templates-recompute", "command": ".\\target\\release\\mtg-discover.exe templates --limit 100", "when": "Any change to src/segment.rs; refresh the affected measurements in docs/current-state.md rather than leaving them stale." },
     { "id": "python-unit-tests", "command": "python -m unittest scripts.python.test_<module>", "when": "Any change under scripts/python/ that has a matching test_*.py file (run from the repository root)." },
     { "id": "verify-manifests-check", "command": "python scripts/python/verify_manifests.py docs/manifests/<file>.json", "when": "Any change touching docs/manifests/ or the data it binds." },
-    { "id": "context-map-selfcheck", "command": "python scripts/python/agent_context.py validate", "when": "Any change to docs/agent/context-map.json itself." }
+    { "id": "context-map-selfcheck", "command": "python scripts/python/agent_context.py validate", "when": "Any change to docs/agent/context-map.json itself." },
+    { "id": "validate-agent-context", "command": "python scripts/python/validate_agent_context.py", "when": "Any change to docs/findings/index.json, docs/agent/context-map.json, a docs/findings|gates|protocol document, or an agent entry-point file (CLAUDE.md, AGENTS.md, .github/copilot-instructions.md, docs/agent/agent-contract.md)." }
   ],
 
   "task_routes": [
@@ -80,9 +83,9 @@
       "id": "documentation-handoff-maintenance",
       "description": "Updating docs/current-state.md, adding/editing a findings/gates/protocol document, or otherwise closing out a task's required handoff.",
       "required_context": [{ "ref": "agent-contract" }, { "ref": "current-state" }, { "ref": "findings-index" }],
-      "optional_context": [{ "ref": "context-map" }],
+      "optional_context": [{ "ref": "context-map" }, { "ref": "validate-agent-context-readme" }],
       "likely_code_areas": [{ "ref": "docs-findings" }, { "ref": "docs-gates" }],
-      "validation": [],
+      "validation": [{ "ref": "validate-agent-context" }],
       "do_not_modify_casually": [
         { "ref": "findings-index", "reason": "Every findings/gates/protocol add or edit must also update its index entry (id, path, scope, status, summary, supersedes/superseded_by); do not let the index drift from the documents it catalogs." }
       ]

@@ -184,6 +184,12 @@ Before ending any task, leave a handoff document:
   `supersedes`/`superseded_by`) whenever a findings, gate, or protocol
   document is added or changed.
 - Capture what changed, what was verified, and the next open question.
+- Before finishing a task that touched `docs/findings/index.json`,
+  `docs/agent/context-map.json`, a findings/gates/protocol document, or an
+  agent entry-point file, run
+  `python scripts/python/validate_agent_context.py` (see
+  `docs/agent/README-validate-agent-context.md` for what it checks and what
+  it deliberately does not).
 
 ## Repository conventions
 
