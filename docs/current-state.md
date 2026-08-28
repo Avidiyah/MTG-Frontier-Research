@@ -934,3 +934,17 @@ When updating this document:
   of the Holy Nimbus has a missed replacement kind; ten emitted rows miss
   eleven delayed or quoted child units. P-LEG-1 through P-LEG-3 are research
   proposals only and do not block freezing The Dark.
+- Preregistered The Dark (`drk`) structural audit and froze its inputs at
+  measurement commit `70fa956` (frozen segmenter; no P-LEG implemented). Design
+  in `docs/findings/drk-structural-audit-preregistration.md` (hypotheses
+  H1–H11); empty outline `docs/findings/drk-structural-audit.md`; governance
+  `docs/gates/dark-entry-record.md`; manifest
+  `docs/manifests/experiment-dark-freeze-2026-08-27.json`. Held-out-safe
+  aggregate-only freeze: 119→113 cards (6 held-out excluded), 110 with text,
+  163 units, retained export SHA-256 `4460c2de…`, byte-identical repeated
+  exports, 163 unique keys, 0 held-out records, corrected multi-sentence count
+  25. Regression/novelty corpus is `lea`+`leb`+`arn`+`atq`+`leg`. The audit is
+  **technically ready to open but not authorized**: pass 1 candidate
+  `claude-fable-5-pass1-2026-08-27` (Fable) attested; pass-2 annotator,
+  adjudicator, and program-owner authorization remain outstanding. No eligible
+  Dark card row has been inspected.
