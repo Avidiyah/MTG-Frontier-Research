@@ -1,7 +1,8 @@
 # Fallen Empires (`fem`) structural-audit preregistration
 
 - Date prepared: 2026-08-28
-- Status: **preregistered research design; audit not started**
+- Status: **preregistered research design; audit open as of 2026-08-28
+  reauthorization — see `docs/gates/fem-entry-record.md` §4.4**
 - Protocol: `docs/protocol/structural-investigation-protocol.md` v1.0
   (SHA-256 `1bc05d357b24006a2eecc692f9bed5b86d1d828f116c2d741fb75662df4913bf`)
 - Annotation guide: frozen v1.0

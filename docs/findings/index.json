@@ -108,8 +108,8 @@
       "type": "gate",
       "scope": "fem",
       "date": "2026-08-28",
-      "status": "audit_closed_replacement_pass1_and_pass2_reconciliation_pending",
-      "summary": "Fallen Empires handoff after the original pass-1 identity was disqualified by staged-TSV row exposure; audit remains closed pending replacement pass 1, pass-2 attestation/reconciliation, and owner reauthorization.",
+      "status": "superseded_audit_open",
+      "summary": "Fallen Empires pass-1 opening handoff; superseded once the replacement roster (human-fem-pass / restarted copilot-pass2-2026-08-28 / fresh-fem-adjudicator-2026-08-28) was reauthorized and the audit opened. See fem-entry-record.md section 4.4.",
       "supersedes": [],
       "superseded_by": []
     },
@@ -141,8 +141,30 @@
       "type": "gate",
       "scope": "fem",
       "date": "2026-08-28",
-      "status": "audit_closed_pass1_disqualified_reauthorization_pending",
-      "summary": "Fallen Empires entry record: original pass 1 disqualified after staged-TSV output exposed eligible text and pass-2 judgements; replacement pass 1, pass-2 attestation/reconciliation, and owner reauthorization remain pending. The earlier held-out incident remains bound.",
+      "status": "audit_open",
+      "summary": "Fallen Empires entry record: original pass 1 (codex-pass1-2026-08-28) remains disqualified; replacement pass 1 (human-fem-pass) assigned and attested, pass 2 restarted and re-attested, program owner reauthorized the roster (section 4.4). Pass 1 sealed 176/176 rows accept. Audit is open, pass 2/adjudication pending; both incident histories remain logged.",
+      "supersedes": [],
+      "superseded_by": []
+    },
+    {
+      "id": "fem-pass2-adjudication-handoff",
+      "path": "docs/gates/fem-pass2-adjudication-handoff.md",
+      "type": "gate",
+      "scope": "fem",
+      "date": "2026-08-28",
+      "status": "handoff_active",
+      "summary": "Handoff for the next Codex session to seal Fallen Empires pass 2, run comparison/adjudication, and close the audit. Pass 1 already sealed (176/176 accept, sha256 bbc90f7b...).",
+      "supersedes": [],
+      "superseded_by": []
+    },
+    {
+      "id": "ice-age-preparation-handoff",
+      "path": "docs/gates/ice-age-preparation-handoff.md",
+      "type": "gate",
+      "scope": "ice",
+      "date": "2026-08-28",
+      "status": "handoff_active",
+      "summary": "Handoff for the next Sonnet 5 session to draft an Ice Age preregistration skeleton and aggregate-only reconnaissance, without opening Ice Age or touching any fem-scoped file while Fallen Empires is still open.",
       "supersedes": [],
       "superseded_by": []
     },
