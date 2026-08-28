@@ -110,7 +110,8 @@ model already exists and therefore does not solve the active frontier.
 | `scripts/python/verify_export_safety.py`, `scripts/python/verify_manifests.py` | Aggregate-only T7/determinism verification and lightweight provenance validation |
 | `docs/manifests/` | Committed snapshot and experiment identities; generated bulk/database/export files remain uncommitted |
 | `scripts/python/mtg_search.py` | Human-oriented interactive card lookup |
-| `.github/copilot-instructions.md`, `CLAUDE.md` | Agent onboarding, verified commands, architecture, and repository conventions |
+| `docs/agent/agent-contract.md` | Canonical, tool-agnostic agent operating contract (routing, evidence hierarchy, commands, architecture, handoff) |
+| `.github/copilot-instructions.md`, `CLAUDE.md`, `AGENTS.md` | Thin, tool-specific entry points that point to `docs/agent/agent-contract.md` |
 | `docs/README.md` | Setup, command reference, and older pipeline documentation |
 | `docs/RESEARCH_NOTES.md` | Literature findings and downstream architecture context |
 | `Magic-Comprehensive_Rules.md` | Local Comprehensive Rules source used by discovery tools |
@@ -566,3 +567,11 @@ findings/gate file and the index entry instead.
 - Compressed this log and added `docs/findings/index.json` as a
   machine-readable catalog of findings/gates/protocol documents, to stop the
   log re-narrating detail that already lives in those files.
+- Consolidated agent onboarding into one canonical, tool-agnostic
+  `docs/agent/agent-contract.md`; `CLAUDE.md`, `AGENTS.md`, and
+  `.github/copilot-instructions.md` are now thin entry points that point to
+  it instead of duplicating routing, evidence-hierarchy, command, and
+  architecture prose (and, in `AGENTS.md`/copilot's case, a stale
+  "read the newest file in `docs/findings/`" instruction predating the
+  index). Added a minimal root `README.md`. No research, code, or findings
+  content changed.
